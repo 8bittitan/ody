@@ -42,7 +42,7 @@ export const initCmd = defineCommand({
     provider: {
       alias: 'p',
       required: false,
-      description: 'Provider name to use for API requests',
+      description: 'LLM provider to use',
       type: 'string',
     },
     shouldCommit: {

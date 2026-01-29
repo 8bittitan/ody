@@ -1,0 +1,6 @@
+{
+  "backend": "opencode",
+  "maxIterations": 3,
+  "shouldCommit": true,
+  "validatorCommands": []
+}
