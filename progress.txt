@@ -1,0 +1,1 @@
+2026-01-29: Added --provider/--model args to init to persist optional config fields; marked PRD complete.

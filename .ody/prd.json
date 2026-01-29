@@ -1,0 +1,12 @@
+[
+  {
+    "category": "functional",
+    "description": "Allow adding provider and model to ody.json configuration file",
+    "steps": [
+      "Allows `--provider` and `--model` optional arguments to init command",
+      "Adds new `provider` property to configuration object if passed in",
+      "Adds new `model` property to configuration object if passed in"
+    ],
+    "passes": true
+  }
+]
