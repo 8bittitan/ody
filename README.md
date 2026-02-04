@@ -20,6 +20,27 @@ Run the CLI:
 bun run src/index.ts
 ```
 
+## CLI commands
+
+Run commands with `./ody` after a build, or use `bun run src/index.ts` in development.
+
+- `--help` displays usage definitions
+- `init` initializes `.ody` configuration in the current project
+  - Options: `--backend/-b`, `--dir/-d`, `--maxIterations/-i`, `--provider/-p`, `--model/-m`, `--shouldCommit/-c`
+- `run` executes the agent loop
+  - Options: `--verbose`, `--once`, `--dry-run` (only with `--once`)
+- `task new` creates a task entry in `.ody/prd.json`
+  - Options: `--category`
+
+Example:
+
+```bash
+bun run src/index.ts --help
+bun run src/index.ts init
+bun run src/index.ts run --once
+bun run src/index.ts task new
+```
+
 ## Build
 
 Compile a native executable:
@@ -65,4 +86,3 @@ bun fmt
 Tests:
 
 - No tests are configured yet
-
