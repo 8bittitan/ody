@@ -8,5 +8,14 @@
       "Adds new `model` property to configuration object if passed in"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Test task",
+    "steps": [
+      "Test 1",
+      "Test 2"
+    ],
+    "passes": true
   }
 ]

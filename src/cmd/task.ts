@@ -1,3 +1,4 @@
+import { isCancel, text, outro } from '@clack/prompts';
 import { defineCommand } from 'citty';
 import { exists, mkdir } from 'fs/promises';
 import path from 'path';
@@ -27,12 +28,16 @@ const taskNewCmd = defineCommand({
   async run({ args }) {
     logger.start('Creating new task');
 
-    const description = await logger.prompt('Task description:', {
-      required: true,
-      type: 'text',
+    const description = await text({
+      message: 'Task description',
+      validate(value) {
+        if (!value) return 'Please provide a task description';
+
+        return undefined;
+      },
     });
 
-    if (!description) {
+    if (isCancel(description)) {
       logger.fatal('Task description is required.');
       return;
     }
@@ -40,10 +45,14 @@ const taskNewCmd = defineCommand({
     let stepCount = 0;
 
     while (true) {
-      const rawCount = await logger.prompt('How many steps?', {
-        required: true,
-        type: 'text',
+      const rawCount = await text({
+        message: 'How many steps?',
       });
+
+      if (isCancel(rawCount)) {
+        logger.warn('Please enter a positive integer for the step count.');
+        continue;
+      }
 
       const parsed = Number.parseInt(String(rawCount), 10);
 
@@ -58,12 +67,17 @@ const taskNewCmd = defineCommand({
     const steps: string[] = [];
 
     for (let i = 0; i < stepCount; i += 1) {
-      const step = await logger.prompt(`Step ${i + 1}:`, {
-        required: true,
-        type: 'text',
+      const step = await text({
+        message: `Step ${i + 1}`,
+        validate(value) {
+          if (!value) return 'Step description is required.';
+          if (value.trim() === '') return 'Step description cannot be blank.';
+
+          return undefined;
+        },
       });
 
-      if (!step) {
+      if (isCancel(step)) {
         logger.fatal('Step description is required.');
         return;
       }
@@ -107,7 +121,7 @@ const taskNewCmd = defineCommand({
 
       await Bun.write(prdPath, JSON.stringify(nextTasks, null, 2));
 
-      logger.success('Task added to .ody/prd.json');
+      outro('Task added to .ody/prd.json');
     } catch (err) {
       logger.fatal(err);
     }

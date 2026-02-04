@@ -1,8 +1,8 @@
+import { log } from '@clack/prompts';
 import path from 'path';
 import { z } from 'zod';
 
 import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE } from '../util/constants';
-import { logger } from './logger';
 
 const configSchema = z.object({
   backend: z
@@ -28,7 +28,7 @@ export namespace Config {
       return;
     }
 
-    logger.debug('Loading configuration');
+    log.info('Loading configuration');
 
     try {
       const input = await Bun.file(path.join(BASE_DIR, ODY_FILE)).text();
@@ -36,7 +36,10 @@ export namespace Config {
 
       config = parse(parsed);
     } catch (err) {
-      logger.fatal(err);
+      if (Error.isError(err)) {
+        log.error(err.message);
+        process.exit(1);
+      }
     }
   }
 
@@ -46,7 +49,7 @@ export namespace Config {
 
   export function all() {
     if (!config) {
-      logger.fatal('Must `.load` Config first');
+      log.error('Must `.load` configuration first');
       throw new Error('Config not loaded');
     }
 
@@ -55,7 +58,7 @@ export namespace Config {
 
   export function get<K extends keyof OdyConfig>(key: K): OdyConfig[K] {
     if (!config) {
-      logger.fatal('Must `.load` Config first');
+      log.error('Must `.load` configuration first');
       throw new Error('Config not loaded');
     }
 

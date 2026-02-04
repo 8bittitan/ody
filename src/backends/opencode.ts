@@ -13,10 +13,8 @@ export class Opencode extends Harness {
       'build',
       '-m',
       'openai/gpt-5.2-codex',
-      '-f',
-      path.join(BASE_DIR, PRD_FILE),
       'run',
-      prompt,
+      `@${path.join(BASE_DIR, PRD_FILE)} ${prompt}`,
     ];
   }
 

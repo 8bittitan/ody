@@ -1,3 +1,4 @@
+import { autocomplete, isCancel, outro, log, intro } from '@clack/prompts';
 import { defineCommand } from 'citty';
 import { exists, mkdir } from 'fs/promises';
 import path from 'path';
@@ -56,7 +57,7 @@ export const initCmd = defineCommand({
   async run({ args }) {
     const outDir = path.join(process.cwd(), args.dir);
 
-    logger.start('Initializing Ody in', outDir);
+    intro(`Initializing Ody in ${outDir}`);
 
     if (!(await exists(outDir))) {
       await mkdir(outDir);
@@ -70,29 +71,29 @@ export const initCmd = defineCommand({
 
     if (!isBackendAvailable) {
       if (backend) {
-        logger.warn('Selected backend is not available on your system:', backend);
+        log.warn(`Selected backend is not available on your system: ${backend}`);
       }
 
-      const choice = await logger.prompt('Please select which backend to use: ', {
-        required: true,
+      const choice = await autocomplete({
+        message: 'PLease select which backend to use: ',
+        placeholder: 'Type to search',
         options: availableBackends,
-        cancel: 'null',
-        type: 'select',
       });
 
-      if (!choice) {
+      if (isCancel(choice)) {
         logger.fatal('Must provide a backend to use.');
         process.exit(1);
       }
 
       backend = choice;
-      logger.log('');
     }
 
     if (!backend) {
       logger.fatal('Must provide a backend to use.');
       process.exit(1);
     }
+
+    log.step('Saving configuration');
 
     const configInput: {
       backend: string;
@@ -118,6 +119,8 @@ export const initCmd = defineCommand({
 
     await Bun.write(path.join(outDir, ODY_FILE), configToSave);
 
-    logger.success('Initialized');
+    log.success('Configuration saved');
+
+    outro('Ody Initialized');
   },
 });

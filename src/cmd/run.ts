@@ -1,9 +1,12 @@
+import { outro, spinner, log } from '@clack/prompts';
 import { defineCommand } from 'citty';
 
 import { Backend } from '../backends/backend';
 import { buildPrompt } from '../builders/prompt';
 import { Config } from '../lib/config';
 import { logger } from '../lib/logger';
+
+const agentSpinner = spinner();
 
 export const runCmd = defineCommand({
   meta: {
@@ -37,17 +40,23 @@ export const runCmd = defineCommand({
     const prompt = buildPrompt();
 
     if (args.once) {
-      logger.info('Running Ody once');
+      log.info('Running ody once');
 
       const cmd = backend.buildOnceCommand(prompt);
 
       if (args['dry-run']) {
-        logger.info('Running dry run');
-        logger.log({
-          backend: backend.name,
-          prompt,
-          cmd,
-        });
+        log.info('Running dry run');
+        log.message(
+          JSON.stringify(
+            {
+              backend: backend.name,
+              prompt,
+              cmd,
+            },
+            null,
+            2,
+          ),
+        );
         return;
       }
 
@@ -59,18 +68,23 @@ export const runCmd = defineCommand({
 
         const exitCode = await proc.exited;
 
-        logger.info('Finished');
+        outro('Finished');
+        proc.kill(exitCode);
         process.exit(exitCode);
       } catch (err) {
-        logger.fatal(err);
-      }
+        if (Error.isError(err)) {
+          log.error(err.message);
+        }
 
-      return;
+        process.exit(1);
+      }
     }
 
     const maxIterations = config.maxIterations;
 
-    logger.start('Starting Agent loop');
+    agentSpinner.start('Running agent loop');
+
+    const decoder = new TextDecoder();
 
     for (let i = 0; i < maxIterations; i++) {
       try {
@@ -80,7 +94,6 @@ export const runCmd = defineCommand({
         });
 
         const reader = proc.stdout.getReader();
-        const decoder = new TextDecoder();
         let output = '';
 
         while (true) {
@@ -93,24 +106,27 @@ export const runCmd = defineCommand({
           const out = decoder.decode(value);
 
           if (args.verbose) {
-            logger.info(out);
+            log.message('');
+            log.message(out);
           }
 
           output += out;
         }
 
         if (output.includes('<bark>COMPLETE</bark>')) {
-          logger.success('Agent finished all available tasks, exiting.');
-          proc.kill();
+          agentSpinner.stop('Agent finished all available tasks');
+          proc.kill(0);
           break;
         }
 
         await proc.exited;
       } catch (err) {
-        logger.error(err);
+        if (Error.isError(err)) {
+          agentSpinner.error(err.message);
+        }
       }
     }
 
-    logger.success('Agent loop complete');
+    outro('Agent loop complete');
   },
 });
