@@ -4,7 +4,6 @@ import { defineCommand } from 'citty';
 import { Backend } from '../backends/backend';
 import { buildPrompt } from '../builders/prompt';
 import { Config } from '../lib/config';
-import { logger } from '../lib/logger';
 
 const agentSpinner = spinner();
 

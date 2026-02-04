@@ -4,5 +4,5 @@
   "experimentalSortImports": {
     "internalPattern": ["~/*"]
   },
-  "ignorePatterns": []
+  "ignorePatterns": [".ody/*"]
 }
