@@ -1,18 +1,22 @@
 import { defineCommand, runMain } from 'citty';
 
 import { initCmd } from './cmd/init';
+import { planCmd } from './cmd/plan';
 import { runCmd } from './cmd/run';
-import { taskCmd } from './cmd/task';
+import { Config } from './lib/config';
 
 const ody = defineCommand({
   meta: {
     name: 'Ody',
     description: 'Agentic orchestrator',
   },
+  async setup() {
+    await Config.load();
+  },
   subCommands: {
     init: initCmd,
+    plan: planCmd,
     run: runCmd,
-    task: taskCmd,
   },
 });
 

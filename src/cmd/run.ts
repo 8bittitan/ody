@@ -29,10 +29,6 @@ export const runCmd = defineCommand({
       default: false,
     },
   },
-  async setup() {
-    // TODO: Move to main command
-    await Config.load();
-  },
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
@@ -112,7 +108,7 @@ export const runCmd = defineCommand({
           output += out;
         }
 
-        if (output.includes('<bark>COMPLETE</bark>')) {
+        if (output.includes('<woof>COMPLETE</woof>')) {
           agentSpinner.stop('Agent finished all available tasks');
           proc.kill(0);
           break;

@@ -1,2 +1,4 @@
 2026-01-29: Added --provider/--model args to init to persist optional config fields; marked PRD complete.
 2026-02-03: Added basic Bun tests for Test task (Test 1/2) and marked PRD entry complete.
+2026-02-03: Added `ody plan` command stub with console message; marked PRD entry complete.
+2026-02-03: Implemented interactive `ody plan` prompts using @clack/prompts and console output; marked PRD entry complete.

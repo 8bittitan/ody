@@ -11,10 +11,21 @@
   },
   {
     "category": "functional",
-    "description": "Test task",
+    "description": "Add new plan cli command",
     "steps": [
-      "Test 1",
-      "Test 2"
+      "New CLI command of `ody plan`",
+      "Logs to `console` with message of `To be implemented`"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Prompt user for details during the plan command",
+    "steps": [
+      "Uses available functions from `@clack/prompts` for user input",
+      "Asks for general task description",
+      "Prompts for simple steps descriptions, free form text",
+      "Outputs the input information to console"
     ],
     "passes": true
   }

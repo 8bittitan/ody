@@ -13,12 +13,11 @@ const configSchema = z.object({
     }),
   maxIterations: z.number(),
   shouldCommit: z.boolean().default(false),
-  validatorCommands: z.array(z.string()).default([]),
-  provider: z.string().optional(),
+  validatorCommands: z.array(z.string()).default([]).optional(),
   model: z.string().optional(),
 });
 
-type OdyConfig = z.infer<typeof configSchema>;
+export type OdyConfig = z.infer<typeof configSchema>;
 
 export namespace Config {
   let config: OdyConfig | undefined = undefined;
@@ -28,10 +27,16 @@ export namespace Config {
       return;
     }
 
+    const file = Bun.file(path.join(BASE_DIR, ODY_FILE));
+
+    if (!(await file.exists())) {
+      return;
+    }
+
     log.info('Loading configuration');
 
     try {
-      const input = await Bun.file(path.join(BASE_DIR, ODY_FILE)).text();
+      const input = await file.text();
       const parsed = JSON.parse(input);
 
       config = parse(parsed);
