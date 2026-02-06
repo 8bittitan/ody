@@ -11,10 +11,11 @@ const configSchema = z.object({
     .refine((val) => {
       return ALLOWED_BACKENDS.includes(val);
     }),
-  maxIterations: z.number(),
+  maxIterations: z.number().int().nonnegative(),
   shouldCommit: z.boolean().default(false),
   validatorCommands: z.array(z.string()).default([]).optional(),
   model: z.string().optional(),
+  skipPermissions: z.boolean().default(true).optional(),
 });
 
 export type OdyConfig = z.infer<typeof configSchema>;
@@ -43,8 +44,11 @@ export namespace Config {
     } catch (err) {
       if (Error.isError(err)) {
         log.error(err.message);
-        process.exit(1);
+      } else {
+        log.error(String(err));
       }
+
+      process.exit(1);
     }
   }
 

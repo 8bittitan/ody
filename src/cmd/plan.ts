@@ -99,7 +99,7 @@ Steps description: ${String(stepsDescription).trim()}
 
     const proc = Bun.spawn({
       cmd: backend.buildCommand(planPrompt),
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'inherit'],
     });
     const reader = proc.stdout.getReader();
 
@@ -120,7 +120,7 @@ Steps description: ${String(stepsDescription).trim()}
       output += out;
 
       if (output.includes('<woof>COMPLETE</woof>')) {
-        proc.kill(0);
+        proc.kill();
         break;
       }
     }

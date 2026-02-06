@@ -134,6 +134,18 @@ export const initCmd = defineCommand({
 
       configInput.validatorCommands = validatorCommands;
 
+      if (backend === 'claude') {
+        const skipPermissions = await confirm({
+          message:
+            "Skip Claude Code permission checks? (⚠ This bypasses Claude Code's safety system)",
+          initialValue: true,
+        });
+
+        if (!isCancel(skipPermissions)) {
+          configInput.skipPermissions = skipPermissions;
+        }
+      }
+
       const configToSave = JSON.stringify(Config.parse(configInput), null, 2);
 
       if (args['dry-run']) {
@@ -152,7 +164,11 @@ export const initCmd = defineCommand({
     } catch (err) {
       if (Error.isError(err)) {
         log.error(err.message);
+      } else {
+        log.error(String(err));
       }
+
+      process.exit(1);
     }
   },
 });

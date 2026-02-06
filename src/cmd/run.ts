@@ -64,11 +64,12 @@ export const runCmd = defineCommand({
         const exitCode = await proc.exited;
 
         outro('Finished');
-        proc.kill(exitCode);
         process.exit(exitCode);
       } catch (err) {
         if (Error.isError(err)) {
           log.error(err.message);
+        } else {
+          log.error(String(err));
         }
 
         process.exit(1);
@@ -81,11 +82,11 @@ export const runCmd = defineCommand({
 
     const decoder = new TextDecoder();
 
-    for (let i = 0; i < maxIterations; i++) {
+    for (let i = 0; maxIterations === 0 || i < maxIterations; i++) {
       try {
         const proc = Bun.spawn({
           cmd: backend.buildCommand(prompt),
-          stdio: ['ignore', 'pipe', 'pipe'],
+          stdio: ['ignore', 'pipe', 'inherit'],
         });
 
         const reader = proc.stdout.getReader();
@@ -110,7 +111,8 @@ export const runCmd = defineCommand({
 
         if (output.includes('<woof>COMPLETE</woof>')) {
           agentSpinner.stop('Agent finished all available tasks');
-          proc.kill(0);
+          proc.kill();
+          await proc.exited;
           break;
         }
 
@@ -118,7 +120,11 @@ export const runCmd = defineCommand({
       } catch (err) {
         if (Error.isError(err)) {
           agentSpinner.error(err.message);
+        } else {
+          agentSpinner.error(String(err));
         }
+
+        process.exit(1);
       }
     }
 

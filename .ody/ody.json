@@ -2,5 +2,6 @@
   "backend": "opencode",
   "maxIterations": 3,
   "shouldCommit": false,
-  "validatorCommands": []
+  "validatorCommands": [],
+  "model": "anthropic/claude-opus-4-6"
 }

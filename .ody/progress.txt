@@ -2,3 +2,8 @@
 2026-02-03: Added basic Bun tests for Test task (Test 1/2) and marked PRD entry complete.
 2026-02-03: Added `ody plan` command stub with console message; marked PRD entry complete.
 2026-02-03: Implemented interactive `ody plan` prompts using @clack/prompts and console output; marked PRD entry complete.
+2026-02-05: Fixed proc.kill(0) zombie process bug — replaced proc.kill(0) with proc.kill() + await proc.exited in run.ts loop mode, removed unnecessary proc.kill(exitCode) in run.ts once mode, replaced proc.kill(0) with proc.kill() in plan.ts; marked PRD entry complete.
+2026-02-05: Fixed stderr pipe deadlock — changed stdio from ['ignore','pipe','pipe'] to ['ignore','pipe','inherit'] in run.ts and plan.ts so stderr flows directly to the terminal instead of filling an unread pipe buffer; marked PRD entry complete.
+2026-02-05: Fixed maxIterations: 0 bug — updated for-loop in run.ts to treat 0 as infinite (`maxIterations === 0 || i < maxIterations`), added `.int().nonnegative()` constraints to zod schema in config.ts; marked PRD entry complete.
+2026-02-05: Fixed silent swallowing of non-Error exceptions — added else branches to all 4 catch blocks (config.ts, init.ts, run.ts x2) so non-Error thrown values (strings, objects, ZodError) are logged via String(err) and trigger process.exit(1) instead of being silently ignored; marked PRD entry complete.
+2026-02-05: Made Claude --dangerously-skip-permissions flag configurable — added optional `skipPermissions` boolean (default true) to zod config schema, added confirm prompt during `ody init` when backend is claude, updated claude.ts to conditionally include the flag based on config; marked PRD entry complete.
