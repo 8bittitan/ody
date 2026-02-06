@@ -92,7 +92,7 @@
       "Ensure stderr logging does not interfere with stdout completion marker detection",
       "Verify that stderr output appears in terminal only when `--verbose` is passed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "feature",
@@ -103,7 +103,7 @@
       "If user declines, exit the plan command gracefully",
       "Wrap the plan flow in a loop that continues until user declines"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "feature",
@@ -115,6 +115,6 @@
       "Keep stderr as `'inherit'` (or silenced) when verbose is false to preserve current behavior",
       "Ensure stderr reading does not interfere with stdout completion marker detection"
     ],
-    "passes": false
+    "passes": true
   }
 ]

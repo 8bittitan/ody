@@ -1,11 +1,10 @@
-import { outro, spinner, log } from '@clack/prompts';
+import { outro, spinner, log, type SpinnerResult } from '@clack/prompts';
 import { defineCommand } from 'citty';
 
 import { Backend } from '../backends/backend';
 import { buildPrompt } from '../builders/prompt';
 import { Config } from '../lib/config';
-
-const agentSpinner = spinner();
+import { Stream } from '../util/stream';
 
 export const runCmd = defineCommand({
   meta: {
@@ -66,62 +65,59 @@ export const runCmd = defineCommand({
         outro('Finished');
         process.exit(exitCode);
       } catch (err) {
-        if (Error.isError(err)) {
-          log.error(err.message);
-        } else {
-          log.error(String(err));
-        }
+        const message = Error.isError(err) ? err.message : String(err);
+
+        log.error(message);
 
         process.exit(1);
       }
     }
 
     const maxIterations = config.maxIterations;
+    let agentSpinner: SpinnerResult | null = null;
 
-    agentSpinner.start('Running agent loop');
+    if (!args.verbose) {
+      agentSpinner = spinner();
+    }
 
-    const decoder = new TextDecoder();
+    agentSpinner?.start('Running agent loop');
 
     for (let i = 0; maxIterations === 0 || i < maxIterations; i++) {
       try {
         const proc = Bun.spawn({
           cmd: backend.buildCommand(prompt),
-          stdio: ['ignore', 'pipe', 'inherit'],
+          stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        const reader = proc.stdout.getReader();
-        let output = '';
+        let completed = false;
 
-        while (true) {
-          const { done, value } = await reader.read();
-
-          if (done) {
-            break;
-          }
-
-          const out = decoder.decode(value);
-
-          if (args.verbose) {
-            log.message('');
-            log.message(out);
-          }
-
-          output += out;
-        }
-
-        if (output.includes('<woof>COMPLETE</woof>')) {
-          agentSpinner.stop('Agent finished all available tasks');
-          proc.kill();
-          await proc.exited;
-          break;
-        }
+        await Promise.all([
+          Stream.toOutput(proc.stdout, {
+            shouldPrint: args.verbose,
+            onChunk(accumulated) {
+              if (accumulated.includes('<woof>COMPLETE</woof>')) {
+                completed = true;
+                proc.kill();
+                return true;
+              }
+            },
+          }),
+          Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
+        ]);
 
         await proc.exited;
+
+        if (completed) {
+          agentSpinner?.stop('Agent finished all available tasks');
+          break;
+        }
       } catch (err) {
-        if (Error.isError(err)) {
-          agentSpinner.error(err.message);
+        const message = Error.isError(err) ? err.message : String(err);
+
+        if (agentSpinner) {
+          agentSpinner.stop(message);
         } else {
-          agentSpinner.error(String(err));
+          log.error(message);
         }
 
         process.exit(1);
