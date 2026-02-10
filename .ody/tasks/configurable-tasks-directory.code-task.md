@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-02-10
-started: null
-completed: null
+started: 2026-02-10
+completed: 2026-02-10
 ---
 # Task: Configurable Tasks Directory
 

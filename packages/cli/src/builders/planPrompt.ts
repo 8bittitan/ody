@@ -1,35 +1,7 @@
+import path from 'node:path';
+
 import { Config } from '../lib/config';
-
-const LOOP_PROMPT = `
-1. Look in the .ody/tasks/ directory for .code-task.md files. Read the YAML frontmatter of each file and find tasks with "status: pending". Select the single highest-priority pending task (use your judgement; not necessarily the first listed).
-2. Update the selected task's YAML frontmatter: set "status: in_progress" and set "started" to today's date (YYYY-MM-DD format).
-3. Implement only that task, following its Technical Requirements and Implementation Approach.
-4. Use following commands to validate work: {VALIDATION_COMMANDS} (skip if none).
-5. Update the task's YAML frontmatter: set "status: completed" and set "completed" to today's date (YYYY-MM-DD format).
-6. Append a short progress note to {PROGRESS_FILE} file.
-7. If shouldCommit is true, create a git commit for this task.
-
-INPUT
-shouldCommit: {SHOULD_COMMIT}
-
-OUTPUT
-- If all tasks in .ody/tasks/ are completed (no pending tasks remain), output <woof>COMPLETE</woof>.
-- If no .ody/tasks/ directory or no .code-task.md files can be found, output <woof>COMPLETE</woof>.
-`;
-
-export const buildPrompt = () => {
-  const shouldCommit = Config.get('shouldCommit');
-  const validatorCommands = Config.get('validatorCommands');
-
-  let prompt = LOOP_PROMPT.replace(
-    '{VALIDATION_COMMANDS}',
-    validatorCommands ? validatorCommands.join(', ') : '',
-  )
-    .replace('{PROGRESS_FILE}', '.ody/progress.txt')
-    .replace('{SHOULD_COMMIT}', String(shouldCommit));
-
-  return prompt.trim();
-};
+import { BASE_DIR, TASKS_DIR } from '../util/constants';
 
 // Modified from Anthropic's code-task-generator skill
 const PLAN_PROMPT = `
@@ -38,8 +10,8 @@ This SOP generates structured code task files from rough descriptions, ideas, or
 
 RULES
 - Create EXACTLY ONE task as a markdown file
-- The file MUST be written to the .ody/tasks/ directory
-- The filename MUST use kebab-case and end with .code-task.md (e.g., .ody/tasks/add-email-validation.code-task.md)
+- The file MUST be written to the {TASKS_DIR} directory
+- The filename MUST use kebab-case and end with .code-task.md (e.g., {TASKS_DIR}/add-email-validation.code-task.md)
 - The filename should be descriptive of the task content
 - Take the user provided steps description and create your own detailed implementation approach
 - All sections in the template below are REQUIRED — do not skip any
@@ -102,8 +74,11 @@ When finished writing the task file, output the text: <woof>COMPLETE</woof>.
 
 export const buildPlanPrompt = ({ description }: { description: string }) => {
   const currentDate = new Date().toISOString().slice(0, 10);
+  const tasksDir = Config.get('tasksDir') ?? TASKS_DIR;
+  const tasksDirPath = path.join(BASE_DIR, tasksDir);
 
   return PLAN_PROMPT.replace('{TASK_DESCRIPTION}', description)
     .replace('{CURRENT_DATE}', currentDate)
+    .replace(/{TASKS_DIR}/g, tasksDirPath)
     .trim();
 };

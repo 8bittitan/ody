@@ -1,12 +1,15 @@
 {
   "name": "ody",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "bun run --filter '*' build",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt --write .",
+    "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck"
   },
   "devDependencies": {

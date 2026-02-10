@@ -1,14 +1,20 @@
 {
   "name": "@ody/cli",
+  "keywords": [
+    "agent",
+    "orchestration"
+  ],
   "bin": "./dist/ody",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "module": "./src/index.ts",
   "scripts": {
     "build": "bun build --production --compile --outfile=./dist/ody ./src/index.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
-  "files": ["dist"],
-  "keywords": ["agent", "orchestration"],
   "dependencies": {
     "@clack/prompts": "^1.0.0",
     "citty": "^0.2.0",

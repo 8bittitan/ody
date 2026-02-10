@@ -4,7 +4,7 @@ import { mkdir } from 'fs/promises';
 import path from 'path';
 
 import { Backend } from '../backends/backend';
-import { buildPlanPrompt } from '../builders/prompt';
+import { buildPlanPrompt } from '../builders/planPrompt';
 import { Config } from '../lib/config';
 import { BASE_DIR, TASKS_DIR } from '../util/constants';
 import { Stream } from '../util/stream';

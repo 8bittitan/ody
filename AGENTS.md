@@ -101,15 +101,13 @@ Focus on Bun + TypeScript CLI tooling.
 ### Error handling
 
 - Wrap external I/O and process calls in `try/catch`.
-- Use `logger` from `packages/cli/src/lib/logger.ts` for messaging.
-- Use `logger.fatal(...)` for unrecoverable errors (exits).
+- Use `log` from `@clack/prompts` for messaging.
 - If a fatal condition must continue the stack, throw after logging.
-- For recoverable errors, prefer `logger.warn` or `logger.error`.
+- For recoverable errors, prefer `log.warn` or `log.error`.
 
 ### Logging
 
-- Prefer `logger` over `console.*`.
-- Use `logger.start/success/info/warn/error/fatal` consistently.
+- Prefer `log` from `@clack/prompts` over `console.*`.
 - In CLI flows, log start/end messages for long operations.
 
 ### Async and process control

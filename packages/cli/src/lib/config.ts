@@ -2,7 +2,7 @@ import { log } from '@clack/prompts';
 import path from 'path';
 import { z } from 'zod';
 
-import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE } from '../util/constants';
+import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE, TASKS_DIR } from '../util/constants';
 
 const configSchema = z.object({
   backend: z
@@ -16,6 +16,7 @@ const configSchema = z.object({
   validatorCommands: z.array(z.string()).default([]).optional(),
   model: z.string().optional(),
   skipPermissions: z.boolean().default(true).optional(),
+  tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
 });
 
 export type OdyConfig = z.infer<typeof configSchema>;

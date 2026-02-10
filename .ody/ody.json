@@ -2,6 +2,6 @@
   "backend": "opencode",
   "maxIterations": 3,
   "shouldCommit": false,
-  "validatorCommands": [],
-  "model": "anthropic/claude-opus-4-6"
+  "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
+  "model": "opencode/kimi-k2.5-free"
 }

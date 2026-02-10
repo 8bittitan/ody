@@ -2,8 +2,9 @@ import { outro, spinner, log, type SpinnerResult } from '@clack/prompts';
 import { defineCommand } from 'citty';
 
 import { Backend } from '../backends/backend';
-import { buildPrompt } from '../builders/prompt';
+import { buildRunPrompt } from '../builders/runPrompt';
 import { Config } from '../lib/config';
+import { getTaskFilesByLabel } from '../lib/tasks';
 import { Stream } from '../util/stream';
 
 export const runCmd = defineCommand({
@@ -27,11 +28,29 @@ export const runCmd = defineCommand({
       type: 'boolean',
       default: false,
     },
+    label: {
+      description: 'Filter tasks by label',
+      type: 'string',
+      alias: 'l',
+      required: false,
+    },
   },
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
-    const prompt = buildPrompt();
+
+    let taskFiles: string[] | undefined;
+
+    if (args.label) {
+      taskFiles = await getTaskFilesByLabel(args.label);
+
+      if (taskFiles.length === 0) {
+        log.warn(`No tasks found with label "${args.label}"`);
+        process.exit(0);
+      }
+    }
+
+    const prompt = buildRunPrompt({ taskFiles });
 
     if (args.once) {
       log.info('Running ody once');
@@ -46,6 +65,8 @@ export const runCmd = defineCommand({
               backend: backend.name,
               prompt,
               cmd,
+              labelFilter: args.label,
+              matchingTasks: taskFiles,
             },
             null,
             2,
