@@ -1,7 +1,7 @@
 import path from 'path';
 
 import { Config } from '../lib/config';
-import { BASE_DIR, PRD_FILE } from '../util/constants';
+import { BASE_DIR, TASKS_DIR } from '../util/constants';
 import { Harness } from './harness';
 
 export class Claude extends Harness {
@@ -21,7 +21,7 @@ export class Claude extends Harness {
       '--output-format',
       'stream-json',
       '-p',
-      `@${path.join(BASE_DIR, PRD_FILE)} ${prompt}`,
+      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
     );
 
     return cmd;
@@ -32,7 +32,7 @@ export class Claude extends Harness {
       'claude',
       '--permission-mode',
       'acceptEdits',
-      `@${path.join(BASE_DIR, PRD_FILE)} ${prompt}`,
+      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
     ];
   }
 }

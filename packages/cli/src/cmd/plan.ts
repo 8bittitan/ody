@@ -1,9 +1,12 @@
 import { isCancel, outro, text, log, cancel, confirm, box, spinner } from '@clack/prompts';
 import { defineCommand } from 'citty';
+import { mkdir } from 'fs/promises';
+import path from 'path';
 
 import { Backend } from '../backends/backend';
 import { buildPlanPrompt } from '../builders/prompt';
 import { Config } from '../lib/config';
+import { BASE_DIR, TASKS_DIR } from '../util/constants';
 import { Stream } from '../util/stream';
 
 const spin = spinner();
@@ -44,26 +47,11 @@ export const planCmd = defineCommand({
         return;
       }
 
-      const stepsDescription = await text({
-        message: 'Describe, in free form text, steps the task should use for building.',
-        validate(value) {
-          if (!value || value.trim() === '') return 'Please enter a description for steps.';
-
-          return undefined;
-        },
-      });
-
-      if (isCancel(stepsDescription)) {
-        outro('Plan cancelled.');
-        return;
-      }
-
       log.message('');
 
       box(
         `
 Task description: ${String(description).trim()}
-Steps description: ${String(stepsDescription).trim()}
 `,
         'Plan details',
         {
@@ -85,12 +73,12 @@ Steps description: ${String(stepsDescription).trim()}
 
       const planPrompt = buildPlanPrompt({
         description,
-        stepsDescription,
       });
 
       if (args['dry-run']) {
         log.info(planPrompt);
       } else {
+        await mkdir(path.join(BASE_DIR, TASKS_DIR), { recursive: true });
         spin.start('Generating task plan');
 
         const proc = Bun.spawn({
@@ -98,14 +86,11 @@ Steps description: ${String(stepsDescription).trim()}
           stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        let completed = false;
-
-        await Promise.all([
+        await Promise.allSettled([
           Stream.toOutput(proc.stdout, {
             shouldPrint: args.verbose,
             onChunk(accumulated) {
               if (accumulated.includes('<woof>COMPLETE</woof>')) {
-                completed = true;
                 proc.kill();
                 return true;
               }
@@ -117,10 +102,6 @@ Steps description: ${String(stepsDescription).trim()}
         await proc.exited;
 
         spin.stop('Task plan generated');
-
-        if (completed) {
-          break;
-        }
       }
 
       const another = await confirm({

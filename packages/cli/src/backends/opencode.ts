@@ -1,6 +1,6 @@
 import path from 'path';
 
-import { BASE_DIR, PRD_FILE } from '../util/constants';
+import { BASE_DIR, TASKS_DIR } from '../util/constants';
 import { Harness, type CommandOptions } from './harness';
 
 export class Opencode extends Harness {
@@ -12,7 +12,7 @@ export class Opencode extends Harness {
       ...(opts.agent ? ['--agent', opts.agent] : []),
       ...(opts.model ? ['-m', opts.model] : []),
       'run',
-      `@${path.join(BASE_DIR, PRD_FILE)} ${prompt}`,
+      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
     ];
   }
 
@@ -22,7 +22,7 @@ export class Opencode extends Harness {
       ...(opts.agent ? ['--agent', opts.agent] : []),
       ...(opts.model ? ['-m', opts.model] : []),
       '--prompt',
-      `@${path.join(BASE_DIR, PRD_FILE)} ${prompt}`,
+      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
     ];
   }
 }
