@@ -4,12 +4,6 @@
   "workspaces": {
     "": {
       "name": "ody",
-      "dependencies": {
-        "@clack/prompts": "^1.0.0",
-        "citty": "^0.2.0",
-        "consola": "^3.4.2",
-        "zod": "^4.3.6",
-      },
       "devDependencies": {
         "@types/bun": "^1.3.8",
         "oxfmt": "^0.28.0",
@@ -19,11 +13,23 @@
         "typescript": "^5",
       },
     },
+    "packages/cli": {
+      "name": "@ody/cli",
+      "bin": "./dist/ody",
+      "dependencies": {
+        "@clack/prompts": "^1.0.0",
+        "citty": "^0.2.0",
+        "consola": "^3.4.2",
+        "zod": "^4.3.6",
+      },
+    },
   },
   "packages": {
     "@clack/core": ["@clack/core@1.0.0", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-Orf9Ltr5NeiEuVJS8Rk2XTw3IxNC2Bic3ash7GgYeA8LJ/zmSNpSQ/m5UAhe03lA6KFgklzZ5KTHs4OAMA/SAQ=="],
 
     "@clack/prompts": ["@clack/prompts@1.0.0", "", { "dependencies": { "@clack/core": "1.0.0", "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-rWPXg9UaCFqErJVQ+MecOaWsozjaxol4yjnmYcGNipAWzdaWa2x+VJmKfGq7L0APwBohQOYdHC+9RO4qRXej+A=="],
+
+    "@ody/cli": ["@ody/cli@workspace:packages/cli"],
 
     "@oxfmt/darwin-arm64": ["@oxfmt/darwin-arm64@0.28.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-jmUfF7cNJPw57bEK7sMIqrYRgn4LH428tSgtgLTCtjuGuu1ShREyrkeB7y8HtkXRfhBs4lVY+HMLhqElJvZ6ww=="],
 

@@ -5,17 +5,20 @@ Focus on Bun + TypeScript CLI tooling.
 
 ## Repo summary
 
+- Structure: Bun workspaces monorepo (`packages/*`).
 - Runtime: Bun (Bun APIs used in code).
 - Language: TypeScript with ESM (`type: module`).
-- Entry point: `src/index.ts`.
-- CLI framework: `citty` commands in `src/cmd`.
-- Backends live in `src/backends` and implement `Harness`.
-- Prompt building lives in `src/builders/prompt.ts`.
-- Shared utilities in `src/lib` and `src/util`.
+- CLI package: `packages/cli` (package name `@ody/cli`).
+- Entry point: `packages/cli/src/index.ts`.
+- CLI framework: `citty` commands in `packages/cli/src/cmd`.
+- Backends live in `packages/cli/src/backends` and implement `Harness`.
+- Prompt building lives in `packages/cli/src/builders/prompt.ts`.
+- Shared utilities in `packages/cli/src/lib` and `packages/cli/src/util`.
 - Config is stored under `.ody/ody.json` in the project root.
 - Agent prompt template lives in `.ody/prompt.md`.
-- Formatter: `oxfmt` (see `.oxfmtrc.json`).
-- Linter: `oxlint` (see `.oxlintrc.json`).
+- Shared TypeScript config: root `tsconfig.json` (packages extend it).
+- Formatter: `oxfmt` (see `.oxfmtrc.json` at root).
+- Linter: `oxlint` (see `.oxlintrc.json` at root).
 
 ## Commands
 
@@ -26,22 +29,23 @@ Focus on Bun + TypeScript CLI tooling.
 ### Run (dev)
 
 - `bun run index.ts` (as documented in `README.md`).
-- `bun run src/index.ts` (explicit entry path if needed).
+- `bun run src/index.ts` (explicit entry path if needed, from `packages/cli`).
 
 ### Build (compile binary)
 
-- `bun run build`
-- Output: `./ody` (native executable built from `src/index.ts`).
+- `bun run build` (from root, runs build across all workspaces).
+- `bun run build` (from `packages/cli`, builds just the CLI).
+- Output: `packages/cli/dist/ody` (native executable built from `src/index.ts`).
 
 ### Lint
 
 - `bunx oxlint .`
-- Scope to source only: `bunx oxlint src`.
+- Scope to source only: `bunx oxlint src` (from `packages/cli`).
 
 ### Format
 
 - `bunx oxfmt -w .`
-- Scope to source only: `bunx oxfmt -w src`.
+- Scope to source only: `bunx oxfmt -w src` (from `packages/cli`).
 
 ### Tests
 
@@ -52,7 +56,7 @@ Focus on Bun + TypeScript CLI tooling.
 ## Configuration
 
 - `Config.load()` must run before any `Config.get()` or `Config.all()`.
-- Config schema is defined with `zod` in `src/lib/config.ts`.
+- Config schema is defined with `zod` in `packages/cli/src/lib/config.ts`.
 - Current keys in `.ody/ody.json`:
 - `backend`: one of `opencode`, `claude`, `codex`.
 - `maxIterations`: number of loop iterations.
@@ -97,7 +101,7 @@ Focus on Bun + TypeScript CLI tooling.
 ### Error handling
 
 - Wrap external I/O and process calls in `try/catch`.
-- Use `logger` from `src/lib/logger.ts` for messaging.
+- Use `logger` from `packages/cli/src/lib/logger.ts` for messaging.
 - Use `logger.fatal(...)` for unrecoverable errors (exits).
 - If a fatal condition must continue the stack, throw after logging.
 - For recoverable errors, prefer `logger.warn` or `logger.error`.
@@ -137,8 +141,8 @@ Focus on Bun + TypeScript CLI tooling.
 
 ### Prompts and sequencing
 
-- The agent prompt is built in `src/builders/prompt.ts`.
-- Ordering uses `createSequencer()` from `src/lib/sequencer.ts`.
+- The agent prompt is built in `packages/cli/src/builders/prompt.ts`.
+- Ordering uses `createSequencer()` from `packages/cli/src/lib/sequencer.ts`.
 - Maintain the single-feature focus and completion marker behavior.
 
 ## Lint/format configuration
@@ -159,6 +163,10 @@ Focus on Bun + TypeScript CLI tooling.
 - Add tests (if any) under `src/` with `.test.ts` suffix.
 - Update `README.md` if run/build instructions change.
 
+## Notes
+
+- Update this file if new tooling or rules are added.
+
 ## Agent safety notes
 
 - Do not edit `.ody/ody.json` unless a task requires it.
@@ -171,7 +179,3 @@ Focus on Bun + TypeScript CLI tooling.
 - `bun lint` to validate lint.
 - `bun fmt` to normalize formatting.
 - `bun test path/to/file.test.ts` for a single test file (if tests exist).
-
-## Notes
-
-- Update this file if new tooling or rules are added.
