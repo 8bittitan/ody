@@ -1,5 +1,6 @@
 import { defineCommand, runMain } from 'citty';
 
+import { configCmd } from './cmd/config';
 import { initCmd } from './cmd/init';
 import { planCmd } from './cmd/plan';
 import { runCmd } from './cmd/run';
@@ -14,6 +15,7 @@ const ody = defineCommand({
     await Config.load();
   },
   subCommands: {
+    config: configCmd,
     init: initCmd,
     plan: planCmd,
     run: runCmd,
