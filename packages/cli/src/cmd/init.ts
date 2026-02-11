@@ -1,4 +1,14 @@
-import { autocomplete, isCancel, outro, log, intro, text, cancel, confirm } from '@clack/prompts';
+import {
+  autocomplete,
+  isCancel,
+  outro,
+  log,
+  intro,
+  text,
+  cancel,
+  confirm,
+  select,
+} from '@clack/prompts';
 import { defineCommand } from 'citty';
 import { exists, mkdir } from 'fs/promises';
 import path from 'path';
@@ -40,6 +50,12 @@ export const initCmd = defineCommand({
       default: false,
       description: 'If the agent should create commits after each task completion',
       type: 'boolean',
+    },
+    notify: {
+      alias: 'n',
+      required: false,
+      description: 'Notification preference (false, all, individual)',
+      type: 'string',
     },
     ['dry-run']: {
       default: false,
@@ -143,6 +159,43 @@ export const initCmd = defineCommand({
 
         if (!isCancel(skipPermissions)) {
           configInput.skipPermissions = skipPermissions;
+        }
+      }
+
+      if (args.notify) {
+        const val = args.notify.toLowerCase();
+
+        if (val === 'false' || val === 'off' || val === 'none') {
+          configInput.notify = false;
+        } else if (val === 'all' || val === 'true') {
+          configInput.notify = 'all';
+        } else if (val === 'individual') {
+          configInput.notify = 'individual';
+        }
+      } else {
+        const notifyChoice = await select<false | 'all' | 'individual'>({
+          message: 'When should OS notifications be sent?',
+          options: [
+            {
+              value: false as const,
+              label: 'Disabled',
+              hint: 'No notifications',
+            },
+            {
+              value: 'all' as const,
+              label: 'On completion',
+              hint: 'Notify when the entire run finishes',
+            },
+            {
+              value: 'individual' as const,
+              label: 'Per iteration',
+              hint: 'Notify after each loop iteration',
+            },
+          ],
+        });
+
+        if (!isCancel(notifyChoice)) {
+          configInput.notify = notifyChoice;
         }
       }
 

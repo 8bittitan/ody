@@ -17,6 +17,10 @@ const configSchema = z.object({
   model: z.string().optional(),
   skipPermissions: z.boolean().default(true).optional(),
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
+  notify: z
+    .union([z.boolean(), z.enum(['all', 'individual'])])
+    .default(false)
+    .optional(),
 });
 
 export type OdyConfig = z.infer<typeof configSchema>;

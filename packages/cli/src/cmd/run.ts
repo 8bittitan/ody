@@ -4,6 +4,7 @@ import { defineCommand } from 'citty';
 import { Backend } from '../backends/backend';
 import { buildRunPrompt } from '../builders/runPrompt';
 import { Config } from '../lib/config';
+import { sendNotification } from '../lib/notify';
 import { getTaskFilesByLabel } from '../lib/tasks';
 import { Stream } from '../util/stream';
 
@@ -40,10 +41,19 @@ export const runCmd = defineCommand({
       alias: 'i',
       required: false,
     },
+    ['no-notify']: {
+      description: 'Disable OS notifications even if enabled in config',
+      type: 'boolean',
+      default: false,
+    },
   },
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
+
+    const notifyRaw = args['no-notify'] ? false : (Config.get('notify') ?? false);
+    const notifySetting: false | 'all' | 'individual' =
+      notifyRaw === true ? 'all' : notifyRaw === false ? false : notifyRaw;
 
     let iterationsOverride: number | undefined;
 
@@ -123,8 +133,14 @@ export const runCmd = defineCommand({
         proc.terminal?.close();
 
         if (completed) {
+          if (notifySetting) {
+            await sendNotification('ody', 'Agent completed the task');
+          }
           outro('Agent completed the task');
         } else {
+          if (notifySetting) {
+            await sendNotification('ody', 'Finished');
+          }
           outro('Finished');
         }
 
@@ -174,7 +190,16 @@ export const runCmd = defineCommand({
 
         if (completed) {
           agentSpinner?.stop('Agent finished all available tasks');
+
+          if (notifySetting === 'individual') {
+            await sendNotification('ody', `Iteration ${i + 1} complete`);
+          }
+
           break;
+        }
+
+        if (notifySetting === 'individual') {
+          await sendNotification('ody', `Iteration ${i + 1} complete`);
         }
       } catch (err) {
         const message = Error.isError(err) ? err.message : String(err);
@@ -187,6 +212,10 @@ export const runCmd = defineCommand({
 
         process.exit(1);
       }
+    }
+
+    if (notifySetting === 'all') {
+      await sendNotification('ody', 'Agent loop complete');
     }
 
     outro('Agent loop complete');
