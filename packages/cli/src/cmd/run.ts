@@ -97,14 +97,37 @@ export const runCmd = defineCommand({
       }
 
       try {
+        let completed = false;
+        let accumulated = '';
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+
         const proc = Bun.spawn({
           cmd,
-          stdio: ['inherit', 'inherit', 'inherit'],
+          terminal: {
+            cols: process.stdout.columns || 80,
+            rows: process.stdout.rows || 24,
+            data(_terminal, data) {
+              process.stdout.write(data);
+
+              accumulated += decoder.decode(data, { stream: true });
+
+              if (accumulated.includes('<woof>COMPLETE</woof>')) {
+                completed = true;
+                proc.kill();
+              }
+            },
+          },
         });
 
         const exitCode = await proc.exited;
+        proc.terminal?.close();
 
-        outro('Finished');
+        if (completed) {
+          outro('Agent completed the task');
+        } else {
+          outro('Finished');
+        }
+
         process.exit(exitCode);
       } catch (err) {
         const message = Error.isError(err) ? err.message : String(err);
