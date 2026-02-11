@@ -1,9 +1,10 @@
 import { isCancel, log, outro, select, text, confirm, spinner } from '@clack/prompts';
 import { defineCommand } from 'citty';
-import { mkdir, readdir } from 'fs/promises';
+import { mkdir, readdir, rm } from 'fs/promises';
 import path from 'path';
 
 import { Backend } from '../backends/backend';
+import { buildEditPlanPrompt } from '../builders/editPlanPrompt';
 import { buildPlanPrompt } from '../builders/planPrompt';
 import { Config } from '../lib/config';
 import { BASE_DIR, TASKS_DIR } from '../util/constants';
@@ -85,6 +86,111 @@ const listCmd = defineCommand({
     }
 
     outro('Done');
+  },
+});
+
+function parseDescription(content: string): string {
+  const match = content.match(/## Description\s*\n([\s\S]*?)(?=\n## |\n---|\n$)/);
+  if (!match || !match[1]) return '';
+
+  const full = match[1].trim();
+  // Condense to 2-3 sentences
+  const sentences = full.match(/[^.!?]*[.!?]+/g);
+  if (!sentences) return full.slice(0, 200);
+  return sentences.slice(0, 3).join(' ').trim();
+}
+
+type CompletedTask = {
+  filename: string;
+  title: string;
+  description: string;
+  completed: string;
+};
+
+const compactCmd = defineCommand({
+  meta: {
+    name: 'compact',
+    description: 'Archive completed tasks into a historical record',
+  },
+  async run() {
+    const tasksDir = resolveTasksDir();
+
+    let files: string[];
+    try {
+      files = await readdir(tasksDir);
+    } catch {
+      log.info('No tasks directory found.');
+      outro('Done');
+      return;
+    }
+
+    const taskFiles = files.filter((f) => f.endsWith('.code-task.md'));
+
+    if (taskFiles.length === 0) {
+      log.info('No task files found.');
+      outro('Done');
+      return;
+    }
+
+    const completed: CompletedTask[] = [];
+
+    for (const filename of taskFiles) {
+      const content = await Bun.file(path.join(tasksDir, filename)).text();
+      const frontmatter = parseFrontmatter(content);
+
+      if (
+        frontmatter.status === 'completed' &&
+        frontmatter.completed &&
+        frontmatter.completed !== 'null'
+      ) {
+        const title = parseTitle(content);
+        const description = parseDescription(content);
+        completed.push({
+          filename,
+          title,
+          description,
+          completed: frontmatter.completed,
+        });
+      }
+    }
+
+    if (completed.length === 0) {
+      log.info('No completed tasks to archive.');
+      outro('Done');
+      return;
+    }
+
+    // Sort by completion date ascending
+    completed.sort((a, b) => a.completed.localeCompare(b.completed));
+
+    const now = new Date();
+    const dateStamp = now.toISOString().slice(0, 10);
+    const timestamp = now.toISOString();
+
+    let archive = `# Task Archive\n\nGenerated: ${timestamp}\n\nTotal tasks archived: ${completed.length}\n\n---\n\n`;
+
+    for (const task of completed) {
+      archive += `## ${task.title}\n\n`;
+      archive += `**Completed:** ${task.completed}\n\n`;
+      if (task.description) {
+        archive += `${task.description}\n\n`;
+      }
+      archive += `---\n\n`;
+    }
+
+    const historyDir = path.join(BASE_DIR, 'history');
+    await mkdir(historyDir, { recursive: true });
+
+    const archivePath = path.join(historyDir, `archive-${dateStamp}.md`);
+    await Bun.write(archivePath, archive);
+
+    // Delete original completed task files
+    for (const task of completed) {
+      await rm(path.join(tasksDir, task.filename));
+    }
+
+    log.info(`Archived ${completed.length} completed task(s) to ${archivePath}`);
+    outro('Compaction complete');
   },
 });
 
@@ -229,7 +335,7 @@ const editCmd = defineCommand({
     const filePath = path.join(tasksDir, selected);
     const fileContent = await Bun.file(filePath).text();
 
-    const editPrompt = buildEditPrompt(filePath, fileContent);
+    const editPrompt = buildEditPlanPrompt({ filePath, fileContent });
 
     if (args['dry-run']) {
       log.info(editPrompt);
@@ -266,27 +372,6 @@ const editCmd = defineCommand({
   },
 });
 
-function buildEditPrompt(filePath: string, fileContent: string): string {
-  return `You are editing an existing task plan file.
-
-FILE PATH
-${filePath}
-
-CURRENT FILE CONTENT
-\`\`\`markdown
-${fileContent}
-\`\`\`
-
-INSTRUCTIONS
-1. Read the current content of the task plan file at the path above.
-2. Ask the user what changes they want to make to this task plan (if running interactively), or apply improvements based on your analysis.
-3. Edit the file in place at the given path. Preserve the YAML frontmatter structure and all required sections.
-4. Do NOT change the \`status\`, \`created\`, \`started\`, or \`completed\` fields in the frontmatter unless explicitly asked.
-5. Keep the same filename and location.
-
-When finished editing the task file, output the text: <woof>COMPLETE</woof>.`;
-}
-
 export const planCmd = defineCommand({
   meta: {
     name: 'plan',
@@ -306,6 +391,7 @@ export const planCmd = defineCommand({
     },
   },
   subCommands: {
+    compact: compactCmd,
     create: createCmd,
     edit: editCmd,
     list: listCmd,
