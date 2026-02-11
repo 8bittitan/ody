@@ -8,12 +8,27 @@ import { sendNotification } from '../lib/notify';
 import { getTaskFilesByLabel } from '../lib/tasks';
 import { Stream } from '../util/stream';
 
+async function printOutro(completed: boolean, notifySetting: false | 'all' | 'individual') {
+  const message = completed ? 'Agent completed the task' : 'Finished';
+
+  if (notifySetting) {
+    await sendNotification('ody', message);
+  }
+
+  outro(message);
+}
+
 export const runCmd = defineCommand({
   meta: {
     name: 'run',
     description: 'Run Ody in a loop',
   },
   args: {
+    taskFile: {
+      type: 'positional',
+      description: 'Path to a specific .code-task.md file to run',
+      required: false,
+    },
     verbose: {
       description: 'Enables verbose logging; (streamed agent output)',
       type: 'boolean',
@@ -70,6 +85,29 @@ export const runCmd = defineCommand({
       iterationsOverride = parsed;
     }
 
+    let singleTaskFile: string | undefined;
+
+    if (args.taskFile) {
+      if (args.label) {
+        log.error('Cannot use both a task file argument and --label. They are mutually exclusive.');
+        process.exit(1);
+      }
+
+      if (!args.taskFile.endsWith('.code-task.md')) {
+        log.error(`Invalid task file "${args.taskFile}". File must end with .code-task.md`);
+        process.exit(1);
+      }
+
+      const fileExists = await Bun.file(args.taskFile).exists();
+
+      if (!fileExists) {
+        log.error(`Task file not found: ${args.taskFile}`);
+        process.exit(1);
+      }
+
+      singleTaskFile = args.taskFile;
+    }
+
     let taskFiles: string[] | undefined;
 
     if (args.label) {
@@ -81,7 +119,7 @@ export const runCmd = defineCommand({
       }
     }
 
-    const prompt = buildRunPrompt({ taskFiles });
+    const prompt = buildRunPrompt({ taskFiles, taskFile: singleTaskFile });
 
     if (args.once) {
       log.info('Running ody once');
@@ -98,6 +136,7 @@ export const runCmd = defineCommand({
               cmd,
               labelFilter: args.label,
               matchingTasks: taskFiles,
+              taskFile: singleTaskFile,
             },
             null,
             2,
@@ -132,17 +171,7 @@ export const runCmd = defineCommand({
         const exitCode = await proc.exited;
         proc.terminal?.close();
 
-        if (completed) {
-          if (notifySetting) {
-            await sendNotification('ody', 'Agent completed the task');
-          }
-          outro('Agent completed the task');
-        } else {
-          if (notifySetting) {
-            await sendNotification('ody', 'Finished');
-          }
-          outro('Finished');
-        }
+        await printOutro(completed, notifySetting);
 
         process.exit(exitCode);
       } catch (err) {
@@ -154,7 +183,7 @@ export const runCmd = defineCommand({
       }
     }
 
-    const maxIterations = iterationsOverride ?? config.maxIterations;
+    const maxIterations = iterationsOverride ?? (singleTaskFile ? 1 : config.maxIterations);
     let agentSpinner: SpinnerResult | null = null;
 
     if (!args.verbose) {
