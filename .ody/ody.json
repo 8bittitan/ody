@@ -1,7 +1,7 @@
 {
   "backend": "opencode",
   "maxIterations": 3,
-  "shouldCommit": false,
+  "shouldCommit": true,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "opencode/kimi-k2.5-free"
+  "model": "anthropic/claude-opus-4-6"
 }

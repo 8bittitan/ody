@@ -396,7 +396,8 @@ export const planCmd = defineCommand({
     edit: editCmd,
     list: listCmd,
   },
-  async run({ args }) {
+  async run({ args, cmd, subCommand }) {
+    console.dir({ cmd, subCommand });
     // Default behavior: run the create flow when no subcommand is specified
     await createCmd.run!({ args } as any);
   },

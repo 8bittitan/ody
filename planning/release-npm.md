@@ -33,8 +33,8 @@ Edit `packages/cli/package.json` to add `publishConfig`:
 ```jsonc
 {
   "publishConfig": {
-    "access": "public"
-  }
+    "access": "public",
+  },
 }
 ```
 
@@ -60,8 +60,8 @@ Add a `build:npm` script to `packages/cli/package.json`:
     "build": "bun build --production --compile --outfile=./dist/ody ./src/index.ts",
     "build:npm": "scripts/build-npm.sh",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
-  }
+    "typecheck": "tsc --noEmit",
+  },
 }
 ```
 
@@ -100,7 +100,7 @@ binary:
 
 ```jsonc
 {
-  "bin": "./dist/ody.mjs"
+  "bin": "./dist/ody.mjs",
 }
 ```
 
@@ -202,23 +202,23 @@ The changesets action will create a `.npmrc` file automatically using the
 before the publish step:
 
 ```yaml
-      - name: Create .npmrc
-        run: |
-          cat << EOF > "$HOME/.npmrc"
-            //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          EOF
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+- name: Create .npmrc
+  run: |
+    cat << EOF > "$HOME/.npmrc"
+      //registry.npmjs.org/:_authToken=$NPM_TOKEN
+    EOF
+  env:
+    NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
 ## Changes Summary
 
-| File | Status | Purpose |
-|---|---|---|
-| `packages/cli/package.json` | Modified | Add `publishConfig`, `build:npm`, update `bin` |
-| `.changeset/config.json` | Modified | Change `access` to `public` |
-| `.github/workflows/release.yml` | Modified | Add `publish-npm` job with `NPM_TOKEN` |
-| `packages/cli/scripts/build-npm.sh` | Created | Builds JS bundle with shebang |
+| File                                | Status   | Purpose                                        |
+| ----------------------------------- | -------- | ---------------------------------------------- |
+| `packages/cli/package.json`         | Modified | Add `publishConfig`, `build:npm`, update `bin` |
+| `.changeset/config.json`            | Modified | Change `access` to `public`                    |
+| `.github/workflows/release.yml`     | Modified | Add `publish-npm` job with `NPM_TOKEN`         |
+| `packages/cli/scripts/build-npm.sh` | Created  | Builds JS bundle with shebang                  |
 
 ## How Users Install (After npm Publishing)
 

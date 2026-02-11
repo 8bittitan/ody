@@ -54,7 +54,7 @@ Edit `packages/cli/package.json` to add the missing fields. The existing
   "repository": {
     "type": "git",
     "url": "https://github.com/8bittitan/ody.git",
-    "directory": "packages/cli"
+    "directory": "packages/cli",
   },
   "keywords": ["agent", "orchestration"],
   "bin": "./dist/ody",
@@ -64,7 +64,7 @@ Edit `packages/cli/package.json` to add the missing fields. The existing
   "scripts": {
     "build": "bun build --production --compile --outfile=./dist/ody ./src/index.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
   },
   // ... dependencies unchanged
 }
@@ -98,6 +98,7 @@ Edit `.changeset/config.json` to match:
 ```
 
 Notes:
+
 - `access` is `restricted` because we are not publishing to npm (see
   `planning/release-npm.md` for adding npm later).
 - `commit: false` is fine — the GitHub Action handles committing via PR.
@@ -199,6 +200,7 @@ jobs:
 ```
 
 How this works:
+
 - A temporary changeset file is created inline with the chosen bump type and
   summary text.
 - `changeset version` consumes the changeset, bumps `version` in
@@ -211,6 +213,7 @@ How this works:
 ### Triggering a Release
 
 From the GitHub UI:
+
 1. Go to **Actions** > **Prepare Release**
 2. Click **Run workflow**
 3. Select `patch`, `minor`, or `major`
@@ -219,6 +222,7 @@ From the GitHub UI:
 6. Review and merge the resulting PR
 
 Or from the CLI:
+
 ```bash
 gh workflow run prepare-release.yml -f bump=patch -f summary="Fix config loading edge case"
 ```
@@ -267,6 +271,7 @@ jobs:
 ```
 
 How this works:
+
 - Only triggers when `packages/cli/package.json` changes on `main`.
 - The `if` condition ensures it only runs for release commits (matching the
   commit message format `release: vX.Y.Z` set by the prepare workflow).
@@ -350,12 +355,12 @@ jobs:
 
 ### Supported Targets
 
-| Target | Binary Name | OS / Architecture |
-|---|---|---|
+| Target             | Binary Name        | OS / Architecture   |
+| ------------------ | ------------------ | ------------------- |
 | `bun-darwin-arm64` | `ody-darwin-arm64` | macOS Apple Silicon |
-| `bun-darwin-x64` | `ody-darwin-x64` | macOS Intel |
-| `bun-linux-x64` | `ody-linux-x64` | Linux x86_64 |
-| `bun-linux-arm64` | `ody-linux-arm64` | Linux ARM64 |
+| `bun-darwin-x64`   | `ody-darwin-x64`   | macOS Intel         |
+| `bun-linux-x64`    | `ody-linux-x64`    | Linux x86_64        |
+| `bun-linux-arm64`  | `ody-linux-arm64`  | Linux ARM64         |
 
 Windows targets (`bun-windows-x64`) can be added later if needed.
 
@@ -485,16 +490,16 @@ curl -fsSL https://raw.githubusercontent.com/8bittitan/ody/main/install.sh | sh
 
 ## Files Changed / Created
 
-| File | Status | Purpose |
-|---|---|---|
-| `packages/cli/package.json` | Modified | Add version, license, metadata |
-| `package.json` (root) | Modified | Add `@changesets/cli` dev dependency |
-| `.changeset/config.json` | Created | Changesets configuration |
-| `.changeset/README.md` | Created | Changesets documentation (auto-generated) |
-| `.github/workflows/prepare-release.yml` | Created | Dispatch workflow to prepare a release PR |
-| `.github/workflows/release.yml` | Created | Tag creation on release PR merge |
-| `.github/workflows/binaries.yml` | Created | Cross-platform binary builds + GitHub Release |
-| `install.sh` | Created | User-facing install script (optional) |
+| File                                    | Status   | Purpose                                       |
+| --------------------------------------- | -------- | --------------------------------------------- |
+| `packages/cli/package.json`             | Modified | Add version, license, metadata                |
+| `package.json` (root)                   | Modified | Add `@changesets/cli` dev dependency          |
+| `.changeset/config.json`                | Created  | Changesets configuration                      |
+| `.changeset/README.md`                  | Created  | Changesets documentation (auto-generated)     |
+| `.github/workflows/prepare-release.yml` | Created  | Dispatch workflow to prepare a release PR     |
+| `.github/workflows/release.yml`         | Created  | Tag creation on release PR merge              |
+| `.github/workflows/binaries.yml`        | Created  | Cross-platform binary builds + GitHub Release |
+| `install.sh`                            | Created  | User-facing install script (optional)         |
 
 ## Key Differences from a Standard Changesets Setup
 
