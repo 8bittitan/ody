@@ -1,6 +1,5 @@
 import { log, outro } from '@clack/prompts';
 import { defineCommand } from 'citty';
-import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { resolveTasksDir, parseFrontmatter, parseTitle } from '../../util/task';
@@ -13,15 +12,9 @@ export const listCmd = defineCommand({
   async run() {
     const tasksDir = resolveTasksDir();
 
-    let files: string[];
-    try {
-      files = await readdir(tasksDir);
-    } catch {
-      log.info('No tasks directory found.');
-      return;
-    }
+    const glob = new Bun.Glob('*.code-task.md');
 
-    const taskFiles = files.filter((f) => f.endsWith('.code-task.md'));
+    const taskFiles = Array.from(glob.scanSync({ cwd: tasksDir }));
 
     if (taskFiles.length === 0) {
       log.info('No task files found.');

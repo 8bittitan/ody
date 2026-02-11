@@ -135,6 +135,7 @@ Focus on Bun + TypeScript CLI tooling.
 ### Files and I/O
 
 - Prefer `Bun.file()` for reads and `Bun.write()` for writes.
+- Prefer using `Bun.Glob` when needing to traverse a directory for files.
 - Use `fs/promises` for filesystem tasks not covered by Bun.
 - Use `path` for path joins instead of string concatenation.
 

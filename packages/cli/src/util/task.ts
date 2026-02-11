@@ -1,7 +1,10 @@
+import { log } from '@clack/prompts';
 import path from 'node:path';
 
 import { Config } from '../lib/config';
 import { BASE_DIR, TASKS_DIR } from './constants';
+
+const LABELS_REGEX = /\*\*Labels\*\*:\s*(.+)/i;
 
 export function parseDescription(content: string): string {
   const match = content.match(/## Description\s*\n([\s\S]*?)(?=\n## |\n---|\n$)/);
@@ -36,4 +39,38 @@ export function parseFrontmatter(content: string): Record<string, string> {
 export function parseTitle(content: string): string {
   const match = content.match(/^#\s+(?:Task:\s*)?(.+)$/m);
   return match && match[1] ? match[1].trim() : 'Untitled';
+}
+
+export async function getTaskFilesByLabel(label: string): Promise<string[]> {
+  const tasksDir = path.join(BASE_DIR, TASKS_DIR);
+  const matchingFiles: string[] = [];
+
+  try {
+    const glob = new Bun.Glob('*.code-task.md');
+    const taskFiles = Array.from(glob.scanSync({ cwd: tasksDir }));
+
+    for (const filename of taskFiles) {
+      try {
+        const filePath = path.join(tasksDir, filename);
+        const content = await Bun.file(filePath).text();
+
+        const labelsMatch = content.match(LABELS_REGEX);
+
+        if (labelsMatch?.[1]) {
+          const labels = labelsMatch[1].split(',').map((l) => l.trim().toLowerCase());
+
+          if (labels.includes(label.toLowerCase())) {
+            matchingFiles.push(filename);
+          }
+        }
+      } catch (err) {
+        log.warn(`Failed to read task file ${filename}: ${String(err)}`);
+      }
+    }
+  } catch (err) {
+    log.error(`Failed to load tasks: ${String(err)}`);
+    return [];
+  }
+
+  return matchingFiles;
 }

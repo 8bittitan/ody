@@ -5,8 +5,8 @@ import { Backend } from '../backends/backend';
 import { buildRunPrompt } from '../builders/runPrompt';
 import { Config } from '../lib/config';
 import { sendNotification } from '../lib/notify';
-import { getTaskFilesByLabel } from '../lib/tasks';
 import { Stream } from '../util/stream';
+import { getTaskFilesByLabel } from '../util/task';
 
 async function printOutro(completed: boolean, notifySetting: false | 'all' | 'individual') {
   const message = completed ? 'Agent completed the task' : 'Finished';
