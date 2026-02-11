@@ -1,4 +1,4 @@
-import { isCancel, outro, text, log, cancel, confirm, box, spinner } from '@clack/prompts';
+import { isCancel, outro, text, log, confirm, spinner } from '@clack/prompts';
 import { defineCommand } from 'citty';
 import { mkdir } from 'fs/promises';
 import path from 'path';
@@ -45,30 +45,6 @@ export const planCmd = defineCommand({
       if (isCancel(description)) {
         outro('Plan cancelled.');
         return;
-      }
-
-      log.message('');
-
-      box(
-        `
-Task description: ${String(description).trim()}
-`,
-        'Plan details',
-        {
-          width: 'auto',
-          rounded: true,
-          titleAlign: 'center',
-        },
-      );
-
-      const confirmed = await confirm({
-        message: 'Proceed with these plan details?',
-      });
-
-      if (isCancel(confirmed) || !confirmed) {
-        log.message('');
-        cancel('Planning cancelled');
-        process.exit(0);
       }
 
       const planPrompt = buildPlanPrompt({

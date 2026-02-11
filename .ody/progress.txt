@@ -13,3 +13,4 @@
 2026-02-10: Completed task 'Add Unit Tests for Util Modules' - Created 3 test files (constants.test.ts, stream.test.ts, inputPrompt.test.ts) with 21 passing tests covering all util modules. All tests pass via 'bun test packages/cli/src/util'.
 2026-02-10: Completed task - Configurable Tasks Directory. Added tasksDir config option with default '.ody/tasks', updated LOOP_PROMPT and PLAN_PROMPT to use dynamic path substitution.
 2026-02-10: Added label filter flag (-l/--label) to run command with task filtering and dry-run integration
+2026-02-10: Removed confirmation prompt from plan command — removed the box() display and confirm() prompt that asked "Proceed with these plan details?" after entering a task description. Plan generation now starts immediately after the user submits their description, reducing friction. Cleaned up unused imports (box, cancel).
