@@ -1,4 +1,5 @@
 import { log } from '@clack/prompts';
+import os from 'os';
 import path from 'path';
 import { z } from 'zod';
 
@@ -25,6 +26,42 @@ const configSchema = z.object({
 
 export type OdyConfig = z.infer<typeof configSchema>;
 
+function getHomeDir(): string {
+  return Bun.env.HOME ?? Bun.env.USERPROFILE ?? os.homedir();
+}
+
+async function resolveGlobalConfigPath(): Promise<string | undefined> {
+  const home = getHomeDir();
+
+  const primaryPath = path.join(home, '.ody', ODY_FILE);
+  const primaryFile = Bun.file(primaryPath);
+
+  if (await primaryFile.exists()) {
+    return primaryPath;
+  }
+
+  const xdgPath = path.join(home, '.config', 'ody', ODY_FILE);
+  const xdgFile = Bun.file(xdgPath);
+
+  if (await xdgFile.exists()) {
+    return xdgPath;
+  }
+
+  return undefined;
+}
+
+async function loadJsonFile(filePath: string): Promise<Record<string, unknown> | undefined> {
+  const file = Bun.file(filePath);
+
+  if (!(await file.exists())) {
+    return undefined;
+  }
+
+  const input = await file.text();
+
+  return JSON.parse(input) as Record<string, unknown>;
+}
+
 export namespace Config {
   let config: OdyConfig | undefined = undefined;
 
@@ -33,19 +70,32 @@ export namespace Config {
       return;
     }
 
-    const file = Bun.file(path.join(BASE_DIR, ODY_FILE));
-
-    if (!(await file.exists())) {
-      return;
-    }
-
-    log.info('Loading configuration');
-
     try {
-      const input = await file.text();
-      const parsed = JSON.parse(input);
+      let globalRaw: Record<string, unknown> | undefined;
+      let localRaw: Record<string, unknown> | undefined;
 
-      config = parse(parsed);
+      const globalConfigPath = await resolveGlobalConfigPath();
+
+      if (globalConfigPath) {
+        log.info(`Loading global configuration from ${globalConfigPath}`);
+        globalRaw = await loadJsonFile(globalConfigPath);
+      }
+
+      const localPath = path.join(BASE_DIR, ODY_FILE);
+      const localFile = Bun.file(localPath);
+
+      if (await localFile.exists()) {
+        log.info('Loading configuration');
+        localRaw = await loadJsonFile(localPath);
+      }
+
+      if (!globalRaw && !localRaw) {
+        return;
+      }
+
+      const merged = { ...globalRaw, ...localRaw };
+
+      config = parse(merged);
     } catch (err) {
       if (Error.isError(err)) {
         log.error(err.message);
