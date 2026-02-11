@@ -34,10 +34,31 @@ export const runCmd = defineCommand({
       alias: 'l',
       required: false,
     },
+    iterations: {
+      description: 'Override the number of loop iterations (0 for unlimited)',
+      type: 'string',
+      alias: 'i',
+      required: false,
+    },
   },
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
+
+    let iterationsOverride: number | undefined;
+
+    if (args.iterations !== undefined) {
+      const parsed = parseInt(args.iterations, 10);
+
+      if (Number.isNaN(parsed) || parsed < 0) {
+        log.error(
+          `Invalid --iterations value "${args.iterations}". Must be a non-negative integer.`,
+        );
+        process.exit(1);
+      }
+
+      iterationsOverride = parsed;
+    }
 
     let taskFiles: string[] | undefined;
 
@@ -94,7 +115,7 @@ export const runCmd = defineCommand({
       }
     }
 
-    const maxIterations = config.maxIterations;
+    const maxIterations = iterationsOverride ?? config.maxIterations;
     let agentSpinner: SpinnerResult | null = null;
 
     if (!args.verbose) {

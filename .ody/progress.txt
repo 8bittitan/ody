@@ -15,3 +15,4 @@
 2026-02-10: Added label filter flag (-l/--label) to run command with task filtering and dry-run integration
 2026-02-10: Removed confirmation prompt from plan command — removed the box() display and confirm() prompt that asked "Proceed with these plan details?" after entering a task description. Plan generation now starts immediately after the user submits their description, reducing friction. Cleaned up unused imports (box, cancel).
 2026-02-10: Added `ody config` command — created packages/cli/src/cmd/config.ts that displays current configuration from .ody/ody.json using Config.all(), registered it as a subcommand in index.ts. Handles missing config gracefully with a helpful message.
+2026-02-10: Added --iterations/-i flag to run command — allows overriding maxIterations config at invocation time. Validates input as non-negative integer, supports 0 for unlimited. No effect in --once mode. All validation commands pass.
