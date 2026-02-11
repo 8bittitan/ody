@@ -109,6 +109,7 @@ Focus on Bun + TypeScript CLI tooling.
 
 - Prefer `log` from `@clack/prompts` over `console.*`.
 - In CLI flows, log start/end messages for long operations.
+- `outro` from `@clack/prompts` should only be used at the end of a command's happy path or when a prompt is cancelled.
 
 ### Async and process control
 

@@ -1,7 +1,7 @@
 import { log } from '@clack/prompts';
 import { describe, expect, mock, spyOn, test } from 'bun:test';
 
-import { Stream } from './stream';
+import { Stream } from '../stream';
 
 describe('Stream', () => {
   describe('toOutput', () => {

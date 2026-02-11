@@ -1,5 +1,6 @@
 {
   "name": "@ody/cli",
+  "version": "0.0.1",
   "keywords": [
     "agent",
     "orchestration"

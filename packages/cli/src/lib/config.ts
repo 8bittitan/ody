@@ -77,7 +77,6 @@ export namespace Config {
       const globalConfigPath = await resolveGlobalConfigPath();
 
       if (globalConfigPath) {
-        log.info(`Loading global configuration from ${globalConfigPath}`);
         globalRaw = await loadJsonFile(globalConfigPath);
       }
 
@@ -85,7 +84,6 @@ export namespace Config {
       const localFile = Bun.file(localPath);
 
       if (await localFile.exists()) {
-        log.info('Loading configuration');
         localRaw = await loadJsonFile(localPath);
       }
 

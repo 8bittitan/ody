@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE, PRD_FILE, TASKS_DIR } from './constants';
+import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE, PRD_FILE, TASKS_DIR } from '../constants';
 
 describe('constants', () => {
   test('BASE_DIR has expected value', () => {

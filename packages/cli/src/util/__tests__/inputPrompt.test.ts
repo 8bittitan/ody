@@ -1,6 +1,6 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 
-import { getRandomValidatorPlaceholder } from './inputPrompt';
+import { getRandomValidatorPlaceholder } from '../inputPrompt';
 
 describe('inputPrompt', () => {
   describe('getRandomValidatorPlaceholder', () => {
