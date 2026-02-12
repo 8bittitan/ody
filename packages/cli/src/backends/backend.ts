@@ -26,14 +26,14 @@ export class Backend {
   buildCommand(prompt: string) {
     return this.harness.buildCommand(prompt, {
       model: this.config.model,
-      agent: 'build',
+      agent: this.config.agent ?? 'build',
     });
   }
 
   buildOnceCommand(prompt: string) {
     return this.harness.buildOnceCommand(prompt, {
       model: this.config.model,
-      agent: 'build',
+      agent: this.config.agent ?? 'build',
     });
   }
 }

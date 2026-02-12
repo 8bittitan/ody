@@ -51,6 +51,12 @@ export const initCmd = defineCommand({
       description: 'If the agent should create commits after each task completion',
       type: 'boolean',
     },
+    agent: {
+      alias: 'a',
+      required: false,
+      description: 'Agent profile/persona for the backend harness (default: build)',
+      type: 'string',
+    },
     notify: {
       alias: 'n',
       required: false,
@@ -123,6 +129,22 @@ export const initCmd = defineCommand({
 
       if (model && model.trim() !== '') {
         configInput.model = model.trim();
+      }
+
+      let agent = args.agent;
+
+      if (!agent) {
+        agent = (
+          await text({
+            message: 'Agent profile/persona for the backend harness',
+            placeholder: 'Leave blank to use default (build)',
+            defaultValue: '',
+          })
+        ).toString();
+      }
+
+      if (agent && agent.trim() !== '') {
+        configInput.agent = agent.trim();
       }
 
       const validatorCommands: string[] = [];

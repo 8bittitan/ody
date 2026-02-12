@@ -17,6 +17,7 @@ const configSchema = z.object({
   validatorCommands: z.array(z.string()).default([]).optional(),
   model: z.string().optional(),
   skipPermissions: z.boolean().default(true).optional(),
+  agent: z.string().nonempty().default('build').optional(),
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
   notify: z
     .union([z.boolean(), z.enum(['all', 'individual'])])
