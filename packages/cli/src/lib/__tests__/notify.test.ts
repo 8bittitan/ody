@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 import { sendNotification } from '../notify';
 
-describe('sendNotification', () => {
+// NOTE: `todo` until can get to not having the notify script actually run
+describe.todo('sendNotification', () => {
   let originalPlatform: PropertyDescriptor | undefined;
 
   beforeEach(() => {

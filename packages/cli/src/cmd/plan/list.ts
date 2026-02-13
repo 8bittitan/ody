@@ -38,7 +38,7 @@ export const listCmd = defineCommand({
       return;
     }
 
-    log.info(`Found ${pending.length} pending task(s):\n`);
+    log.info(`Found ${pending.length} pending task(s):`);
 
     for (const task of pending) {
       log.message(`  - ${task.title}  (${task.filename})`);
