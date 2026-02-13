@@ -47,10 +47,10 @@ cli/
 
 ## Dependencies
 
-| Dependency | Purpose | Source |
-|---|---|---|
-| **zig-clap** | CLI argument parsing with subcommands | `build.zig.zon` fetch from GitHub |
-| **Zig std** | Everything else: JSON, filesystem, process spawning, memory | Built-in |
+| Dependency   | Purpose                                                     | Source                            |
+| ------------ | ----------------------------------------------------------- | --------------------------------- |
+| **zig-clap** | CLI argument parsing with subcommands                       | `build.zig.zon` fetch from GitHub |
+| **Zig std**  | Everything else: JSON, filesystem, process spawning, memory | Built-in                          |
 
 No other external dependencies. The TUI (colors, spinners, prompts) will be hand-rolled using raw ANSI escape codes.
 
@@ -293,7 +293,7 @@ Full interactive wizard:
 
 1. Create `.ody/` directory if missing (`std.fs.makeDirAbsolute`)
 2. Detect available backends via `detect.which()`
-    - should be `Backend.getAvailableBackends()`
+   - should be `Backend.getAvailableBackends()`
 3. Prompt for backend (autocomplete from available)
 4. Prompt for model (text input, optional)
 5. Prompt for agent profile (text input, default "build")
@@ -424,16 +424,16 @@ Alternative simpler approach: spawn with inherited stdio and use a wrapper that 
 
 Fresh test suite using Zig's built-in `test` keyword:
 
-| Module | Test Focus |
-|---|---|
-| `config.zig` | Parse valid/invalid JSON, validate field constraints, merge logic, global/local precedence |
-| `task.zig` | Frontmatter parsing, title extraction, description condensation, label filtering |
-| `stream.zig` | Chunk accumulation, callback stopping, empty streams |
-| `terminal.zig` | ANSI sequence generation correctness |
-| `prompt.zig` | Validator placeholder selection |
-| `backend/*.zig` | Command array construction for each backend with various config combinations |
-| `builder/*.zig` | Template substitution correctness |
-| `detect.zig` | PATH searching logic |
+| Module          | Test Focus                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| `config.zig`    | Parse valid/invalid JSON, validate field constraints, merge logic, global/local precedence |
+| `task.zig`      | Frontmatter parsing, title extraction, description condensation, label filtering           |
+| `stream.zig`    | Chunk accumulation, callback stopping, empty streams                                       |
+| `terminal.zig`  | ANSI sequence generation correctness                                                       |
+| `prompt.zig`    | Validator placeholder selection                                                            |
+| `backend/*.zig` | Command array construction for each backend with various config combinations               |
+| `builder/*.zig` | Template substitution correctness                                                          |
+| `detect.zig`    | PATH searching logic                                                                       |
 
 Run all tests: `zig build test` (configured in `build.zig` with a test step).
 
@@ -500,17 +500,17 @@ Once Zig version is verified:
 
 ## Execution Order Summary
 
-| Phase | Description | Estimated Complexity |
-|---|---|---|
-| 1 | Foundation (scaffolding, constants, config, terminal, prompts) | High -- most infrastructure work |
-| 2 | CLI framework & command dispatch with zig-clap | Medium |
-| 3 | Backend system (harness, 3 backends, detection) | Medium |
-| 4 | Prompt builders (3 templates with substitution) | Low |
-| 5 | Utility modules (stream, task parsing, notify) | Medium |
-| 6 | Command implementations (init, run, config, plan/*) | High -- largest phase |
-| 7 | Process spawning (piped + PTY modes) | Medium-High |
-| 8 | Testing | Medium |
-| 9 | Build & CI | Low |
-| 10 | Migration & cleanup | Low |
+| Phase | Description                                                    | Estimated Complexity             |
+| ----- | -------------------------------------------------------------- | -------------------------------- |
+| 1     | Foundation (scaffolding, constants, config, terminal, prompts) | High -- most infrastructure work |
+| 2     | CLI framework & command dispatch with zig-clap                 | Medium                           |
+| 3     | Backend system (harness, 3 backends, detection)                | Medium                           |
+| 4     | Prompt builders (3 templates with substitution)                | Low                              |
+| 5     | Utility modules (stream, task parsing, notify)                 | Medium                           |
+| 6     | Command implementations (init, run, config, plan/\*)           | High -- largest phase            |
+| 7     | Process spawning (piped + PTY modes)                           | Medium-High                      |
+| 8     | Testing                                                        | Medium                           |
+| 9     | Build & CI                                                     | Low                              |
+| 10    | Migration & cleanup                                            | Low                              |
 
 Phases 1-3 can proceed somewhat in parallel. Phase 6 depends on 1-5. Phase 7 is woven into Phase 6 but listed separately because the PTY work is non-trivial.

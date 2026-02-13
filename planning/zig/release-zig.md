@@ -49,12 +49,12 @@ Users install via:
 
 ## Target Matrix
 
-| Target               | Binary Name          | OS / Architecture   |
-| -------------------- | -------------------- | ------------------- |
-| `x86_64-linux`       | `ody-linux-x86_64`  | Linux x86_64        |
-| `aarch64-linux`      | `ody-linux-aarch64`  | Linux ARM64         |
-| `x86_64-macos`       | `ody-macos-x86_64`  | macOS Intel         |
-| `aarch64-macos`      | `ody-macos-aarch64`  | macOS Apple Silicon |
+| Target          | Binary Name         | OS / Architecture   |
+| --------------- | ------------------- | ------------------- |
+| `x86_64-linux`  | `ody-linux-x86_64`  | Linux x86_64        |
+| `aarch64-linux` | `ody-linux-aarch64` | Linux ARM64         |
+| `x86_64-macos`  | `ody-macos-x86_64`  | macOS Intel         |
+| `aarch64-macos` | `ody-macos-aarch64` | macOS Apple Silicon |
 
 Windows targets (`x86_64-windows`) can be added later if needed.
 
@@ -98,6 +98,7 @@ const VERSION = build_options.version;
 ```
 
 This means:
+
 - Local dev builds embed the version from `cli/VERSION` (e.g., `0.1.0`)
 - CI release builds pass `-Dversion=1.0.0` explicitly (stripped from the tag)
 - The `VERSION` file is bumped automatically by the prepare-release workflow
@@ -151,6 +152,7 @@ tag_pattern = "v[0-9].*"
 ```
 
 Key decisions:
+
 - `chore:`, `build:`, and `release:` commits are skipped (noise)
 - Breaking changes (commits with `!` or `BREAKING CHANGE` footer) get flagged
 - Non-conventional commits are still included (not filtered out), just ungrouped
@@ -176,14 +178,17 @@ git-cliff produces:
 ## v1.2.0 (2026-02-12)
 
 ### Features
+
 - add label filtering to run command
 - add plan compact subcommand
 
 ### Bug Fixes
+
 - maxIterations 0 treated as 1
 - stderr pipe deadlock in run loop
 
 ### Refactoring
+
 - extract stream draining into utility
 ```
 
@@ -275,6 +280,7 @@ jobs:
 ```
 
 How this works:
+
 - First `git-cliff` call generates the full `CHANGELOG.md` with the new
   version prepended to existing entries
 - Second `git-cliff` call generates just the release body (no header) for
@@ -446,6 +452,7 @@ automatically flagged as pre-releases via the `prerelease` condition.
 
 Zig can cross-compile to any supported target from any host. Building all
 four targets on a single `ubuntu-latest` runner is:
+
 - Faster (no runner spin-up overhead per target)
 - Simpler (no matrix, no artifact upload/download dance)
 - Cheaper (one runner instead of four)
@@ -621,15 +628,15 @@ main
 
 ### Install Script Features
 
-| Feature | Details |
-| --- | --- |
-| Platform detection | `uname -s` + `uname -m`, supports Linux + macOS, x86_64 + ARM64 |
-| Version pinning | Set `ODY_VERSION=v1.2.3` to install a specific version |
-| Custom install dir | Set `ODY_INSTALL_DIR=/usr/local/bin` to override default `~/.local/bin` |
+| Feature               | Details                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| Platform detection    | `uname -s` + `uname -m`, supports Linux + macOS, x86_64 + ARM64         |
+| Version pinning       | Set `ODY_VERSION=v1.2.3` to install a specific version                  |
+| Custom install dir    | Set `ODY_INSTALL_DIR=/usr/local/bin` to override default `~/.local/bin` |
 | Checksum verification | Downloads `checksums-sha256.txt` and verifies SHA-256 before installing |
-| PATH guidance | Warns if install directory is not in `$PATH` |
-| Graceful fallbacks | Skips checksum verification if `sha256sum`/`shasum` are unavailable |
-| Idempotent | Safe to run multiple times; overwrites existing binary |
+| PATH guidance         | Warns if install directory is not in `$PATH`                            |
+| Graceful fallbacks    | Skips checksum verification if `sha256sum`/`shasum` are unavailable     |
+| Idempotent            | Safe to run multiple times; overwrites existing binary                  |
 
 ### Usage Examples
 
@@ -684,18 +691,18 @@ verification on every push/PR.
 
 ### Conventional Commit Quick Reference
 
-| Prefix | Purpose | Appears in changelog |
-| --- | --- | --- |
-| `feat:` | New feature | Yes (Features) |
-| `fix:` | Bug fix | Yes (Bug Fixes) |
-| `perf:` | Performance improvement | Yes (Performance) |
-| `refactor:` | Code restructuring | Yes (Refactoring) |
-| `docs:` | Documentation | Yes (Documentation) |
-| `test:` | Test changes | Yes (Testing) |
-| `ci:` | CI/CD changes | Yes (CI) |
-| `chore:` | Maintenance | No (skipped) |
-| `build:` | Build system | No (skipped) |
-| `feat!:` | Breaking feature | Yes, flagged **BREAKING** |
+| Prefix      | Purpose                 | Appears in changelog      |
+| ----------- | ----------------------- | ------------------------- |
+| `feat:`     | New feature             | Yes (Features)            |
+| `fix:`      | Bug fix                 | Yes (Bug Fixes)           |
+| `perf:`     | Performance improvement | Yes (Performance)         |
+| `refactor:` | Code restructuring      | Yes (Refactoring)         |
+| `docs:`     | Documentation           | Yes (Documentation)       |
+| `test:`     | Test changes            | Yes (Testing)             |
+| `ci:`       | CI/CD changes           | Yes (CI)                  |
+| `chore:`    | Maintenance             | No (skipped)              |
+| `build:`    | Build system            | No (skipped)              |
+| `feat!:`    | Breaking feature        | Yes, flagged **BREAKING** |
 
 ### Releasing
 
@@ -734,22 +741,22 @@ curl -fsSL https://raw.githubusercontent.com/8bittitan/ody/main/install.sh | sh
 
 ## Files Created
 
-| File | Purpose |
-| --- | --- |
-| `cliff.toml` | git-cliff configuration (commit parsing, grouping, template) |
-| `cli/VERSION` | Plain-text version file, source of truth, read by `build.zig` |
-| `CHANGELOG.md` | Auto-maintained changelog, updated by prepare-release workflow |
-| `.github/workflows/prepare-release.yml` | Dispatch workflow: generate changelog + open release PR |
-| `.github/workflows/release.yml` | Tag on merge + build binaries + create GitHub Release |
-| `install.sh` | User-facing install script with platform detection + checksum verification |
-| `uninstall.sh` | User-facing uninstall script (optional) |
+| File                                    | Purpose                                                                    |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| `cliff.toml`                            | git-cliff configuration (commit parsing, grouping, template)               |
+| `cli/VERSION`                           | Plain-text version file, source of truth, read by `build.zig`              |
+| `CHANGELOG.md`                          | Auto-maintained changelog, updated by prepare-release workflow             |
+| `.github/workflows/prepare-release.yml` | Dispatch workflow: generate changelog + open release PR                    |
+| `.github/workflows/release.yml`         | Tag on merge + build binaries + create GitHub Release                      |
+| `install.sh`                            | User-facing install script with platform detection + checksum verification |
+| `uninstall.sh`                          | User-facing uninstall script (optional)                                    |
 
 ## Files Modified
 
-| File | Change |
-| --- | --- |
-| `cli/build.zig` | Add `-Dversion` build option, default to `@embedFile("VERSION")` |
-| `.github/workflows/ci.yml` | Replace Bun CI with Zig CI (covered in rewrite.md Phase 9) |
+| File                       | Change                                                           |
+| -------------------------- | ---------------------------------------------------------------- |
+| `cli/build.zig`            | Add `-Dversion` build option, default to `@embedFile("VERSION")` |
+| `.github/workflows/ci.yml` | Replace Bun CI with Zig CI (covered in rewrite.md Phase 9)       |
 
 ## Monorepo Scalability
 
