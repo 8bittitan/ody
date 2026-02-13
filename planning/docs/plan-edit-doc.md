@@ -27,16 +27,16 @@ Write the documentation page for `ody plan edit` as an MDX file at `packages/doc
 
 ### Flags
 
-| Flag | Alias | Type | Default | Description |
-|---|---|---|---|---|
-| `--dry-run` | `-d` | `boolean` | `false` | Print the edit prompt without sending it to the agent |
-| `--verbose` | — | `boolean` | `false` | Stream agent output instead of showing a spinner |
+| Flag        | Alias | Type      | Default | Description                                           |
+| ----------- | ----- | --------- | ------- | ----------------------------------------------------- |
+| `--dry-run` | `-d`  | `boolean` | `false` | Print the edit prompt without sending it to the agent |
+| `--verbose` | —     | `boolean` | `false` | Stream agent output instead of showing a spinner      |
 
 ### The Edit Prompt
 
 The prompt sent to the agent includes:
 
-```
+````
 You are editing an existing task plan file.
 
 FILE PATH
@@ -45,9 +45,10 @@ FILE PATH
 CURRENT FILE CONTENT
 ```markdown
 {full file content}
-```
+````
 
 INSTRUCTIONS
+
 1. Read the current content of the task plan file at the path above.
 2. Ask the user what changes they want to make (if interactive), or apply improvements.
 3. Edit the file in place. Preserve the YAML frontmatter structure and all required sections.
@@ -55,7 +56,8 @@ INSTRUCTIONS
 5. Keep the same filename and location.
 
 When finished, output: <woof>COMPLETE</woof>.
-```
+
+````
 
 ### Key Behaviors
 
@@ -96,7 +98,7 @@ When finished, output: <woof>COMPLETE</woof>.
     },
   }}
 />
-```
+````
 
 ### 3. Callout
 

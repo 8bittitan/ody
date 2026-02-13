@@ -34,6 +34,7 @@ None. This command takes no flags or positional arguments.
 ### Filtering Criteria
 
 A task is eligible for archival only if:
+
 - Its frontmatter `status` is exactly `"completed"`.
 - Its frontmatter `completed` field is present, non-null, and not the string `"null"`.
 
@@ -80,6 +81,7 @@ Description of the auth module refactoring.
 ### Description Condensation
 
 Descriptions are extracted from the `## Description` section of each task file. The extraction:
+
 - Matches content between `## Description` and the next `## ` heading, `---`, or end of file.
 - Condenses to the first 2-3 sentences (split on `.`, `!`, `?`).
 - Falls back to the first 200 characters if no sentence boundaries are found.
@@ -116,6 +118,7 @@ This command **deletes the original task files** after archiving. The archive in
 **Where**: Show the before and after directory state.
 
 **Before compaction:**
+
 ```mdx
 <Files>
   <Folder name=".ody" defaultOpen>
@@ -129,6 +132,7 @@ This command **deletes the original task files** after archiving. The archive in
 ```
 
 **After compaction** (assuming `add-auth` and `fix-tests` were completed):
+
 ```mdx
 <Files>
   <Folder name=".ody" defaultOpen>

@@ -26,10 +26,10 @@ Write the documentation page for `ody plan new` as an MDX file at `packages/docs
 
 ### Flags
 
-| Flag | Alias | Type | Default | Description |
-|---|---|---|---|---|
-| `--dry-run` | `-d` | `boolean` | `false` | Print the prompt that would be sent to the agent without executing |
-| `--verbose` | — | `boolean` | `false` | Stream the agent's output in real-time instead of showing a spinner |
+| Flag        | Alias | Type      | Default | Description                                                         |
+| ----------- | ----- | --------- | ------- | ------------------------------------------------------------------- |
+| `--dry-run` | `-d`  | `boolean` | `false` | Print the prompt that would be sent to the agent without executing  |
+| `--verbose` | —     | `boolean` | `false` | Stream the agent's output in real-time instead of showing a spinner |
 
 ### The Plan Prompt
 
@@ -54,33 +54,41 @@ created: 2025-02-11
 started: null
 completed: null
 ---
+
 # Task: Concise Task Name
 
 ## Description
+
 What needs to be implemented and why.
 
 ## Background
+
 Context and background information.
 
 ## Technical Requirements
+
 1. First requirement
 2. Second requirement
 
 ## Dependencies
+
 - First dependency
 - Second dependency
 
 ## Implementation Approach
+
 1. First step
 2. Second step
 
 ## Acceptance Criteria
+
 1. **Criterion Name**
    - Given precondition
    - When action
    - Then expected result
 
 ## Metadata
+
 - **Complexity**: Low/Medium/High
 - **Labels**: comma-separated labels
 ```
@@ -88,6 +96,7 @@ Context and background information.
 ### Loop Behavior
 
 The command runs in a loop:
+
 1. Prompt for task description.
 2. Generate the task file.
 3. Ask "Would you like to add another plan?"
@@ -115,15 +124,15 @@ This allows creating multiple task plans in a single session.
 ```mdx
 <TypeTable
   type={{
-    "--dry-run / -d": {
-      type: "boolean",
-      default: "false",
-      description: "Print the prompt without sending it to the agent",
+    '--dry-run / -d': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Print the prompt without sending it to the agent',
     },
-    "--verbose": {
-      type: "boolean",
-      default: "false",
-      description: "Stream agent output instead of showing a spinner",
+    '--verbose': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Stream agent output instead of showing a spinner',
     },
   }}
 />

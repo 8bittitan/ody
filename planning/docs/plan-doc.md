@@ -12,12 +12,12 @@ Write the documentation page for `ody plan` as an MDX file at `packages/docs/con
 
 `ody plan` is not an executable command on its own -- it is a parent command that groups four subcommands for managing task plans:
 
-| Subcommand | Description |
-|---|---|
-| `ody plan new` | Create a new task plan by having the agent generate a `.code-task.md` file |
-| `ody plan list` | List all pending tasks |
-| `ody plan edit` | Edit an existing task plan using the agent |
-| `ody plan compact` | Archive completed tasks into a historical record and delete the originals |
+| Subcommand         | Description                                                                |
+| ------------------ | -------------------------------------------------------------------------- |
+| `ody plan new`     | Create a new task plan by having the agent generate a `.code-task.md` file |
+| `ody plan list`    | List all pending tasks                                                     |
+| `ody plan edit`    | Edit an existing task plan using the agent                                 |
+| `ody plan compact` | Archive completed tasks into a historical record and delete the originals  |
 
 Running `ody plan` without a subcommand displays help text with the available subcommands.
 
@@ -25,10 +25,10 @@ Running `ody plan` without a subcommand displays help text with the available su
 
 The parent `plan` command defines two flags that are inherited by all subcommands:
 
-| Flag | Alias | Type | Default | Description |
-|---|---|---|---|---|
-| `--dry-run` | `-d` | `boolean` | `false` | Run without sending the prompt to the agent |
-| `--verbose` | — | `boolean` | `false` | Stream the agent's work-in-progress output |
+| Flag        | Alias | Type      | Default | Description                                 |
+| ----------- | ----- | --------- | ------- | ------------------------------------------- |
+| `--dry-run` | `-d`  | `boolean` | `false` | Run without sending the prompt to the agent |
+| `--verbose` | —     | `boolean` | `false` | Stream the agent's work-in-progress output  |
 
 ### Task File Lifecycle
 
@@ -51,33 +51,41 @@ created: 2025-02-11
 started: null
 completed: null
 ---
+
 # Task: Concise Task Name
 
 ## Description
+
 What needs to be implemented and why.
 
 ## Background
+
 Context and background information.
 
 ## Technical Requirements
+
 1. First requirement
 2. Second requirement
 
 ## Dependencies
+
 - First dependency
 - Second dependency
 
 ## Implementation Approach
+
 1. First step
 2. Second step
 
 ## Acceptance Criteria
+
 1. **Criterion Name**
    - Given precondition
    - When action
    - Then expected result
 
 ## Metadata
+
 - **Complexity**: Low/Medium/High
 - **Labels**: comma-separated labels
 ```
@@ -130,14 +138,14 @@ Walk through the lifecycle:
 ```mdx
 <TypeTable
   type={{
-    "--dry-run / -d": {
-      type: "boolean",
-      default: "false",
-      description: "Run without sending the prompt to the agent",
+    '--dry-run / -d': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Run without sending the prompt to the agent',
     },
-    "--verbose": {
-      type: "boolean",
-      default: "false",
+    '--verbose': {
+      type: 'boolean',
+      default: 'false',
       description: "Stream the agent's work-in-progress output to stdout",
     },
   }}
@@ -183,7 +191,9 @@ created: 2025-02-11
 started: null
 completed: null
 ---
+
 # Task: Example Task
+
 ...
 ```
 ````

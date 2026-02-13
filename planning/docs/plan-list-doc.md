@@ -42,6 +42,7 @@ The command only shows tasks with `status: pending` in their YAML frontmatter. T
 ### Title Parsing
 
 Titles are extracted from the Markdown heading using the regex `/^#\s+(?:Task:\s*)?(.+)$/m`. This means:
+
 - `# Task: Add Email Validation` extracts "Add Email Validation"
 - `# Add Email Validation` also extracts "Add Email Validation"
 - If no heading is found, the title defaults to "Untitled"

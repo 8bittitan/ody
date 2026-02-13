@@ -31,15 +31,15 @@ Write the documentation page for `ody run` as an MDX file at `packages/docs/cont
 
 ### Flags
 
-| Flag | Alias | Type | Default | Description |
-|---|---|---|---|---|
-| `taskFile` | — | positional | — | Path to a specific `.code-task.md` file to run |
-| `--verbose` | — | `boolean` | `false` | Stream agent output to stdout in real-time |
-| `--once` | — | `boolean` | `false` | Run a single iteration instead of the loop |
-| `--dry-run` | — | `boolean` | `false` | Print the command that would be executed (only valid with `--once`) |
-| `--label` | `-l` | `string` | — | Filter tasks by label |
-| `--iterations` | `-i` | `string` (parsed to int) | from config | Override the number of loop iterations (0 = unlimited) |
-| `--no-notify` | — | `boolean` | `false` | Disable OS notifications even if enabled in config |
+| Flag           | Alias | Type                     | Default     | Description                                                         |
+| -------------- | ----- | ------------------------ | ----------- | ------------------------------------------------------------------- |
+| `taskFile`     | —     | positional               | —           | Path to a specific `.code-task.md` file to run                      |
+| `--verbose`    | —     | `boolean`                | `false`     | Stream agent output to stdout in real-time                          |
+| `--once`       | —     | `boolean`                | `false`     | Run a single iteration instead of the loop                          |
+| `--dry-run`    | —     | `boolean`                | `false`     | Print the command that would be executed (only valid with `--once`) |
+| `--label`      | `-l`  | `string`                 | —           | Filter tasks by label                                               |
+| `--iterations` | `-i`  | `string` (parsed to int) | from config | Override the number of loop iterations (0 = unlimited)              |
+| `--no-notify`  | —     | `boolean`                | `false`     | Disable OS notifications even if enabled in config                  |
 
 ### Execution Modes
 
@@ -75,11 +75,11 @@ The agent signals task completion by outputting `<woof>COMPLETE</woof>` in its s
 
 Notifications are controlled by the `notify` config setting:
 
-| Config value | Behavior |
-|---|---|
-| `false` (default) | No notifications |
-| `"all"` | Single notification when the entire run finishes |
-| `"individual"` | Notification after each loop iteration completes |
+| Config value      | Behavior                                         |
+| ----------------- | ------------------------------------------------ |
+| `false` (default) | No notifications                                 |
+| `"all"`           | Single notification when the entire run finishes |
+| `"individual"`    | Notification after each loop iteration completes |
 
 The `--no-notify` flag overrides any config setting and disables all notifications. Notifications use `osascript` on macOS and `notify-send` on Linux.
 
@@ -100,6 +100,7 @@ When `--label` is used, Ody scans all `.code-task.md` files for a `**Labels**: .
 **Where**: Show the two execution modes side by side.
 
 Use `<Tabs items={['Loop Mode', 'Once Mode']}>` with a `<Tab>` for each mode. Each tab contains:
+
 - A description of the mode
 - An example invocation code block
 - Behavioral differences (PTY vs piped stdio, spinner vs streamed output)
@@ -135,38 +136,38 @@ ody run --once --dry-run
 ```mdx
 <TypeTable
   type={{
-    "taskFile": {
-      type: "string (positional)",
-      description: "Path to a specific .code-task.md file to run",
+    taskFile: {
+      type: 'string (positional)',
+      description: 'Path to a specific .code-task.md file to run',
     },
-    "--verbose": {
-      type: "boolean",
-      default: "false",
-      description: "Stream agent output to stdout in real-time",
+    '--verbose': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Stream agent output to stdout in real-time',
     },
-    "--once": {
-      type: "boolean",
-      default: "false",
-      description: "Run a single iteration instead of the loop",
+    '--once': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Run a single iteration instead of the loop',
     },
-    "--dry-run": {
-      type: "boolean",
-      default: "false",
-      description: "Print the command without executing (only with --once)",
+    '--dry-run': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Print the command without executing (only with --once)',
     },
-    "--label / -l": {
-      type: "string",
-      description: "Filter tasks by label from task file metadata",
+    '--label / -l': {
+      type: 'string',
+      description: 'Filter tasks by label from task file metadata',
     },
-    "--iterations / -i": {
-      type: "string",
-      default: "from config",
-      description: "Override max loop iterations. 0 = unlimited",
+    '--iterations / -i': {
+      type: 'string',
+      default: 'from config',
+      description: 'Override max loop iterations. 0 = unlimited',
     },
-    "--no-notify": {
-      type: "boolean",
-      default: "false",
-      description: "Disable OS notifications even if enabled in config",
+    '--no-notify': {
+      type: 'boolean',
+      default: 'false',
+      description: 'Disable OS notifications even if enabled in config',
     },
   }}
 />

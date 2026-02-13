@@ -34,10 +34,7 @@ None. This command has no flags or positional arguments.
   "backend": "claude",
   "maxIterations": 0,
   "shouldCommit": false,
-  "validatorCommands": [
-    "bun run lint",
-    "bun run typecheck"
-  ],
+  "validatorCommands": ["bun run lint", "bun run typecheck"],
   "model": "claude-sonnet-4-20250514",
   "skipPermissions": true,
   "notify": "all"
@@ -60,6 +57,7 @@ None. This command has no flags or positional arguments.
 **Where**: Show example output for different configurations.
 
 Use `<Tabs items={['Minimal', 'Full']}>` to show:
+
 - A minimal config (just backend, maxIterations, shouldCommit)
 - A full config with all optional fields populated
 

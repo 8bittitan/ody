@@ -28,13 +28,13 @@ Since the root `package.json` already has `"workspaces": ["packages/*"]`, the ne
 
 ## 2. Next.js + Fumadocs Configuration Files
 
-| File | Purpose |
-|---|---|
-| `packages/docs/next.config.mjs` | Next.js config wrapped with `createMDX` from `fumadocs-mdx/next` |
-| `packages/docs/tsconfig.json` | Extends root `tsconfig.json`, adds `fumadocs-mdx:collections/*` path alias pointing to `.source/*` |
-| `packages/docs/source.config.ts` | Defines the MDX docs collection (`content/docs` directory) |
-| `packages/docs/postcss.config.mjs` | PostCSS config for Tailwind CSS (required by Fumadocs UI) |
-| `packages/docs/tailwind.config.ts` | Tailwind config with Fumadocs UI preset |
+| File                               | Purpose                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `packages/docs/next.config.mjs`    | Next.js config wrapped with `createMDX` from `fumadocs-mdx/next`                                   |
+| `packages/docs/tsconfig.json`      | Extends root `tsconfig.json`, adds `fumadocs-mdx:collections/*` path alias pointing to `.source/*` |
+| `packages/docs/source.config.ts`   | Defines the MDX docs collection (`content/docs` directory)                                         |
+| `packages/docs/postcss.config.mjs` | PostCSS config for Tailwind CSS (required by Fumadocs UI)                                          |
+| `packages/docs/tailwind.config.ts` | Tailwind config with Fumadocs UI preset                                                            |
 
 ## 3. App Directory Structure (Next.js App Router)
 
@@ -99,21 +99,21 @@ Each MDX page will include:
 
 ## 7. Files to Create (Summary)
 
-| # | File | Lines (est.) |
-|---|---|---|
-| 1 | `packages/docs/package.json` | ~25 |
-| 2 | `packages/docs/next.config.mjs` | ~10 |
-| 3 | `packages/docs/tsconfig.json` | ~15 |
-| 4 | `packages/docs/source.config.ts` | ~10 |
-| 5 | `packages/docs/postcss.config.mjs` | ~5 |
-| 6 | `packages/docs/tailwind.config.ts` | ~10 |
-| 7 | `packages/docs/.gitignore` | ~5 |
-| 8 | `packages/docs/app/layout.tsx` | ~25 |
-| 9 | `packages/docs/app/global.css` | ~10 |
-| 10 | `packages/docs/app/page.tsx` | ~15 |
-| 11 | `packages/docs/app/docs/layout.tsx` | ~20 |
-| 12 | `packages/docs/app/docs/[[...slug]]/page.tsx` | ~30 |
-| 13 | `packages/docs/lib/source.ts` | ~10 |
+| #      | File                                           | Lines (est.) |
+| ------ | ---------------------------------------------- | ------------ |
+| 1      | `packages/docs/package.json`                   | ~25          |
+| 2      | `packages/docs/next.config.mjs`                | ~10          |
+| 3      | `packages/docs/tsconfig.json`                  | ~15          |
+| 4      | `packages/docs/source.config.ts`               | ~10          |
+| 5      | `packages/docs/postcss.config.mjs`             | ~5           |
+| 6      | `packages/docs/tailwind.config.ts`             | ~10          |
+| 7      | `packages/docs/.gitignore`                     | ~5           |
+| 8      | `packages/docs/app/layout.tsx`                 | ~25          |
+| 9      | `packages/docs/app/global.css`                 | ~10          |
+| 10     | `packages/docs/app/page.tsx`                   | ~15          |
+| 11     | `packages/docs/app/docs/layout.tsx`            | ~20          |
+| 12     | `packages/docs/app/docs/[[...slug]]/page.tsx`  | ~30          |
+| 13     | `packages/docs/lib/source.ts`                  | ~10          |
 | 14--25 | MDX content files + meta.json files (12 files) | ~20--60 each |
 
 **Total: ~25 new files**

@@ -56,37 +56,37 @@ This produces `packages/cli/dist/ody`. Once built you can use `./ody` instead of
 
 Set up ody for the current project. Creates `.ody/` and writes `ody.json`.
 
-| Flag | Alias | Description |
-|---|---|---|
-| `--backend` | `-b` | Agent backend: `claude`, `opencode`, or `codex` |
-| `--maxIterations` | `-i` | Max loop iterations (0 = unlimited) |
-| `--model` | `-m` | Model to use for the backend |
-| `--shouldCommit` | `-c` | Commit after each completed task |
-| `--notify` | `-n` | Notification preference: `false`, `all`, `individual` |
-| `--dry-run` | | Print config without saving |
+| Flag              | Alias | Description                                           |
+| ----------------- | ----- | ----------------------------------------------------- |
+| `--backend`       | `-b`  | Agent backend: `claude`, `opencode`, or `codex`       |
+| `--maxIterations` | `-i`  | Max loop iterations (0 = unlimited)                   |
+| `--model`         | `-m`  | Model to use for the backend                          |
+| `--shouldCommit`  | `-c`  | Commit after each completed task                      |
+| `--notify`        | `-n`  | Notification preference: `false`, `all`, `individual` |
+| `--dry-run`       |       | Print config without saving                           |
 
 ### `ody run [taskFile]`
 
 Run the agent loop.
 
-| Flag | Alias | Description |
-|---|---|---|
-| `taskFile` | (positional) | Path to a specific `.code-task.md` file |
-| `--verbose` | | Stream agent output to terminal |
-| `--once` | | Run a single interactive iteration |
-| `--dry-run` | | Print command without executing (requires `--once`) |
-| `--label` | `-l` | Filter tasks by label |
-| `--iterations` | `-i` | Override max iterations |
-| `--no-notify` | | Disable OS notifications for this run |
+| Flag           | Alias        | Description                                         |
+| -------------- | ------------ | --------------------------------------------------- |
+| `taskFile`     | (positional) | Path to a specific `.code-task.md` file             |
+| `--verbose`    |              | Stream agent output to terminal                     |
+| `--once`       |              | Run a single interactive iteration                  |
+| `--dry-run`    |              | Print command without executing (requires `--once`) |
+| `--label`      | `-l`         | Filter tasks by label                               |
+| `--iterations` | `-i`         | Override max iterations                             |
+| `--no-notify`  |              | Disable OS notifications for this run               |
 
 ### `ody plan new`
 
 Generate a new task plan from a description.
 
-| Flag | Alias | Description |
-|---|---|---|
-| `--dry-run` | `-d` | Print prompt without sending to agent |
-| `--verbose` | | Stream agent output |
+| Flag        | Alias | Description                           |
+| ----------- | ----- | ------------------------------------- |
+| `--dry-run` | `-d`  | Print prompt without sending to agent |
+| `--verbose` |       | Stream agent output                   |
 
 ### `ody plan edit`
 
@@ -108,16 +108,16 @@ Display the current configuration.
 
 Configuration lives in `.ody/ody.json` (per-project). A global config can also be placed at `~/.ody/ody.json` or `~/.config/ody/ody.json`; local settings override global ones.
 
-| Key | Type | Description |
-|---|---|---|
-| `backend` | `"claude"` \| `"opencode"` \| `"codex"` | Which AI backend to use |
-| `maxIterations` | number | Max loop iterations (0 = unlimited) |
-| `shouldCommit` | boolean | Git-commit after each task |
-| `validatorCommands` | string[] | Shell commands to validate agent work |
-| `model` | string | Model identifier for the backend |
-| `skipPermissions` | boolean | Skip Claude Code permission checks (default `true`) |
-| `tasksDir` | string | Subdirectory under `.ody/` for task files (default `"tasks"`) |
-| `notify` | boolean \| `"all"` \| `"individual"` | OS notification behavior |
+| Key                 | Type                                    | Description                                                   |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| `backend`           | `"claude"` \| `"opencode"` \| `"codex"` | Which AI backend to use                                       |
+| `maxIterations`     | number                                  | Max loop iterations (0 = unlimited)                           |
+| `shouldCommit`      | boolean                                 | Git-commit after each task                                    |
+| `validatorCommands` | string[]                                | Shell commands to validate agent work                         |
+| `model`             | string                                  | Model identifier for the backend                              |
+| `skipPermissions`   | boolean                                 | Skip Claude Code permission checks (default `true`)           |
+| `tasksDir`          | string                                  | Subdirectory under `.ody/` for task files (default `"tasks"`) |
+| `notify`            | boolean \| `"all"` \| `"individual"`    | OS notification behavior                                      |
 
 Prefer using `ody init` to generate or update configuration.
 
@@ -136,9 +136,11 @@ completed: null
 # Task title
 
 ## Description
+
 ...
 
 ## Acceptance Criteria
+
 ...
 ```
 
