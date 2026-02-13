@@ -69,15 +69,13 @@ Set up ody for the current project. Creates `.ody/` and writes `ody.json`.
 
 Run the agent loop.
 
-| Flag           | Alias        | Description                                         |
-| -------------- | ------------ | --------------------------------------------------- |
-| `taskFile`     | (positional) | Path to a specific `.code-task.md` file             |
-| `--verbose`    |              | Stream agent output to terminal                     |
-| `--once`       |              | Run a single interactive iteration                  |
-| `--dry-run`    |              | Print command without executing (requires `--once`) |
-| `--label`      | `-l`         | Filter tasks by label                               |
-| `--iterations` | `-i`         | Override max iterations                             |
-| `--no-notify`  |              | Disable OS notifications for this run               |
+| Flag           | Alias        | Description                             |
+| -------------- | ------------ | --------------------------------------- |
+| `taskFile`     | (positional) | Path to a specific `.code-task.md` file |
+| `--verbose`    |              | Stream agent output to terminal         |
+| `--label`      | `-l`         | Filter tasks by label                   |
+| `--iterations` | `-i`         | Override max iterations                 |
+| `--no-notify`  |              | Disable OS notifications for this run   |
 
 ### `ody plan new`
 

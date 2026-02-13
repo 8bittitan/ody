@@ -17,13 +17,4 @@ export class Codex extends Harness {
       `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
     ];
   }
-
-  override buildOnceCommand(prompt: string): string[] {
-    return [
-      'codex',
-      '--full-auto',
-      ...(this.shouldCommit ? [] : ['--skip-git-repo-check']),
-      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
-    ];
-  }
 }

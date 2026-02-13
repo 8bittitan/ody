@@ -15,14 +15,4 @@ export class Opencode extends Harness {
       `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
     ];
   }
-
-  override buildOnceCommand(prompt: string, opts: CommandOptions = {}): string[] {
-    return [
-      'opencode',
-      ...(opts.agent ? ['--agent', opts.agent] : []),
-      ...(opts.model ? ['-m', opts.model] : []),
-      '--prompt',
-      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
-    ];
-  }
 }

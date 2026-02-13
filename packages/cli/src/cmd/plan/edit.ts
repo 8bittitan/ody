@@ -1,4 +1,4 @@
-import { log, outro, select, isCancel, spinner } from '@clack/prompts';
+import { log, outro, select, isCancel } from '@clack/prompts';
 import { defineCommand } from 'citty';
 import path from 'node:path';
 
@@ -27,7 +27,6 @@ export const editCmd = defineCommand({
     },
   },
   async run({ args }) {
-    const spin = spinner();
     const tasksDir = resolveTasksDir();
 
     const glob = new Bun.Glob('*.code-task.md');
@@ -69,29 +68,26 @@ export const editCmd = defineCommand({
 
     const backend = new Backend(Config.get('backend'));
 
-    spin.start('Opening editor agent');
+    log.info('Running editor agent');
 
     const proc = Bun.spawn({
       cmd: backend.buildCommand(editPrompt),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    await Promise.allSettled([
-      Stream.toOutput(proc.stdout, {
-        shouldPrint: args.verbose,
-        onChunk(accumulated) {
-          if (accumulated.includes('<woof>COMPLETE</woof>')) {
-            proc.kill();
-            return true;
-          }
-        },
-      }),
+    await Promise.all([
+      Stream.toOutput(proc.stdout, { shouldPrint: args.verbose }),
       Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
     ]);
 
-    await proc.exited;
+    const exitCode = await proc.exited;
 
-    spin.stop('Edit complete');
+    if (exitCode > 0) {
+      log.error('Failed to edit task');
+      return;
+    }
+
+    log.success('Edit complete');
     outro('Task plan updated');
   },
 });

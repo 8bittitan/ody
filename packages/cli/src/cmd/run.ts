@@ -8,16 +8,6 @@ import { sendNotification } from '../lib/notify';
 import { Stream } from '../util/stream';
 import { getTaskFilesByLabel } from '../util/task';
 
-async function printOutro(completed: boolean, notifySetting: false | 'all' | 'individual') {
-  const message = completed ? 'Agent completed the task' : 'Finished';
-
-  if (notifySetting) {
-    await sendNotification('ody', message);
-  }
-
-  outro(message);
-}
-
 export const runCmd = defineCommand({
   meta: {
     name: 'run',
@@ -31,16 +21,6 @@ export const runCmd = defineCommand({
     },
     verbose: {
       description: 'Enables verbose logging; (streamed agent output)',
-      type: 'boolean',
-      default: false,
-    },
-    once: {
-      description: 'Run a single iteration instead of the loop',
-      type: 'boolean',
-      default: false,
-    },
-    ['dry-run']: {
-      description: 'Dry run of building the harness command (only with --once)',
       type: 'boolean',
       default: false,
     },
@@ -120,68 +100,6 @@ export const runCmd = defineCommand({
     }
 
     const prompt = buildRunPrompt({ taskFiles, taskFile: singleTaskFile });
-
-    if (args.once) {
-      log.info('Running ody once');
-
-      const cmd = backend.buildOnceCommand(prompt);
-
-      if (args['dry-run']) {
-        log.info('Running dry run');
-        log.message(
-          JSON.stringify(
-            {
-              backend: backend.name,
-              prompt,
-              cmd,
-              labelFilter: args.label,
-              matchingTasks: taskFiles,
-              taskFile: singleTaskFile,
-            },
-            null,
-            2,
-          ),
-        );
-        return;
-      }
-
-      try {
-        let completed = false;
-        let accumulated = '';
-        const decoder = new TextDecoder('utf-8', { fatal: false });
-
-        const proc = Bun.spawn({
-          cmd,
-          terminal: {
-            cols: process.stdout.columns || 80,
-            rows: process.stdout.rows || 24,
-            data(_terminal, data) {
-              process.stdout.write(data);
-
-              accumulated += decoder.decode(data, { stream: true });
-
-              if (accumulated.includes('<woof>COMPLETE</woof>')) {
-                completed = true;
-                proc.kill();
-              }
-            },
-          },
-        });
-
-        const exitCode = await proc.exited;
-        proc.terminal?.close();
-
-        await printOutro(completed, notifySetting);
-
-        process.exit(exitCode);
-      } catch (err) {
-        const message = Error.isError(err) ? err.message : String(err);
-
-        log.error(message);
-
-        process.exit(1);
-      }
-    }
 
     const maxIterations = iterationsOverride ?? (singleTaskFile ? 1 : config.maxIterations);
     let agentSpinner: SpinnerResult | null = null;

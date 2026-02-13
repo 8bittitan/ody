@@ -26,13 +26,4 @@ export class Claude extends Harness {
 
     return cmd;
   }
-
-  override buildOnceCommand(prompt: string): string[] {
-    return [
-      'claude',
-      '--permission-mode',
-      'acceptEdits',
-      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
-    ];
-  }
 }
