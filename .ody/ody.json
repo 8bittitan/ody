@@ -1,7 +1,7 @@
 {
   "backend": "opencode",
-  "maxIterations": 3,
-  "shouldCommit": true,
-  "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
+  "maxIterations": 0,
+  "shouldCommit": false,
+  "validatorCommands": [],
   "model": "anthropic/claude-opus-4-6"
 }
