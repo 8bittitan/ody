@@ -1,5 +1,6 @@
 import { log, outro } from '@clack/prompts';
 import { defineCommand } from 'citty';
+import { exists } from 'node:fs/promises';
 import path from 'node:path';
 
 import { resolveTasksDir, parseFrontmatter, parseTitle } from '../../util/task';
@@ -11,6 +12,11 @@ export const listCmd = defineCommand({
   },
   async run() {
     const tasksDir = resolveTasksDir();
+
+    if (!(await exists(tasksDir))) {
+      log.error('.ody/tasks not found.');
+      return;
+    }
 
     const glob = new Bun.Glob('*.code-task.md');
 

@@ -22,7 +22,7 @@ bun install
 bun run packages/cli/src/index.ts init
 
 # Create a task plan
-bun run packages/cli/src/index.ts plan new
+bun run packages/cli/src/index.ts plan
 
 # Run the agent loop
 bun run packages/cli/src/index.ts run
@@ -40,13 +40,13 @@ This produces `packages/cli/dist/ody`. Once built you can use `./ody` instead of
 
 ```bash
 ./ody init
-./ody plan new
+./ody plan
 ./ody run
 ```
 
 ## How it works
 
-1. **Plan** -- `ody plan new` prompts you for a description and sends it to the AI backend, which generates a structured `.code-task.md` file under `.ody/tasks/` with frontmatter, requirements, implementation steps, and acceptance criteria.
+1. **Plan** -- `ody plan` prompts you for a description and sends it to the AI backend, which generates a structured `.code-task.md` file under `.ody/tasks/` with frontmatter, requirements, implementation steps, and acceptance criteria.
 2. **Run** -- `ody run` starts a loop that picks pending tasks, sends them to the configured backend, monitors for a completion marker, runs validator commands, marks tasks as completed, and optionally git-commits changes.
 3. **Repeat** -- The loop continues until all pending tasks are done or the iteration limit is reached.
 
@@ -62,6 +62,7 @@ Set up ody for the current project. Creates `.ody/` and writes `ody.json`.
 | `--maxIterations` | `-i`  | Max loop iterations (0 = unlimited)                   |
 | `--model`         | `-m`  | Model to use for the backend                          |
 | `--shouldCommit`  | `-c`  | Commit after each completed task                      |
+| `--agent`         | `-a`  | Agent profile/persona for the backend harness         |
 | `--notify`        | `-n`  | Notification preference: `false`, `all`, `individual` |
 | `--dry-run`       |       | Print config without saving                           |
 
@@ -77,24 +78,29 @@ Run the agent loop.
 | `--iterations` | `-i`         | Override max iterations                 |
 | `--no-notify`  |              | Disable OS notifications for this run   |
 
-### `ody plan new`
+### `ody plan`
 
-Generate a new task plan from a description.
+Generate a new task plan from a description. Enters an interactive loop where you describe tasks and the AI generates structured `.code-task.md` files. You can create multiple plans in one session.
 
 | Flag        | Alias | Description                           |
 | ----------- | ----- | ------------------------------------- |
 | `--dry-run` | `-d`  | Print prompt without sending to agent |
 | `--verbose` |       | Stream agent output                   |
 
-### `ody plan edit`
-
-Edit an existing task plan interactively.
-
-### `ody plan list`
+### `ody task list`
 
 List all pending tasks.
 
-### `ody plan compact`
+### `ody task edit`
+
+Edit an existing task plan interactively. Presents a selectable list of tasks and sends the chosen one to the AI backend for modification.
+
+| Flag        | Alias | Description                           |
+| ----------- | ----- | ------------------------------------- |
+| `--dry-run` | `-d`  | Print prompt without sending to agent |
+| `--verbose` |       | Stream agent output                   |
+
+### `ody task compact`
 
 Archive completed tasks to `.ody/history/` and delete the originals.
 

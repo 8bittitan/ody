@@ -112,7 +112,6 @@ export namespace Config {
 
   export function all() {
     if (!config) {
-      log.error('Must `.load` configuration first');
       throw new Error('Config not loaded');
     }
 

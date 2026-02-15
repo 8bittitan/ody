@@ -1,18 +1,18 @@
-import { text, isCancel, outro, log, confirm, spinner } from '@clack/prompts';
+import { spinner, text, isCancel, outro, log, confirm } from '@clack/prompts';
 import { defineCommand } from 'citty';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-import { Backend } from '../../backends/backend';
-import { buildPlanPrompt } from '../../builders/planPrompt';
-import { Config } from '../../lib/config';
-import { BASE_DIR, TASKS_DIR } from '../../util/constants';
-import { Stream } from '../../util/stream';
+import { Backend } from '../backends/backend';
+import { buildPlanPrompt } from '../builders/planPrompt';
+import { Config } from '../lib/config';
+import { BASE_DIR, TASKS_DIR } from '../util/constants';
+import { Stream } from '../util/stream';
 
-export const newCmd = defineCommand({
+export const planCmd = defineCommand({
   meta: {
-    name: 'create',
-    description: 'Create a new task plan',
+    name: 'plan',
+    description: 'Plan upcoming work',
   },
   args: {
     ['dry-run']: {
