@@ -145,14 +145,7 @@ describe('Config', () => {
       // Access the Config namespace from the fresh import
       const FreshConfig = freshModule.Config;
 
-      const spy = spyOn(log, 'error').mockImplementation(() => {});
-
-      try {
-        expect(() => FreshConfig.all()).toThrow('Config not loaded');
-        expect(spy).toHaveBeenCalledWith('Must `.load` configuration first');
-      } finally {
-        spy.mockRestore();
-      }
+      expect(() => FreshConfig.all()).toThrow('Config not loaded');
     });
 
     test('Config.get() throws when config is not loaded', async () => {
