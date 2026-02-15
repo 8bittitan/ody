@@ -1,7 +1,7 @@
 ---
-status: pending
+status: in_progress
 created: 2026-02-13
-started: null
+started: 2026-02-13
 completed: null
 ---
 # Task: Backend Implementations (Claude, Codex, OpenCode)

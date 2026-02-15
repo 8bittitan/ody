@@ -1,0 +1,72 @@
+name: Zig CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'cli/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'cli/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.15.0
+
+      - name: Check formatting
+        run: zig fmt --check src/
+        working-directory: cli
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.15.0
+
+      - name: Run tests
+        run: zig build test
+        working-directory: cli
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: native
+            args: "-Doptimize=ReleaseSafe"
+          - target: cross
+            args: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.15.0
+
+      - name: Build (${{ matrix.target }})
+        run: zig build ${{ matrix.args }}
+        working-directory: cli
+        if: matrix.target == 'native'
+
+      - name: Cross-compile
+        run: zig build cross
+        working-directory: cli
+        if: matrix.target == 'cross'
