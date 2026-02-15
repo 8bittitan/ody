@@ -31,7 +31,6 @@ export const planCmd = defineCommand({
     const backend = new Backend(Config.get('backend'));
     const spin = spinner();
 
-    // Phase 1: Collect all plan descriptions upfront
     const descriptions: string[] = [];
 
     while (true) {
@@ -65,7 +64,6 @@ export const planCmd = defineCommand({
       return;
     }
 
-    // Phase 2: Process all collected descriptions sequentially
     let generated = 0;
 
     for (let i = 0; i < descriptions.length; i++) {
