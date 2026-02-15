@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "fumadocs-mdx:collections/*": ["./.source/*"]
+    }
+  },
+  "include": [".source/**/*", "app/**/*", "lib/**/*", "source.config.ts", "next-env.d.ts"],
+  "exclude": ["node_modules"]
+}
