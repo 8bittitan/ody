@@ -1,0 +1,4 @@
+{
+  "title": "plan",
+  "pages": ["index", "new", "list", "edit", "compact"]
+}

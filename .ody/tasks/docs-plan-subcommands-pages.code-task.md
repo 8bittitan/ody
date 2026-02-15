@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-02-15
-started: null
-completed: null
+started: 2026-02-15
+completed: 2026-02-15
 ---
 # Task: Write Plan Subcommands Documentation (overview, new, list, edit, compact)
 

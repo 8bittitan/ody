@@ -1,0 +1,80 @@
+---
+title: ody plan
+description: Manage planning documents and task files
+---
+
+# ody plan
+
+The plan system is how you create, manage, and maintain task files that drive the ody agent loop. It spans several commands that cover the full lifecycle of a task plan: creating new plans, listing pending tasks, editing existing plans, and archiving completed work.
+
+## Overview
+
+Task plans are `.code-task.md` files stored in `.ody/tasks/`. Each file contains YAML frontmatter tracking status and dates, followed by structured Markdown sections describing the task, its requirements, and acceptance criteria.
+
+The planning workflow typically follows this cycle:
+
+1. **Create** new task plans with `ody plan`.
+2. **List** pending tasks with `ody task list`.
+3. **Edit** existing plans with `ody task edit`.
+4. **Run** the agent loop with `ody run` to implement tasks.
+5. **Archive** completed tasks with `ody compact`.
+
+## Related commands
+
+| Command                                      | Description                                        |
+| -------------------------------------------- | -------------------------------------------------- |
+| [`ody plan`](/docs/commands/plan/new)        | Create new task plans interactively or from a file |
+| [`ody task list`](/docs/commands/plan/list)  | List pending task files                            |
+| [`ody task edit`](/docs/commands/plan/edit)  | Edit an existing task plan via the agent           |
+| [`ody compact`](/docs/commands/plan/compact) | Archive completed tasks and progress into history  |
+
+## Task file format
+
+Every task file follows this structure:
+
+```markdown
+---
+status: pending
+created: 2026-02-15
+started: null
+completed: null
+---
+
+# Task: Concise Task Name
+
+## Description
+
+What needs to be implemented and why.
+
+## Background
+
+Context needed to understand the task.
+
+## Technical Requirements
+
+1. First requirement
+2. Second requirement
+
+## Dependencies
+
+- Dependency details
+
+## Implementation Approach
+
+1. First step
+2. Second step
+
+## Acceptance Criteria
+
+1. **Criterion Name**
+   - Given [precondition]
+   - When [action]
+   - Then [expected result]
+
+## Metadata
+
+- **Complexity**: Low/Medium/High
+- **Labels**: comma, separated, labels
+```
+
+The `status` field tracks the task lifecycle: `pending` → `in_progress` → `completed`.

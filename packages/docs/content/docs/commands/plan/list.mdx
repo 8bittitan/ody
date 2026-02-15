@@ -1,0 +1,48 @@
+---
+title: ody task list
+description: List pending task files
+---
+
+# ody task list
+
+List all pending task files in the `.ody/tasks/` directory. Shows the title and filename of each task that has `status: pending` in its YAML frontmatter.
+
+## Synopsis
+
+```bash
+ody task list
+```
+
+## Flags
+
+This command has no flags.
+
+## Behavior
+
+1. Scans `.ody/tasks/` for `.code-task.md` files.
+2. Reads the YAML frontmatter of each file.
+3. Filters to tasks with `status: pending`.
+4. Displays each pending task's title and filename.
+
+If the `.ody/tasks/` directory does not exist, the command reports an error. If no task files are found or none are pending, it displays an informational message.
+
+## Output
+
+```
+Found 3 pending task(s):
+  - Add Email Validation  (add-email-validation.code-task.md)
+  - Create User Profile Page  (create-user-profile-page.code-task.md)
+  - Update API Error Handling  (update-api-error-handling.code-task.md)
+```
+
+## Example
+
+```bash
+$ ody task list
+```
+
+## Related
+
+- [`ody plan`](/docs/commands/plan/new) -- Create new task plans
+- [`ody task edit`](/docs/commands/plan/edit) -- Edit an existing task plan
+- [`ody run`](/docs/commands/run) -- Execute pending tasks with the agent loop
