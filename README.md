@@ -12,19 +12,72 @@ ody works with multiple AI backends (Claude Code, OpenCode, Codex) and manages t
   - [`opencode`](https://opencode.ai) (OpenCode)
   - [`codex`](https://github.com/openai/codex) (Codex)
 
-## Quick start
+## Installation
+
+### Install script (recommended)
+
+The fastest way to install `ody`. The script auto-detects your OS and architecture, fetches the latest release binary, and places it on your system:
 
 ```bash
-# Install dependencies
-bun install
+curl -fsSL https://raw.githubusercontent.com/8bittitan/ody/main/install.sh | sh
+```
 
+By default the binary is installed to `$HOME/.local/bin`. To customize the install location, set `ODY_INSTALL_DIR`:
+
+```bash
+ODY_INSTALL_DIR=/usr/local/bin curl -fsSL https://raw.githubusercontent.com/8bittitan/ody/main/install.sh | sh
+```
+
+### Download a release binary
+
+Pre-built binaries are available on the [GitHub Releases](https://github.com/8bittitan/ody/releases) page. Download the binary for your platform:
+
+- `ody-darwin-arm64` -- macOS Apple Silicon
+- `ody-darwin-x64` -- macOS Intel
+- `ody-linux-x64` -- Linux x86_64
+- `ody-linux-arm64` -- Linux ARM64
+
+After downloading, make it executable and move it to a directory on your `$PATH`:
+
+```bash
+chmod +x ody-darwin-arm64
+mv ody-darwin-arm64 /usr/local/bin/ody
+```
+
+### Build from source
+
+Requires [Bun](https://bun.sh) v1.3.8+.
+
+```bash
+git clone https://github.com/8bittitan/ody.git
+cd ody
+bun install
+bun run build
+```
+
+The compiled binary is output to `packages/cli/dist/ody`.
+
+## Quick start
+
+Once installed (see [Installation](#installation) above), initialize ody in your project and start using it:
+
+```bash
 # Initialize ody in your project (interactive)
-bun run packages/cli/src/index.ts init
+ody init
 
 # Create a task plan
-bun run packages/cli/src/index.ts plan
+ody plan
 
 # Run the agent loop
+ody run
+```
+
+If running from a cloned source checkout instead, use `bun run packages/cli/src/index.ts` in place of `ody`:
+
+```bash
+bun install
+bun run packages/cli/src/index.ts init
+bun run packages/cli/src/index.ts plan
 bun run packages/cli/src/index.ts run
 ```
 
