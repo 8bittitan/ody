@@ -1,0 +1,11 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Introduction---",
+    "index",
+    "installation",
+    "configuration",
+    "---Commands---",
+    "commands"
+  ]
+}

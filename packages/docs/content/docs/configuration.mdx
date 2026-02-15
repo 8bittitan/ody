@@ -1,0 +1,63 @@
+---
+title: Configuration
+description: Configuring ody
+---
+
+# Configuration
+
+ody is configured through a JSON file and an optional prompt template. Run `ody init` to generate the initial configuration interactively.
+
+## Configuration file
+
+Configuration lives in `.ody/ody.json` in your project root. A global configuration can also be placed at `~/.ody/ody.json` or `~/.config/ody/ody.json`. When both exist, local (project-level) settings override global ones.
+
+### Config keys
+
+| Key                 | Type                                    | Default      | Description                                                          |
+| ------------------- | --------------------------------------- | ------------ | -------------------------------------------------------------------- |
+| `backend`           | `"opencode"` \| `"claude"` \| `"codex"` | _(required)_ | Which AI backend to use for the agent                                |
+| `maxIterations`     | `number`                                | _(required)_ | Maximum number of loop iterations. Set to `0` for unlimited          |
+| `shouldCommit`      | `boolean`                               | `false`      | Whether to create a git commit after each completed task             |
+| `validatorCommands` | `string[]`                              | `[]`         | Shell commands the agent can use to verify the code is in good shape |
+| `model`             | `string`                                | _(none)_     | Model identifier for the backend (e.g., a specific model version)    |
+| `skipPermissions`   | `boolean`                               | `true`       | Skip Claude Code permission checks                                   |
+| `agent`             | `string`                                | `"build"`    | Which harness agent profile to use                                   |
+| `tasksDir`          | `string`                                | `"tasks"`    | Subdirectory under `.ody/` for task files                            |
+| `notify`            | `boolean` \| `"all"` \| `"individual"`  | `false`      | OS notification behavior after task completion                       |
+
+### Example configuration
+
+```json
+{
+  "backend": "claude",
+  "maxIterations": 5,
+  "shouldCommit": true,
+  "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
+  "model": "claude-sonnet-4-20250514"
+}
+```
+
+## Prompt template
+
+The file `.ody/prompt.md` serves as the agent prompt template. This Markdown file provides context and instructions that are included in the prompt sent to the backend agent during `ody run`. You can customize it to include project-specific guidelines, coding standards, or other context that helps the agent produce better results.
+
+The prompt template is created automatically when you run `ody init`.
+
+## Config resolution
+
+ody resolves configuration in the following order:
+
+1. **Global config** -- `~/.ody/ody.json` or `~/.config/ody/ody.json` (checked in that order)
+2. **Local config** -- `.ody/ody.json` in the current project
+
+Local settings are merged on top of global settings, so you can set shared defaults globally and override them per-project.
+
+## Programmatic access
+
+For developers extending ody, the `Config` module provides a typed API:
+
+- `Config.load()` -- Reads and parses the configuration files. Must be called before any other `Config` method.
+- `Config.get(key)` -- Returns the value for a specific config key.
+- `Config.all()` -- Returns the full configuration object.
+
+The configuration schema is defined with [zod](https://zod.dev) and provides runtime validation and type inference.
