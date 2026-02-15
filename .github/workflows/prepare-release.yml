@@ -42,11 +42,70 @@ jobs:
         id: current
         run: echo "version=$(jq -r .version packages/cli/package.json)" >> "$GITHUB_OUTPUT"
 
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          # Find the latest tag, or fall back to the root commit
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+
+          # Collect commits since the last tag
+          COMMITS=$(git log "${LATEST_TAG}..HEAD" --format="%h %s")
+
+          FEATURES=""
+          FIXES=""
+          REFACTORS=""
+          PERF=""
+          DOCS=""
+          MAINTENANCE=""
+
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+
+            SHA=$(echo "$line" | awk '{print $1}')
+            MSG=$(echo "$line" | cut -d' ' -f2-)
+
+            # Match conventional commit pattern: type(scope)?: description
+            if ! echo "$MSG" | grep -qE '^[a-z]+(\(.+\))?!?:'; then
+              continue
+            fi
+
+            TYPE=$(echo "$MSG" | sed -E 's/^([a-z]+)(\(.+\))?!?:.*/\1/')
+            DESC=$(echo "$MSG" | sed -E 's/^[a-z]+(\(.+\))?!?: *//')
+
+            case "$TYPE" in
+              feat)     FEATURES="${FEATURES}- ${DESC} (${SHA})\n" ;;
+              fix)      FIXES="${FIXES}- ${DESC} (${SHA})\n" ;;
+              refactor) REFACTORS="${REFACTORS}- ${DESC} (${SHA})\n" ;;
+              perf)     PERF="${PERF}- ${DESC} (${SHA})\n" ;;
+              docs)     DOCS="${DOCS}- ${DESC} (${SHA})\n" ;;
+              chore|ci|build|test) MAINTENANCE="${MAINTENANCE}- ${DESC} (${SHA})\n" ;;
+            esac
+          done <<< "$COMMITS"
+
+          CHANGELOG=""
+          [ -n "$FEATURES" ]    && CHANGELOG="${CHANGELOG}### Features\n${FEATURES}\n"
+          [ -n "$FIXES" ]       && CHANGELOG="${CHANGELOG}### Bug Fixes\n${FIXES}\n"
+          [ -n "$REFACTORS" ]   && CHANGELOG="${CHANGELOG}### Refactors\n${REFACTORS}\n"
+          [ -n "$PERF" ]        && CHANGELOG="${CHANGELOG}### Performance\n${PERF}\n"
+          [ -n "$DOCS" ]        && CHANGELOG="${CHANGELOG}### Documentation\n${DOCS}\n"
+          [ -n "$MAINTENANCE" ] && CHANGELOG="${CHANGELOG}### Maintenance\n${MAINTENANCE}\n"
+
+          {
+            echo "changelog<<CHANGELOG_EOF"
+            echo -e "$CHANGELOG"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create changeset
         run: |
           SUMMARY="${{ inputs.summary }}"
           if [ -z "$SUMMARY" ]; then
-            SUMMARY="Release (${{ inputs.bump }} bump)"
+            CHANGELOG="${{ steps.changelog.outputs.changelog }}"
+            if [ -n "$CHANGELOG" ]; then
+              SUMMARY="$CHANGELOG"
+            else
+              SUMMARY="Release (${{ inputs.bump }} bump)"
+            fi
           fi
 
           mkdir -p .changeset
@@ -76,7 +135,7 @@ jobs:
 
             Bump type: `${{ inputs.bump }}` (from v${{ steps.current.outputs.version }})
 
-            ${{ inputs.summary }}
+            ${{ inputs.summary || steps.changelog.outputs.changelog || 'No changelog available.' }}
 
             ---
 
