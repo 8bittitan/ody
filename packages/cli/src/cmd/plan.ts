@@ -31,6 +31,9 @@ export const planCmd = defineCommand({
     const backend = new Backend(Config.get('backend'));
     const spin = spinner();
 
+    // Phase 1: Collect all plan descriptions upfront
+    const descriptions: string[] = [];
+
     while (true) {
       const description = await text({
         message: 'Describe the task you want to plan',
@@ -46,41 +49,10 @@ export const planCmd = defineCommand({
         return;
       }
 
-      const planPrompt = buildPlanPrompt({
-        description,
-      });
-
-      if (args['dry-run']) {
-        log.info(planPrompt);
-      } else {
-        await mkdir(path.join(BASE_DIR, TASKS_DIR), { recursive: true });
-        spin.start('Generating task plan');
-
-        const proc = Bun.spawn({
-          cmd: backend.buildCommand(planPrompt),
-          stdio: ['ignore', 'pipe', 'pipe'],
-        });
-
-        await Promise.allSettled([
-          Stream.toOutput(proc.stdout, {
-            shouldPrint: args.verbose,
-            onChunk(accumulated) {
-              if (accumulated.includes('<woof>COMPLETE</woof>')) {
-                proc.kill();
-                return true;
-              }
-            },
-          }),
-          Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
-        ]);
-
-        await proc.exited;
-
-        spin.stop('Task plan generated');
-      }
+      descriptions.push(description);
 
       const another = await confirm({
-        message: 'Would you like to add another plan?',
+        message: 'Add another plan?',
       });
 
       if (isCancel(another) || !another) {
@@ -88,6 +60,57 @@ export const planCmd = defineCommand({
       }
     }
 
-    outro('Task planning complete');
+    if (descriptions.length === 0) {
+      outro('No plans to process.');
+      return;
+    }
+
+    // Phase 2: Process all collected descriptions sequentially
+    let generated = 0;
+
+    for (let i = 0; i < descriptions.length; i++) {
+      const description = descriptions[i]!;
+      const planPrompt = buildPlanPrompt({
+        description,
+      });
+
+      if (args['dry-run']) {
+        log.info(`Plan ${i + 1} of ${descriptions.length}:\n${planPrompt}`);
+        generated++;
+      } else {
+        try {
+          await mkdir(path.join(BASE_DIR, TASKS_DIR), { recursive: true });
+          spin.start(`Generating task plan ${i + 1} of ${descriptions.length}`);
+
+          const proc = Bun.spawn({
+            cmd: backend.buildCommand(planPrompt),
+            stdio: ['ignore', 'pipe', 'pipe'],
+          });
+
+          await Promise.allSettled([
+            Stream.toOutput(proc.stdout, {
+              shouldPrint: args.verbose,
+              onChunk(accumulated) {
+                if (accumulated.includes('<woof>COMPLETE</woof>')) {
+                  proc.kill();
+                  return true;
+                }
+              },
+            }),
+            Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
+          ]);
+
+          await proc.exited;
+
+          spin.stop(`Task plan ${i + 1} of ${descriptions.length} generated`);
+          generated++;
+        } catch (err) {
+          spin.stop(`Task plan ${i + 1} of ${descriptions.length} failed`);
+          log.error(`Failed to generate task plan ${i + 1}: ${err}`);
+        }
+      }
+    }
+
+    outro(`Task planning complete — ${generated} task${generated === 1 ? '' : 's'} generated`);
   },
 });
