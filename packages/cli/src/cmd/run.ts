@@ -108,23 +108,30 @@ export const runCmd = defineCommand({
       agentSpinner = spinner();
     }
 
-    agentSpinner?.start('Running agent loop');
+    let completed = 0;
 
     for (let i = 0; maxIterations === 0 || i < maxIterations; i++) {
+      const iterLabel =
+        maxIterations === 0
+          ? `Running agent task ${i + 1}`
+          : `Running agent task ${i + 1} of ${maxIterations}`;
+
+      agentSpinner?.start(iterLabel);
+
       try {
         const proc = Bun.spawn({
           cmd: backend.buildCommand(prompt),
           stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        let completed = false;
+        let tasksDone = false;
 
         await Promise.all([
           Stream.toOutput(proc.stdout, {
             shouldPrint: args.verbose,
             onChunk(accumulated) {
               if (accumulated.includes('<woof>COMPLETE</woof>')) {
-                completed = true;
+                tasksDone = true;
                 proc.kill();
                 return true;
               }
@@ -135,26 +142,30 @@ export const runCmd = defineCommand({
 
         await proc.exited;
 
-        if (completed) {
-          agentSpinner?.stop('Agent finished all available tasks');
-
-          if (notifySetting === 'individual') {
-            await sendNotification('ody', `Iteration ${i + 1} complete`);
-          }
+        if (tasksDone) {
+          completed++;
+          agentSpinner?.stop(`Agent task ${i + 1} complete — all tasks finished`);
 
           break;
         }
 
+        completed++;
+        agentSpinner?.stop(
+          maxIterations === 0
+            ? `Agent task ${i + 1} complete`
+            : `Agent task ${i + 1} of ${maxIterations} complete`,
+        );
+
         if (notifySetting === 'individual') {
-          await sendNotification('ody', `Iteration ${i + 1} complete`);
+          await sendNotification('ody', `Agent task ${i + 1} complete`);
         }
       } catch (err) {
         const message = Error.isError(err) ? err.message : String(err);
 
         if (agentSpinner) {
-          agentSpinner.stop(message);
+          agentSpinner.stop(`Agent task ${i + 1} failed: ${message}`);
         } else {
-          log.error(message);
+          log.error(`Agent task ${i + 1} failed: ${message}`);
         }
 
         process.exit(1);
@@ -165,6 +176,6 @@ export const runCmd = defineCommand({
       await sendNotification('ody', 'Agent loop complete');
     }
 
-    outro('Agent loop complete');
+    outro(`Agent loop complete — ${completed} task${completed === 1 ? '' : 's'}`);
   },
 });

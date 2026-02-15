@@ -14,6 +14,7 @@ RULES
 - The filename MUST use kebab-case and end with .code-task.md (e.g., {TASKS_DIR}/add-email-validation.code-task.md)
 - The filename should be descriptive of the task content
 - Take the user provided steps description and create your own detailed implementation approach
+- <woof>COMPLETE</woof> should NEVER be added to the task file, as it's important during the runtime of implementing a task
 - All sections in the template below are REQUIRED — do not skip any
 
 FILE FORMAT
