@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 import { Backend } from '../backends/backend';
-import { buildPlanPrompt } from '../builders/planPrompt';
+import { buildBatchPlanPrompt, buildPlanPrompt } from '../builders/planPrompt';
 import { Config } from '../lib/config';
 import { BASE_DIR, TASKS_DIR } from '../util/constants';
 import { Stream } from '../util/stream';
@@ -15,6 +15,11 @@ export const planCmd = defineCommand({
     description: 'Plan upcoming work',
   },
   args: {
+    planFile: {
+      type: 'positional',
+      description: 'Path to a planning document to generate tasks from',
+      required: false,
+    },
     ['dry-run']: {
       default: false,
       description: 'Run as dry run, without sending prompt to agent',
@@ -30,6 +35,57 @@ export const planCmd = defineCommand({
   async run({ args }) {
     const backend = new Backend(Config.get('backend'));
     const spin = spinner();
+
+    if (args.planFile) {
+      const fileExists = await Bun.file(args.planFile).exists();
+
+      if (!fileExists) {
+        log.error(`Plan file not found: ${args.planFile}`);
+        process.exit(1);
+      }
+
+      const batchPrompt = buildBatchPlanPrompt({ filePath: args.planFile });
+
+      if (args['dry-run']) {
+        log.info(batchPrompt);
+        outro('Dry run complete');
+        return;
+      }
+
+      try {
+        await mkdir(path.join(BASE_DIR, TASKS_DIR), { recursive: true });
+        spin.start('Generating task plans from file...');
+
+        const proc = Bun.spawn({
+          cmd: backend.buildCommand(batchPrompt),
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+
+        await Promise.allSettled([
+          Stream.toOutput(proc.stdout, {
+            shouldPrint: args.verbose,
+            onChunk(accumulated) {
+              if (accumulated.includes('<woof>COMPLETE</woof>')) {
+                proc.kill();
+                return true;
+              }
+            },
+          }),
+          Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
+        ]);
+
+        await proc.exited;
+
+        spin.stop('Task plans generated from file');
+      } catch (err) {
+        spin.stop('Task plan generation failed');
+        log.error(`Failed to generate task plans: ${err}`);
+        process.exit(1);
+      }
+
+      outro('Batch task planning complete');
+      return;
+    }
 
     const descriptions: string[] = [];
 

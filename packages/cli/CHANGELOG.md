@@ -5,7 +5,6 @@
 ### Patch Changes
 
 - ### Features
-
   - integrate config schema generation into release pipeline (8e65b62)
   - add user-facing install script for platform binary downloads (2d3fe58)
   - add binaries GitHub Actions workflow for cross-platform builds (5989a0f)
@@ -33,23 +32,19 @@
   - Convert to storing tasks as markdown files instead of JSON file (856081c)
 
   ### Bug Fixes
-
   - release pipeline (76483b2)
   - tests (f9e0ad5)
   - spacing on plan list cmd, skip notify tests (5d73ee8)
 
   ### Refactors
-
   - promote compact to root-level command (4fe56e7)
   - batch plan description collection before agent prompting (15075fd)
   - remove --once flag and buildOnceCommand from run command (67f42ac)
 
   ### Documentation
-
   - add installation section to README (c1aa758)
 
   ### Maintenance
-
   - generate changelog (417c174)
   - planning future features (5f6726b)
   - add unit tests for lib directory (config, logger, notify, sequencer) (b52843c)
@@ -69,7 +64,6 @@
 ### Patch Changes
 
 - ### Features
-
   - integrate config schema generation into release pipeline (8e65b62)
   - add user-facing install script for platform binary downloads (2d3fe58)
   - add binaries GitHub Actions workflow for cross-platform builds (5989a0f)
@@ -97,22 +91,18 @@
   - Convert to storing tasks as markdown files instead of JSON file (856081c)
 
   ### Bug Fixes
-
   - tests (f9e0ad5)
   - spacing on plan list cmd, skip notify tests (5d73ee8)
 
   ### Refactors
-
   - promote compact to root-level command (4fe56e7)
   - batch plan description collection before agent prompting (15075fd)
   - remove --once flag and buildOnceCommand from run command (67f42ac)
 
   ### Documentation
-
   - add installation section to README (c1aa758)
 
   ### Maintenance
-
   - generate changelog (417c174)
   - planning future features (5f6726b)
   - add unit tests for lib directory (config, logger, notify, sequencer) (b52843c)
