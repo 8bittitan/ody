@@ -5,13 +5,14 @@ import { z } from 'zod';
 
 import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE, TASKS_DIR } from '../util/constants';
 
+export const backendsSchema = z.union(ALLOWED_BACKENDS.map((backend) => z.literal(backend)));
+const notifySchema = z
+  .union([z.boolean(), z.enum(['all', 'individual'])])
+  .default(false)
+  .optional();
+
 const configSchema = z.object({
-  backend: z
-    .string()
-    .nonempty()
-    .refine((val) => {
-      return ALLOWED_BACKENDS.includes(val);
-    }),
+  backend: backendsSchema,
   maxIterations: z.number().int().nonnegative(),
   shouldCommit: z.boolean().default(false),
   validatorCommands: z.array(z.string()).default([]).optional(),
@@ -19,10 +20,7 @@ const configSchema = z.object({
   skipPermissions: z.boolean().default(true).optional(),
   agent: z.string().nonempty().default('build').optional(),
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
-  notify: z
-    .union([z.boolean(), z.enum(['all', 'individual'])])
-    .default(false)
-    .optional(),
+  notify: notifySchema,
 });
 
 export type OdyConfig = z.infer<typeof configSchema>;
@@ -65,6 +63,45 @@ async function loadJsonFile(filePath: string): Promise<Record<string, unknown> |
 
 export namespace Config {
   let config: OdyConfig | undefined = undefined;
+
+  export const Schema = z
+    .object({
+      $schema: z.string().optional().describe('JSON schema reference for configuration validation'),
+      backend: backendsSchema.describe('Backend harness to use for agent'),
+      maxIterations: z
+        .number()
+        .int()
+        .nonnegative()
+        .describe('Max number of iterations to run in the loop (0 = infinite)'),
+      shouldCommit: z
+        .boolean()
+        .default(false)
+        .describe('Generate a commit after each loop iteration'),
+      validatorCommands: z
+        .array(z.string())
+        .default([])
+        .optional()
+        .describe('Specific commands the agent can use to verify the code is in good shape'),
+      model: z.string().optional().describe('What model the agent should use for the backend'),
+      skipPermissions: z.boolean().default(true).optional(),
+      agent: z
+        .string()
+        .nonempty()
+        .default('build')
+        .optional()
+        .describe('What harness agent should be used'),
+      tasksDir: z
+        .string()
+        .nonempty()
+        .default(TASKS_DIR)
+        .optional()
+        .describe('Custom path for the tasks directory'),
+      notify: notifySchema.describe('Whether to dispatch OS notification'),
+    })
+    .strict()
+    .meta({
+      ref: 'Config',
+    });
 
   export async function load() {
     if (config) {

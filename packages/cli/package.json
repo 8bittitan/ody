@@ -13,6 +13,7 @@
   "module": "./src/index.ts",
   "scripts": {
     "build": "bun build --production --compile --outfile=./dist/ody ./src/index.ts",
+    "gen:schema": "bun run ./scripts/schema.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

@@ -14,7 +14,7 @@ import { exists, mkdir } from 'fs/promises';
 import path from 'path';
 
 import { getAvailableBackends } from '../backends/util';
-import { Config, type OdyConfig } from '../lib/config';
+import { backendsSchema, Config, type OdyConfig } from '../lib/config';
 import { BASE_DIR, ODY_FILE } from '../util/constants';
 import { getRandomValidatorPlaceholder } from '../util/inputPrompt';
 
@@ -110,7 +110,7 @@ export const initCmd = defineCommand({
       }
 
       const configInput: OdyConfig = {
-        backend,
+        backend: backendsSchema.parse(backend),
         maxIterations: parseInt(args.maxIterations, 10),
         shouldCommit: args.shouldCommit,
       };

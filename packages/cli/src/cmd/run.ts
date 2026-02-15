@@ -144,7 +144,8 @@ export const runCmd = defineCommand({
 
         if (tasksDone) {
           completed++;
-          agentSpinner?.stop(`Agent task ${i + 1} complete — all tasks finished`);
+          agentSpinner?.stop(`Agent task ${i + 1} complete`);
+          log.info('All pending tasks finished');
 
           break;
         }

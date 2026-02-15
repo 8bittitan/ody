@@ -1,8 +1,8 @@
 import { log } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
-import { ZodError } from 'zod';
+import z, { ZodError } from 'zod';
 
-import { Config } from '../config';
+import { backendsSchema, Config } from '../config';
 
 describe('Config', () => {
   describe('parse — valid input', () => {
@@ -34,7 +34,7 @@ describe('Config', () => {
     test('each valid backend succeeds', () => {
       for (const backend of ['opencode', 'claude', 'codex']) {
         const result = Config.parse({ backend, maxIterations: 1 });
-        expect(result.backend).toBe(backend);
+        expect(result.backend).toBe(backend as z.infer<typeof backendsSchema>);
       }
     });
 
