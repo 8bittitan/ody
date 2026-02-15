@@ -1,0 +1,67 @@
+---
+title: ody init
+description: Initialize ody in a project
+---
+
+# ody init
+
+Initialize and set up ody for the current project. This command creates the `.ody/` directory and generates a configuration file through an interactive setup process.
+
+## Synopsis
+
+```bash
+ody init [--backend <name>] [--maxIterations <n>] [--model <id>] [--agent <name>] [--shouldCommit] [--notify <mode>] [--dry-run]
+```
+
+## Flags
+
+| Flag              | Alias | Type      | Default    | Description                                            |
+| ----------------- | ----- | --------- | ---------- | ------------------------------------------------------ |
+| `--backend`       | `-b`  | `string`  | _(prompt)_ | Agent backend to use (`claude`, `opencode`, `codex`)   |
+| `--maxIterations` | `-i`  | `string`  | `"0"`      | Max loop iterations. `0` means unlimited               |
+| `--model`         | `-m`  | `string`  | _(prompt)_ | Model identifier for the backend                       |
+| `--shouldCommit`  | `-c`  | `boolean` | `false`    | Commit after each completed task                       |
+| `--agent`         | `-a`  | `string`  | _(prompt)_ | Agent profile/persona for the backend harness          |
+| `--notify`        | `-n`  | `string`  | _(prompt)_ | Notification preference (`false`, `all`, `individual`) |
+| `--dry-run`       |       | `boolean` | `false`    | Print the configuration without saving it              |
+
+## Behavior
+
+When run without flags, `ody init` walks you through an interactive setup:
+
+1. **Backend selection** -- An autocomplete prompt lists backends detected on your system. Only backends with their CLI tool installed and on `$PATH` are shown.
+2. **Model selection** -- Optional text input to specify a model for the backend. Leave blank to use the backend's default.
+3. **Agent profile** -- Optional text input for the agent persona. Leave blank for the default (`build`).
+4. **Validation commands** -- Prompts whether you want to add shell commands the agent should run to validate its work (e.g., `bun lint`, `bun test`). You can add multiple commands one at a time.
+5. **Claude permissions** -- If the selected backend is `claude`, asks whether to skip Claude Code's permission checks.
+6. **Notifications** -- Select when OS notifications should be sent: disabled, on full completion, or after each iteration.
+
+The resulting configuration is saved to `.ody/ody.json`. If the `.ody/` directory does not exist, it is created.
+
+## Examples
+
+Interactive setup:
+
+```bash
+ody init
+```
+
+Non-interactive with all flags:
+
+```bash
+ody init --backend claude --maxIterations 5 --model claude-sonnet-4-20250514 --shouldCommit
+```
+
+Preview what would be saved:
+
+```bash
+ody init --backend opencode --dry-run
+```
+
+## Generated files
+
+| File            | Description           |
+| --------------- | --------------------- |
+| `.ody/ody.json` | Project configuration |
+
+See the [Configuration](/docs/configuration) guide for details on all config keys.

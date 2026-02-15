@@ -1,0 +1,106 @@
+---
+title: ody run
+description: Run the agent loop
+---
+
+# ody run
+
+Run the agent loop to execute pending tasks. The loop picks up tasks from `.ody/tasks/`, builds a prompt, sends it to the configured backend, and monitors for a completion marker.
+
+## Synopsis
+
+```bash
+ody run [taskFile] [--iterations <n>] [--label <name>] [--verbose] [--no-notify]
+```
+
+## Arguments
+
+| Argument   | Type     | Required | Description                                    |
+| ---------- | -------- | -------- | ---------------------------------------------- |
+| `taskFile` | `string` | No       | Path to a specific `.code-task.md` file to run |
+
+## Flags
+
+| Flag           | Alias | Type      | Default    | Description                                              |
+| -------------- | ----- | --------- | ---------- | -------------------------------------------------------- |
+| `--iterations` | `-i`  | `string`  | _(config)_ | Override the number of loop iterations (`0` = unlimited) |
+| `--label`      | `-l`  | `string`  |            | Filter tasks by label                                    |
+| `--verbose`    |       | `boolean` | `false`    | Stream the agent's output in real time                   |
+| `--no-notify`  |       | `boolean` | `false`    | Disable OS notifications even if enabled in config       |
+
+## Behavior
+
+### Default loop mode
+
+Without arguments, `ody run` enters a loop that runs for `maxIterations` iterations (from config) or until all pending tasks are done:
+
+1. Builds a prompt from the current project state and pending tasks.
+2. Spawns the configured backend agent with the prompt.
+3. Monitors the agent's output for the `<woof>COMPLETE</woof>` marker, which signals all pending tasks are finished.
+4. On each completed iteration, displays progress (e.g., "Agent task 2 of 5 complete").
+5. Sends OS notifications per the `notify` config setting.
+6. Exits with a summary of completed tasks.
+
+### Single task mode
+
+When a `taskFile` positional argument is provided, the loop runs exactly once targeting that specific task file:
+
+```bash
+ody run .ody/tasks/my-feature.code-task.md
+```
+
+The `taskFile` and `--label` flags are mutually exclusive.
+
+### Label filtering
+
+Use `--label` to run only tasks that match a specific label in their frontmatter metadata:
+
+```bash
+ody run --label bugfix
+```
+
+If no tasks match the label, the command exits with a warning.
+
+### Iteration override
+
+The `--iterations` flag overrides the `maxIterations` config value for the current run:
+
+```bash
+ody run --iterations 3
+```
+
+Set to `0` for unlimited iterations (runs until all tasks complete).
+
+### Verbose mode
+
+By default, agent output is hidden behind a spinner. Use `--verbose` to stream the agent's full output to the terminal:
+
+```bash
+ody run --verbose
+```
+
+## Examples
+
+Run all pending tasks with config defaults:
+
+```bash
+ody run
+```
+
+Run a single specific task:
+
+```bash
+ody run .ody/tasks/add-login-page.code-task.md
+```
+
+Run with a 3-iteration limit and verbose output:
+
+```bash
+ody run --iterations 3 --verbose
+```
+
+Run tasks with a specific label:
+
+```bash
+ody run --label refactor
+```
