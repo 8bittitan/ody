@@ -13,6 +13,7 @@ const ody = defineCommand({
     await Config.load();
   },
   subCommands: {
+    compact: () => import('./cmd/compact').then((m) => m.compactCmd),
     config: () => import('./cmd/config').then((m) => m.configCmd),
     init: () => import('./cmd/init').then((m) => m.initCmd),
     plan: () => import('./cmd/plan').then((m) => m.planCmd),

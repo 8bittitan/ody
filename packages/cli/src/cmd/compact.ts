@@ -3,10 +3,10 @@ import { defineCommand } from 'citty';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { CompletedTask } from '../../types/task';
+import type { CompletedTask } from '../types/task';
 
-import { BASE_DIR } from '../../util/constants';
-import { resolveTasksDir, parseFrontmatter, parseTitle, parseDescription } from '../../util/task';
+import { BASE_DIR } from '../util/constants';
+import { resolveTasksDir, parseFrontmatter, parseTitle, parseDescription } from '../util/task';
 
 export const compactCmd = defineCommand({
   meta: {
