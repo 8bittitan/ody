@@ -55,6 +55,8 @@ Plan for an Electron-based desktop application that replicates the full function
 
 The desktop app does NOT invoke or wrap the CLI binary. It imports `@ody/shared` directly for config, prompt building, backend command construction, and task parsing -- then spawns agent processes itself from the Electron main process.
 
+Electron should be based on the [Electrobun](https://github.com/blackboardsh/electrobun) runtime to enable using Bun as the runtime for Electron.
+
 ---
 
 ## Workspace Restructure
@@ -663,6 +665,8 @@ The renderer uses `xterm.js` to display the PTY output and sends keystrokes back
 ---
 
 ## UI Design
+
+> NOTE Design file found at `./designs.html`
 
 ### Main Layout
 
