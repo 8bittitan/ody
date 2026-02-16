@@ -3,6 +3,8 @@ title: ody compact
 description: Archive completed tasks and progress
 ---
 
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+
 # ody compact
 
 Archive completed tasks and the progress log into a dated historical record, then clean up the originals. This keeps the working `.ody/tasks/` directory focused on active work.
@@ -40,13 +42,16 @@ If neither completed tasks nor progress entries are found, the command reports t
 
 After running `ody compact`, the archive is organized by date:
 
-```
-.ody/
-  history/
-    2026-02-15/
-      tasks.md       # Archived completed tasks
-      progress.md    # Archived progress log
-```
+<Files>
+  <Folder name=".ody" defaultOpen>
+    <Folder name="history" defaultOpen>
+      <Folder name="2026-01-01" defaultOpen>
+        <File name="progress.md -- Archived progress log" />
+        <File name="tasks.md -- Archived completed tasks" />
+      </Folder>
+    </Folder>
+  </Folder>
+</Files>
 
 ## Example
 

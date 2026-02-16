@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 
-import { DocsBody, DocsPage } from 'fumadocs-ui/page';
+import { DocsBody, DocsPage } from 'fumadocs-ui/layouts/notebook/page';
+import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { notFound } from 'next/navigation';
 
 import { source } from '../../../lib/source';
+import { getMDXComponents } from '../../../mdx-components';
 
 type PageProps = {
   params: Promise<{ slug?: string[] }>;
@@ -32,9 +34,18 @@ export default async function Page(props: PageProps) {
   const MDX = page.data.body;
 
   return (
-    <DocsPage toc={page.data.toc}>
+    <DocsPage
+      toc={page.data.toc}
+      tableOfContent={{
+        style: 'clerk',
+      }}
+    >
       <DocsBody>
-        <MDX />
+        <MDX
+          components={getMDXComponents({
+            a: createRelativeLink(source, page),
+          })}
+        />
       </DocsBody>
     </DocsPage>
   );

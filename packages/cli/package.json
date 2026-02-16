@@ -17,6 +17,9 @@
   "files": [
     "dist"
   ],
+  "exports": {
+    ".": "./src"
+  },
   "type": "module",
   "module": "./src/index.ts",
   "scripts": {

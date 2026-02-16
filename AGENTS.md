@@ -15,7 +15,6 @@ Focus on Bun + TypeScript CLI tooling.
 - Prompt building lives in `packages/cli/src/builders/prompt.ts`.
 - Shared utilities in `packages/cli/src/lib` and `packages/cli/src/util`.
 - Config is stored under `.ody/ody.json` in the project root.
-- Agent prompt template lives in `.ody/prompt.md`.
 - Shared TypeScript config: root `tsconfig.json` (packages extend it).
 - Formatter: `oxfmt` (see `.oxfmtrc.json` at root).
 - Linter: `oxlint` (see `.oxlintrc.json` at root).
