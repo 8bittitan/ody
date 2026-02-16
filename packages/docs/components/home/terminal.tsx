@@ -128,7 +128,7 @@ export function Terminal() {
         </span>
       </div>
       {/* Content */}
-      <div style={{ padding: '20px 22px 26px', fontSize: '13px', lineHeight: 2.2 }}>
+      <div className="min-h-65 pt-5 px-5.5 pb-6.5 text-sm leading-loose">
         {COMMANDS.slice(0, visibleLines).map((cmd, i) => (
           <div key={i} style={{ animation: 'fadeInUp 0.3s ease-out' }}>
             <div>
