@@ -1,0 +1,33 @@
+---
+title: Commands
+description: Available ody CLI commands
+---
+
+# Commands
+
+ody provides commands for initializing projects, running the agent loop, managing task plans, and viewing configuration. All commands are invoked as `ody <command>`.
+
+## Command reference
+
+| Command                             | Description                                       |
+| ----------------------------------- | ------------------------------------------------- |
+| [`init`](/docs/commands/init)       | Initialize ody in a project                       |
+| [`run`](/docs/commands/run)         | Run the agent loop to execute pending tasks       |
+| [`config`](/docs/commands/config)   | Display the current configuration                 |
+| [`plan`](/docs/commands/plan)       | Plan upcoming work by generating task files       |
+| [`compact`](/docs/commands/compact) | Archive completed tasks and progress into history |
+| [`task`](/docs/commands/task/list)  | Manage task files (list, edit)                    |
+
+## Global behavior
+
+All commands automatically load the ody configuration from `.ody/ody.json` (local) and `~/.ody/ody.json` or `~/.config/ody/ody.json` (global) before executing. If no configuration is found, commands that require it will prompt you to run `ody init` first.
+
+## Getting help
+
+Run any command with `--help` to see its usage and available flags:
+
+```bash
+ody --help
+ody run --help
+ody plan --help
+```

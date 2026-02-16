@@ -1,0 +1,55 @@
+---
+title: Introduction
+description: Overview of the ody CLI
+---
+
+# Introduction
+
+ody is an agentic task orchestrator that delegates structured development work to AI coding agents. Describe what you need done, let ody generate a task plan, then run the agent loop to have it implemented automatically.
+
+## What is ody?
+
+ody manages the full lifecycle of AI-assisted development: planning tasks, executing them via an agent, validating results, and optionally committing changes. It works with multiple AI backends and provides a structured workflow for turning natural language descriptions into completed code.
+
+## Key concepts
+
+### Backends
+
+ody supports multiple AI coding agents as backends:
+
+- **Claude Code** (`claude`) -- Anthropic's CLI coding agent
+- **OpenCode** (`opencode`) -- OpenCode CLI agent
+- **Codex** (`codex`) -- OpenAI's Codex CLI agent
+
+Each backend implements a common harness interface, so ody can orchestrate any of them with the same workflow.
+
+### Task plans
+
+Tasks are structured Markdown files (`.code-task.md`) with YAML frontmatter that tracks status. Each task includes a description, technical requirements, implementation approach, and acceptance criteria. The agent works through tasks one at a time, transitioning them from `pending` to `in_progress` to `completed`.
+
+### The agent loop
+
+When you run `ody run`, it enters a loop that:
+
+1. Picks the next pending task
+2. Builds a prompt from the task and project context
+3. Sends the prompt to the configured backend
+4. Monitors for a completion marker from the agent
+5. Runs any configured validator commands
+6. Marks the task as completed
+7. Optionally commits changes to git
+
+The loop continues until all pending tasks are done or the iteration limit is reached.
+
+### Prompt building
+
+ody constructs prompts that give the agent full context about the task, the project structure, and any validation commands to run. This structured prompting helps the agent produce focused, high-quality work.
+
+## Getting started
+
+1. [Install ody](/docs/installation)
+2. Run `ody init` in your project to create a configuration
+3. Run `ody plan` to generate task plans from your descriptions
+4. Run `ody run` to execute the agent loop
+
+See the [Configuration](/docs/configuration) guide for details on customizing ody's behavior.

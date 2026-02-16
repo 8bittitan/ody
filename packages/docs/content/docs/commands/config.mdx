@@ -1,0 +1,52 @@
+---
+title: ody config
+description: Display current configuration
+---
+
+# ody config
+
+Display the current ody configuration. This command reads the resolved configuration and prints it as formatted JSON.
+
+## Synopsis
+
+```bash
+ody config
+```
+
+## Flags
+
+This command has no flags.
+
+## Behavior
+
+`ody config` loads the configuration from `.ody/ody.json` (with global config merged in) and prints the full resolved configuration object as pretty-printed JSON.
+
+If no configuration file is found, it displays a warning and suggests running `ody init`:
+
+```
+No configuration found. Run `ody init` to set up your project.
+```
+
+## Example
+
+```bash
+$ ody config
+```
+
+Output:
+
+```json
+{
+  "backend": "claude",
+  "maxIterations": 5,
+  "shouldCommit": true,
+  "validatorCommands": ["bun lint", "bun fmt"],
+  "model": "claude-sonnet-4-20250514",
+  "skipPermissions": true
+}
+```
+
+## Related
+
+- [Configuration](/docs/configuration) -- Full reference for all config keys
+- [`ody init`](/docs/commands/init) -- Create or update the configuration interactively

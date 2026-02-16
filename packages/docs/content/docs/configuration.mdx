@@ -1,0 +1,87 @@
+---
+title: Configuration
+description: Configuring ody
+---
+
+import { TypeTable } from 'fumadocs-ui/components/type-table';
+
+# Configuration
+
+ody is configured through a JSON file and an optional prompt template. Run `ody init` to generate the initial configuration interactively.
+
+## Configuration file
+
+Configuration lives in `.ody/ody.json` in your project root. A global configuration can also be placed at `~/.ody/ody.json` or `~/.config/ody/ody.json`. When both exist, local (project-level) settings override global ones.
+
+### Config keys
+
+<TypeTable
+  type={{
+    backend: {
+      description: 'Backend harness to use for agent',
+      type: '"opencode" | "claude" | "codex"',
+      required: true
+    },
+    maxIterations: {
+      description: "Max number of iterations to run in the loop (0 = infinite)",
+      type: 'number',
+      required: true
+    },
+    shouldCommit: {
+      description: "Generate a commit after each loop iteration",
+      type: 'boolean',
+      default: "false"
+    },
+    validatorCommands: {
+      description: "Specific commands the agent can use to verify the code is in good shape",
+      type: 'string[]',
+      default: "[]"
+    },
+    model: {
+      description: "What model the agent should use for the backend",
+      type: "string",
+    },
+    agent: {
+      description: "What harness agent should be used",
+      type: "string",
+      default: "build"
+    },
+    notify: {
+      description: "Whether to dispatch OS notification",
+      type: '"all" | "individual" | true | false',
+      default: "false"
+    },
+    tasksDir: {
+      description: "Subdirectory under .ody/ for task files",
+      type: "string",
+      default: "tasks"
+    },
+    skipPermissions: {
+      description: "Skip Claude Code permission checks",
+      type: "boolean",
+      default: "false"
+    }
+  }}
+/>
+
+### Example configuration
+
+```json
+{
+  "backend": "claude",
+  "maxIterations": 5,
+  "shouldCommit": true,
+  "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
+  "model": "claude-sonnet-4-20250514"
+}
+```
+
+## Config resolution
+
+ody resolves configuration in the following order:
+
+1. **Global config** -- `~/.ody/ody.json` or `~/.config/ody/ody.json` (checked in that order)
+2. **Local config** -- `.ody/ody.json` in the current project
+
+Local settings are merged on top of global settings, so you can set shared defaults globally and override them per-project.
+

@@ -1,0 +1,63 @@
+---
+title: ody task edit
+description: Edit an existing task plan
+---
+
+# ody task edit
+
+Edit an existing task plan by selecting it from a list and sending it to the backend agent for refinement. The agent reads the current task content and applies improvements or requested changes.
+
+## Synopsis
+
+```bash
+ody task edit [--dry-run] [--verbose]
+```
+
+## Flags
+
+| Flag        | Alias | Type      | Default | Description                                             |
+| ----------- | ----- | --------- | ------- | ------------------------------------------------------- |
+| `--dry-run` | `-d`  | `boolean` | `false` | Print the generated prompt without sending to the agent |
+| `--verbose` |       | `boolean` | `false` | Stream the agent's output in real time                  |
+
+## Behavior
+
+1. Scans `.ody/tasks/` for all `.code-task.md` files.
+2. Presents an interactive selection prompt listing each task by title and filename.
+3. Reads the selected task file's full content.
+4. Builds an edit prompt containing the file path and current content.
+5. Sends the prompt to the configured backend agent.
+6. The agent edits the file in place, preserving the YAML frontmatter structure and all required sections.
+
+The agent preserves the `status`, `created`, `started`, and `completed` frontmatter fields unless you explicitly ask it to change them.
+
+If no task files are found, the command exits with an informational message.
+
+### Dry run
+
+Use `--dry-run` to see the prompt that would be sent to the agent without actually running the edit:
+
+```bash
+ody task edit --dry-run
+```
+
+## Example
+
+```bash
+$ ody task edit
+# Select "Add Email Validation  (add-email-validation.code-task.md)"
+# Agent refines the task plan
+# Task plan updated
+```
+
+Stream the agent's work:
+
+```bash
+ody task edit --verbose
+```
+
+## Related
+
+- [`ody plan`](/docs/commands/plan/new) -- Create new task plans
+- [`ody task list`](/docs/commands/plan/list) -- View pending tasks
+- [`ody run`](/docs/commands/run) -- Execute pending tasks with the agent loop

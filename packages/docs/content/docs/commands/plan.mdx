@@ -1,0 +1,94 @@
+---
+title: ody plan
+description: Create a new planning document
+---
+
+# ody plan
+
+Create new task plan files by describing what you want to build. Supports both interactive single-task mode and batch mode from a planning document.
+
+## Synopsis
+
+```bash
+ody plan [planFile] [--dry-run] [--verbose]
+```
+
+## Arguments
+
+| Argument   | Type     | Required | Description                                        |
+| ---------- | -------- | -------- | -------------------------------------------------- |
+| `planFile` | `string` | No       | Path to a planning document to generate tasks from |
+
+## Flags
+
+| Flag        | Alias | Type      | Default | Description                                             |
+| ----------- | ----- | --------- | ------- | ------------------------------------------------------- |
+| `--dry-run` | `-d`  | `boolean` | `false` | Print the generated prompt without sending to the agent |
+| `--verbose` |       | `boolean` | `false` | Stream the agent's output in real time                  |
+
+## Behavior
+
+### Interactive mode (default)
+
+Without arguments, `ody plan` enters an interactive loop:
+
+1. Prompts you for a task description.
+2. Asks if you want to add another plan.
+3. Repeats until you decline or cancel.
+4. Sends each description to the configured backend agent, which generates a `.code-task.md` file in `.ody/tasks/`.
+
+Each generated file includes YAML frontmatter (`status: pending`, creation date) and all required sections: Description, Background, Technical Requirements, Dependencies, Implementation Approach, Acceptance Criteria, and Metadata.
+
+### Batch mode
+
+When a `planFile` argument is provided, the agent reads the planning document and decomposes it into multiple discrete task files:
+
+```bash
+ody plan docs/feature-plan.md
+```
+
+The agent analyzes the document and creates one `.code-task.md` file per actionable task, ordering them logically so dependencies come first.
+
+### Dry run
+
+Use `--dry-run` to preview the prompt that would be sent to the agent without actually generating task files:
+
+```bash
+ody plan --dry-run
+ody plan docs/feature-plan.md --dry-run
+```
+
+## Examples
+
+Create a single task interactively:
+
+```bash
+$ ody plan
+# Enter: "Add email validation to the signup form"
+# Decline adding another plan
+# Agent generates .ody/tasks/add-email-validation.code-task.md
+```
+
+Generate multiple tasks from a planning document:
+
+```bash
+ody plan docs/auth-system-plan.md
+```
+
+Preview the batch prompt without running:
+
+```bash
+ody plan docs/auth-system-plan.md --dry-run
+```
+
+Stream agent output while generating:
+
+```bash
+ody plan --verbose
+```
+
+## Related
+
+- [`ody task list`](/docs/commands/plan/list) -- View pending tasks after generating plans
+- [`ody task edit`](/docs/commands/plan/edit) -- Refine a generated task plan
+- [`ody run`](/docs/commands/run) -- Execute pending tasks with the agent loop
