@@ -19,6 +19,7 @@ const ody = defineCommand({
     plan: () => import('./cmd/plan').then((m) => m.planCmd),
     run: () => import('./cmd/run').then((m) => m.runCmd),
     task: () => import('./cmd/task').then((m) => m.taskCmd),
+    update: () => import('./cmd/update').then((m) => m.updateCmd),
   },
 });
 
