@@ -7,6 +7,8 @@
   "scripts": {
     "build": "bun run --filter '*' build",
     "dev:docs": "bun run --filter '@ody/docs' dev",
+    "docs:dev": "bun run --filter '@ody/docs' dev",
+    "docs:build": "bun run --filter '@ody/docs' build",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt --write .",

@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-02-15
-started: null
-completed: null
+started: 2026-02-17
+completed: 2026-02-17
 ---
 # Task: Add Root-Level Convenience Scripts for Docs Workflow
 
