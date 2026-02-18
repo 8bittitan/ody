@@ -5,6 +5,18 @@ import z, { ZodError } from 'zod';
 import { backendsSchema, Config } from '../config';
 
 describe('Config', () => {
+  describe('util - skip config', () => {
+    test.each([
+      ['init', true],
+      ['update', true],
+      ['plan', false],
+    ])('%s - shouldSkipConfig %p', (cmd, expected) => {
+      const shouldSkip = Config.shouldSkipConfig(cmd);
+
+      expect(shouldSkip).toBe(expected);
+    });
+  });
+
   describe('parse — valid input', () => {
     test('parses a full valid config', () => {
       const raw = { backend: 'claude', maxIterations: 5 };

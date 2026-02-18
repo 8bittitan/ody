@@ -63,6 +63,21 @@ async function loadJsonFile(filePath: string): Promise<Record<string, unknown> |
 export namespace Config {
   let config: OdyConfig | undefined = undefined;
 
+  export const SKIPPABLE_COMMANDS = ['init', 'update'];
+
+  export function shouldSkipConfig(cmd: string) {
+    let shouldSkip = false;
+
+    for (const c of SKIPPABLE_COMMANDS) {
+      if (c === cmd) {
+        shouldSkip = true;
+        break;
+      }
+    }
+
+    return shouldSkip;
+  }
+
   export const Schema = z
     .object({
       $schema: z.string().optional().describe('JSON schema reference for configuration validation'),
@@ -102,7 +117,7 @@ export namespace Config {
       ref: 'Config',
     });
 
-  export async function load(passOnMissing: boolean) {
+  export async function load() {
     if (config) {
       return;
     }
@@ -124,10 +139,6 @@ export namespace Config {
     }
 
     if (!globalRaw && !localRaw) {
-      if (passOnMissing) {
-        return;
-      }
-
       throw new Error('No Ody configuration found. Run `ody init` to get started.');
     }
 

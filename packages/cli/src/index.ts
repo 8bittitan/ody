@@ -11,10 +11,18 @@ const ody = defineCommand({
     version: pkg.version,
   },
   async setup(ctx) {
-    const isInit = ctx.rawArgs[0] === 'init';
+    const cmd = ctx.rawArgs[0];
+
+    if (!cmd) {
+      return;
+    }
+
+    if (Config.shouldSkipConfig(cmd)) {
+      return;
+    }
 
     try {
-      await Config.load(isInit);
+      await Config.load();
     } catch (err) {
       log.error(String(err));
       process.exit(1);
