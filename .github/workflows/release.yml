@@ -78,40 +78,26 @@ jobs:
           name: ${{ matrix.artifact }}
           path: packages/cli/dist/${{ matrix.artifact }}
 
-  schema:
-    name: Generate Config Schema
+  release:
+    name: Create Release
     runs-on: ubuntu-latest
-    needs: tag
-    if: needs.tag.outputs.tag != ''
+    needs: [tag, build]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: .tool-versions
+      - name: Extract changelog
+        id: changelog
+        run: |
+          BODY=$(awk '/^## /{if(found) exit; found=1; next} found' packages/cli/CHANGELOG.md)
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Generate schema
-        working-directory: packages/cli
-        run: bun run gen:schema
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: configuration_schema.json
-          path: packages/cli/dist/configuration_schema.json
-
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: [tag, build, schema]
-    steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -122,5 +108,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.body }}
           files: artifacts/*
