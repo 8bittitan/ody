@@ -1,10 +1,40 @@
 # @ody/cli
 
+## 0.2.0
+
+### Minor Changes
+
+- ### Features
+
+  - add docs:dev and docs:build convenience scripts to root package.json (f425d73)
+  - add self-update command (6e998aa)
+  - add homepage, cleanup docs files (8576bd4)
+  - add plan subcommands documentation (overview, new, list, edit, compact) (bbdc19f)
+  - add commands documentation pages (init, run, config, compact) (bd9d445)
+  - add core documentation content pages (introduction, installation, configuration) (f238da1)
+  - add docs layout, catch-all page, and source loader (133daf9)
+  - add app root layout, global styles, and home page (edc88e0)
+  - add Next.js and Fumadocs configuration files (b8fce30)
+  - bootstrap packages/docs workspace with Next.js and Fumadocs dependencies (cae73db)
+  - add file argument to plan command for batch task generation (24243f0)
+
+  ### Bug Fixes
+
+  - failing tests (da5ac5a)
+  - better error handling for Config (d42bbb3)
+  - homepage layout shift (c5459aa)
+
+  ### Maintenance
+
+  - cleanup installation command (4b59ac6)
+  - desktop app design (#6) (9c92ca3)
+
 ## 0.1.2
 
 ### Patch Changes
 
 - ### Features
+
   - integrate config schema generation into release pipeline (8e65b62)
   - add user-facing install script for platform binary downloads (2d3fe58)
   - add binaries GitHub Actions workflow for cross-platform builds (5989a0f)
@@ -32,19 +62,23 @@
   - Convert to storing tasks as markdown files instead of JSON file (856081c)
 
   ### Bug Fixes
+
   - release pipeline (76483b2)
   - tests (f9e0ad5)
   - spacing on plan list cmd, skip notify tests (5d73ee8)
 
   ### Refactors
+
   - promote compact to root-level command (4fe56e7)
   - batch plan description collection before agent prompting (15075fd)
   - remove --once flag and buildOnceCommand from run command (67f42ac)
 
   ### Documentation
+
   - add installation section to README (c1aa758)
 
   ### Maintenance
+
   - generate changelog (417c174)
   - planning future features (5f6726b)
   - add unit tests for lib directory (config, logger, notify, sequencer) (b52843c)
@@ -64,6 +98,7 @@
 ### Patch Changes
 
 - ### Features
+
   - integrate config schema generation into release pipeline (8e65b62)
   - add user-facing install script for platform binary downloads (2d3fe58)
   - add binaries GitHub Actions workflow for cross-platform builds (5989a0f)
@@ -91,18 +126,22 @@
   - Convert to storing tasks as markdown files instead of JSON file (856081c)
 
   ### Bug Fixes
+
   - tests (f9e0ad5)
   - spacing on plan list cmd, skip notify tests (5d73ee8)
 
   ### Refactors
+
   - promote compact to root-level command (4fe56e7)
   - batch plan description collection before agent prompting (15075fd)
   - remove --once flag and buildOnceCommand from run command (67f42ac)
 
   ### Documentation
+
   - add installation section to README (c1aa758)
 
   ### Maintenance
+
   - generate changelog (417c174)
   - planning future features (5f6726b)
   - add unit tests for lib directory (config, logger, notify, sequencer) (b52843c)
