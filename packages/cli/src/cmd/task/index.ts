@@ -7,6 +7,7 @@ export const taskCmd = defineCommand({
   },
   subCommands: {
     edit: () => import('./edit').then((m) => m.editCmd),
+    import: () => import('./import').then((m) => m.importCmd),
     list: () => import('./list').then((m) => m.listCmd),
   },
 });

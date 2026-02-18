@@ -29,6 +29,7 @@ const ody = defineCommand({
     }
   },
   subCommands: {
+    auth: () => import('./cmd/auth').then((m) => m.authCmd),
     compact: () => import('./cmd/compact').then((m) => m.compactCmd),
     config: () => import('./cmd/config').then((m) => m.configCmd),
     init: () => import('./cmd/init').then((m) => m.initCmd),

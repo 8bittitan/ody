@@ -1,7 +1,10 @@
 {
   "backend": "opencode",
   "maxIterations": 3,
-  "shouldCommit": true,
+  "shouldCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "anthropic/claude-opus-4-6"
+  "model": "anthropic/claude-opus-4-6",
+  "jira": {
+    "baseUrl": "https://algolia.atlassian.net"
+  }
 }

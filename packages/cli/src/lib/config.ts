@@ -10,6 +10,13 @@ const notifySchema = z
   .default(false)
   .optional();
 
+const jiraSchema = z
+  .object({
+    baseUrl: z.string().url(),
+    profile: z.string().optional(),
+  })
+  .optional();
+
 const configSchema = z.object({
   backend: backendsSchema,
   maxIterations: z.number().int().nonnegative(),
@@ -20,6 +27,7 @@ const configSchema = z.object({
   agent: z.string().nonempty().default('build').optional(),
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
   notify: notifySchema,
+  jira: jiraSchema,
 });
 
 export type OdyConfig = z.infer<typeof configSchema>;
@@ -63,7 +71,7 @@ async function loadJsonFile(filePath: string): Promise<Record<string, unknown> |
 export namespace Config {
   let config: OdyConfig | undefined = undefined;
 
-  export const SKIPPABLE_COMMANDS = ['init', 'update'];
+  export const SKIPPABLE_COMMANDS = ['auth', 'init', 'update'];
 
   export function shouldSkipConfig(cmd: string) {
     let shouldSkip = false;
@@ -111,6 +119,19 @@ export namespace Config {
         .optional()
         .describe('Custom path for the tasks directory'),
       notify: notifySchema.describe('Whether to dispatch OS notification'),
+      jira: z
+        .object({
+          baseUrl: z
+            .string()
+            .url()
+            .describe('Jira instance base URL (e.g., https://company.atlassian.net)'),
+          profile: z
+            .string()
+            .optional()
+            .describe('Named credential profile from auth store (defaults to "default")'),
+        })
+        .optional()
+        .describe('Jira integration settings'),
     })
     .strict()
     .meta({
