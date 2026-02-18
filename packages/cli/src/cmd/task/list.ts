@@ -14,7 +14,7 @@ export const listCmd = defineCommand({
     const tasksDir = resolveTasksDir();
 
     if (!(await exists(tasksDir))) {
-      log.error('.ody/tasks not found.');
+      log.error(`${tasksDir} not found.`);
       return;
     }
 
@@ -51,7 +51,5 @@ export const listCmd = defineCommand({
     }
 
     outro('Done');
-
-    process.exit(0);
   },
 });

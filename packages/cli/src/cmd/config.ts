@@ -11,12 +11,7 @@ export const configCmd = defineCommand({
   async run() {
     let config;
 
-    try {
-      config = Config.all();
-    } catch {
-      log.warn('No configuration found. Run `ody init` to set up your project.');
-      return;
-    }
+    config = Config.all();
 
     intro('Ody configuration');
     log.message(JSON.stringify(config, null, 2));

@@ -1,3 +1,4 @@
+import { log } from '@clack/prompts';
 import { defineCommand, runMain } from 'citty';
 
 import pkg from '../package.json';
@@ -9,8 +10,15 @@ const ody = defineCommand({
     description: 'Agentic orchestrator',
     version: pkg.version,
   },
-  async setup() {
-    await Config.load();
+  async setup(ctx) {
+    const isInit = ctx.rawArgs[0] === 'init';
+
+    try {
+      await Config.load(isInit);
+    } catch (err) {
+      log.error(String(err));
+      process.exit(1);
+    }
   },
   subCommands: {
     compact: () => import('./cmd/compact').then((m) => m.compactCmd),
@@ -23,4 +31,8 @@ const ody = defineCommand({
   },
 });
 
-runMain(ody);
+try {
+  await runMain(ody);
+} catch (err) {
+  log.error(String(err));
+}

@@ -1,4 +1,5 @@
-const EDIT_PLAN_PROMPT = `You are editing an existing task plan file.
+const EDIT_PLAN_PROMPT = `
+You are editing an existing task plan file.
 
 FILE PATH
 {FILE_PATH}
@@ -15,7 +16,8 @@ INSTRUCTIONS
 4. Do NOT change the \`status\`, \`created\`, \`started\`, or \`completed\` fields in the frontmatter unless explicitly asked.
 5. Keep the same filename and location.
 
-When finished editing the task file, output the text: <woof>COMPLETE</woof>.`;
+When finished editing the task file, output the text: <woof>COMPLETE</woof>.
+`;
 
 export const buildEditPlanPrompt = ({
   filePath,

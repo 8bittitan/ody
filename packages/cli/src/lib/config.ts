@@ -1,4 +1,3 @@
-import { log } from '@clack/prompts';
 import os from 'os';
 import path from 'path';
 import { z } from 'zod';
@@ -103,44 +102,38 @@ export namespace Config {
       ref: 'Config',
     });
 
-  export async function load() {
+  export async function load(passOnMissing: boolean) {
     if (config) {
       return;
     }
 
-    try {
-      let globalRaw: Record<string, unknown> | undefined;
-      let localRaw: Record<string, unknown> | undefined;
+    let globalRaw: Record<string, unknown> | undefined;
+    let localRaw: Record<string, unknown> | undefined;
 
-      const globalConfigPath = await resolveGlobalConfigPath();
+    const globalConfigPath = await resolveGlobalConfigPath();
 
-      if (globalConfigPath) {
-        globalRaw = await loadJsonFile(globalConfigPath);
-      }
+    if (globalConfigPath) {
+      globalRaw = await loadJsonFile(globalConfigPath);
+    }
 
-      const localPath = path.join(BASE_DIR, ODY_FILE);
-      const localFile = Bun.file(localPath);
+    const localPath = path.join(BASE_DIR, ODY_FILE);
+    const localFile = Bun.file(localPath);
 
-      if (await localFile.exists()) {
-        localRaw = await loadJsonFile(localPath);
-      }
+    if (await localFile.exists()) {
+      localRaw = await loadJsonFile(localPath);
+    }
 
-      if (!globalRaw && !localRaw) {
+    if (!globalRaw && !localRaw) {
+      if (passOnMissing) {
         return;
       }
 
-      const merged = { ...globalRaw, ...localRaw };
-
-      config = parse(merged);
-    } catch (err) {
-      if (Error.isError(err)) {
-        log.error(err.message);
-      } else {
-        log.error(String(err));
-      }
-
-      process.exit(1);
+      throw new Error('No Ody configuration found. Run `ody init` to get started.');
     }
+
+    const merged = { ...globalRaw, ...localRaw };
+
+    config = parse(merged);
   }
 
   export function parse(raw: any) {
@@ -149,7 +142,7 @@ export namespace Config {
 
   export function all() {
     if (!config) {
-      throw new Error('Config not loaded');
+      throw new Error('No Ody configuration found. Run `ody init` to get started.');
     }
 
     return config;
@@ -157,8 +150,7 @@ export namespace Config {
 
   export function get<K extends keyof OdyConfig>(key: K): OdyConfig[K] {
     if (!config) {
-      log.error('Must `.load` configuration first');
-      throw new Error('Config not loaded');
+      throw new Error('No Ody configuration found. Run `ody init` to get started.');
     }
 
     return config[key];
