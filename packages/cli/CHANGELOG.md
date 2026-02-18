@@ -1,5 +1,17 @@
 # @ody/cli
 
+## 0.2.1
+
+### Patch Changes
+
+- ### Bug Fixes
+
+  - breaking cmds that dont require config (94ea485)
+
+  ### Maintenance
+
+  - use generated changelog for release body (1730b6f)
+
 ## 0.2.0
 
 ### Minor Changes
