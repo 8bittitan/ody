@@ -20,47 +20,47 @@ Configuration lives in `.ody/ody.json` in your project root. A global configurat
     backend: {
       description: 'Backend harness to use for agent',
       type: '"opencode" | "claude" | "codex"',
-      required: true
+      required: true,
     },
     maxIterations: {
-      description: "Max number of iterations to run in the loop (0 = infinite)",
+      description: 'Max number of iterations to run in the loop (0 = infinite)',
       type: 'number',
-      required: true
+      required: true,
     },
     shouldCommit: {
-      description: "Generate a commit after each loop iteration",
+      description: 'Generate a commit after each loop iteration',
       type: 'boolean',
-      default: "false"
+      default: 'false',
     },
     validatorCommands: {
-      description: "Specific commands the agent can use to verify the code is in good shape",
+      description: 'Specific commands the agent can use to verify the code is in good shape',
       type: 'string[]',
-      default: "[]"
+      default: '[]',
     },
     model: {
-      description: "What model the agent should use for the backend",
-      type: "string",
+      description: 'What model the agent should use for the backend',
+      type: 'string',
     },
     agent: {
-      description: "What harness agent should be used",
-      type: "string",
-      default: "build"
+      description: 'What harness agent should be used',
+      type: 'string',
+      default: 'build',
     },
     notify: {
-      description: "Whether to dispatch OS notification",
+      description: 'Whether to dispatch OS notification',
       type: '"all" | "individual" | true | false',
-      default: "false"
+      default: 'false',
     },
     tasksDir: {
-      description: "Subdirectory under .ody/ for task files",
-      type: "string",
-      default: "tasks"
+      description: 'Subdirectory under .ody/ for task files',
+      type: 'string',
+      default: 'tasks',
     },
     skipPermissions: {
-      description: "Skip Claude Code permission checks",
-      type: "boolean",
-      default: "false"
-    }
+      description: 'Skip Claude Code permission checks',
+      type: 'boolean',
+      default: 'false',
+    },
   }}
 />
 
@@ -84,4 +84,3 @@ ody resolves configuration in the following order:
 2. **Local config** -- `.ody/ody.json` in the current project
 
 Local settings are merged on top of global settings, so you can set shared defaults globally and override them per-project.
-
