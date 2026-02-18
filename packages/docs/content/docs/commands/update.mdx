@@ -1,0 +1,86 @@
+---
+title: ody update
+description: Check for and install CLI updates
+---
+
+# ody update
+
+Check for and install CLI updates from GitHub Releases. The command compares your installed version against the latest release and optionally downloads and installs the newer version using the project's install script.
+
+## Synopsis
+
+```bash
+ody update [--check]
+```
+
+## Flags
+
+| Flag      | Alias | Type      | Default | Description                                              |
+| --------- | ----- | --------- | ------- | -------------------------------------------------------- |
+| `--check` | `-c`  | `boolean` | `false` | Only check whether an update is available, don't install |
+
+## Behavior
+
+### Default update flow
+
+Without flags, `ody update` performs a full check-and-install cycle:
+
+1. Queries the GitHub Releases API for the latest published version.
+2. Compares the latest version against the currently installed version.
+3. If a newer version is available, downloads and runs the install script to replace the binary.
+4. Reports the version transition (e.g., `v1.0.0 → v1.1.0`) and confirms the update.
+
+### Check-only mode
+
+With `--check`, the command stops after the version comparison and does not download anything. If an update is available, it prints the new version and suggests running `ody update` to install it:
+
+```
+Run `ody update` to install v1.1.0
+```
+
+### Already up to date
+
+If the installed version matches the latest release, the command prints a success message and exits without taking further action:
+
+```
+Already up to date (v1.0.0)
+```
+
+### Error handling
+
+If the GitHub Releases API is unreachable or returns an error, the command logs the error and exits with a non-zero exit code. If the install script fails during the update, the error output is displayed and the command exits.
+
+## Examples
+
+Check for and install the latest version:
+
+```bash
+ody update
+```
+
+Check whether an update is available without installing:
+
+```bash
+ody update --check
+```
+
+Sample output when an update is available (check-only):
+
+```
+◇  Finished checking for updates
+●  New version available: v1.0.0 → v1.1.0
+◆  Run `ody update` to install v1.1.0
+```
+
+Sample output when already up to date:
+
+```
+◇  Finished checking for updates
+◇  Already up to date (v1.1.0)
+◆  No update needed
+```
+
+## Related
+
+- [Installation](/docs/installation) -- How to install ody
+- [`ody init`](/docs/commands/init) -- Initialize ody in a project
