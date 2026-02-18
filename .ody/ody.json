@@ -3,8 +3,5 @@
   "maxIterations": 3,
   "shouldCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "anthropic/claude-opus-4-6",
-  "jira": {
-    "baseUrl": "https://algolia.atlassian.net"
-  }
+  "model": "anthropic/claude-opus-4-6"
 }

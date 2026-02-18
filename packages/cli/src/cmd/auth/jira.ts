@@ -6,7 +6,7 @@ import { Auth } from '../../lib/auth';
 export const jiraAuthCmd = defineCommand({
   meta: {
     name: 'jira',
-    description: 'Configure JIRA authentication credentials',
+    description: 'Configure Jira authentication credentials',
   },
   args: {
     profile: {
@@ -18,10 +18,10 @@ export const jiraAuthCmd = defineCommand({
   async run({ args }) {
     const profile = args.profile;
 
-    intro(`Configuring JIRA credentials for profile: ${profile}`);
+    intro(`Configuring Jira credentials for profile: ${profile}`);
 
     const email = await text({
-      message: 'Enter your JIRA email address',
+      message: 'Enter your Jira email address',
       validate(value) {
         if (!value || value.trim().length === 0) {
           return 'Email address is required';
@@ -35,7 +35,7 @@ export const jiraAuthCmd = defineCommand({
     }
 
     const apiToken = await password({
-      message: 'Enter your JIRA API token',
+      message: 'Enter your Jira API token',
       validate(value) {
         if (!value || value.trim().length === 0) {
           return 'API token is required';
@@ -56,6 +56,6 @@ export const jiraAuthCmd = defineCommand({
     }
 
     log.success(`Credentials saved under profile "${profile}"`);
-    outro('JIRA authentication configured successfully.');
+    outro('Jira authentication configured successfully.');
   },
 });

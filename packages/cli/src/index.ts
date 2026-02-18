@@ -44,4 +44,6 @@ try {
   await runMain(ody);
 } catch (err) {
   log.error(String(err));
+} finally {
+  process.exit();
 }
