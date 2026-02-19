@@ -41,10 +41,10 @@ OUTPUT
 `;
 
 export const buildRunPrompt = (options?: { taskFiles?: string[]; taskFile?: string }) => {
-  const shouldCommit = Config.get('shouldCommit');
-  const validatorCommands = Config.get('validatorCommands');
-  const tasksDir = Config.get('tasksDir') ?? TASKS_DIR;
-  const tasksDirPath = path.join(BASE_DIR, tasksDir);
+  const config = Config.all();
+  const shouldCommit = config.shouldCommit;
+  const validatorCommands = config.validatorCommands;
+  const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
   const validationStr = validatorCommands ? validatorCommands.join(', ') : '';
 
   if (options?.taskFile) {

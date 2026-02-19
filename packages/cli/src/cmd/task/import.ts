@@ -6,11 +6,39 @@ import path from 'node:path';
 import { Backend } from '../../backends/backend';
 import { buildImportPrompt } from '../../builders/importPrompt';
 import { Auth } from '../../lib/auth';
-import { Config } from '../../lib/config';
+import { Config, type OdyConfig } from '../../lib/config';
 import { GitHub } from '../../lib/github';
 import { Jira } from '../../lib/jira';
 import { BASE_DIR, TASKS_DIR } from '../../util/constants';
 import { Stream } from '../../util/stream';
+
+const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
+
+function createCompletionMarkerDetector() {
+  let rolling = '';
+
+  return {
+    onChunk(chunk: string) {
+      if (chunk === '') {
+        return false;
+      }
+
+      rolling += chunk;
+
+      if (rolling.includes(COMPLETE_MARKER)) {
+        return true;
+      }
+
+      const maxCarry = COMPLETE_MARKER.length - 1;
+
+      if (rolling.length > maxCarry) {
+        rolling = rolling.slice(-maxCarry);
+      }
+
+      return false;
+    },
+  };
+}
 
 export const importCmd = defineCommand({
   meta: {
@@ -42,6 +70,10 @@ export const importCmd = defineCommand({
     },
   },
   async run({ args }) {
+    const config = Config.all();
+    const backend = new Backend(config.backend);
+    const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
+
     const hasJira = Boolean(args.jira);
     const hasGitHub = Boolean(args.github);
 
@@ -59,11 +91,11 @@ export const importCmd = defineCommand({
     let sourceLabel: string;
 
     if (hasJira) {
-      const result = await buildJiraPrompt(args.jira as string);
+      const result = await buildJiraPrompt(args.jira as string, config.jira);
       prompt = result.prompt;
       sourceLabel = result.sourceLabel;
     } else {
-      const result = await buildGitHubPromptFromArgs(args.github as string);
+      const result = await buildGitHubPromptFromArgs(args.github as string, config.github);
       prompt = result.prompt;
       sourceLabel = result.sourceLabel;
     }
@@ -74,12 +106,11 @@ export const importCmd = defineCommand({
       return;
     }
 
-    await spawnAgent(prompt, sourceLabel, args.verbose);
+    await spawnAgent(prompt, sourceLabel, args.verbose, backend, tasksDirPath);
   },
 });
 
-async function buildJiraPrompt(input: string) {
-  const jiraConfig = Config.get('jira');
+async function buildJiraPrompt(input: string, jiraConfig: OdyConfig['jira']) {
   const { baseUrl, ticketKey } = Jira.parseInput(input, jiraConfig?.baseUrl);
 
   const profile = jiraConfig?.profile ?? 'default';
@@ -105,11 +136,9 @@ async function buildJiraPrompt(input: string) {
   return { prompt, sourceLabel: ticketKey };
 }
 
-async function buildGitHubPromptFromArgs(input: string) {
+async function buildGitHubPromptFromArgs(input: string, githubConfig: OdyConfig['github']) {
   const { owner, repo, issueNumber } = GitHub.parseInput(input);
   const issueRef = `${owner}/${repo}#${issueNumber}`;
-
-  const githubConfig = Config.get('github');
   const profile = githubConfig?.profile ?? 'default';
   const auth = await Auth.getGitHub(profile);
   const token = auth?.token;
@@ -134,25 +163,30 @@ async function buildGitHubPromptFromArgs(input: string) {
   return { prompt, sourceLabel: issueRef };
 }
 
-async function spawnAgent(prompt: string, sourceLabel: string, verbose: boolean) {
-  const tasksDir = Config.get('tasksDir') ?? TASKS_DIR;
+async function spawnAgent(
+  prompt: string,
+  sourceLabel: string,
+  verbose: boolean,
+  backend: Backend,
+  tasksDirPath: string,
+) {
   const spin = spinner();
 
   try {
-    await mkdir(path.join(BASE_DIR, tasksDir), { recursive: true });
+    await mkdir(tasksDirPath, { recursive: true });
     spin.start(`Generating task from ${sourceLabel}...`);
 
-    const backend = new Backend(Config.get('backend'));
     const proc = Bun.spawn({
       cmd: backend.buildCommand(prompt),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    const markerDetector = createCompletionMarkerDetector();
 
     await Promise.allSettled([
       Stream.toOutput(proc.stdout, {
         shouldPrint: verbose,
-        onChunk(accumulated) {
-          if (accumulated.includes('<woof>COMPLETE</woof>')) {
+        onChunk({ chunk }) {
+          if (markerDetector.onChunk(chunk)) {
             proc.kill();
             return true;
           }

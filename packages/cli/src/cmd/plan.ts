@@ -9,6 +9,34 @@ import { Config } from '../lib/config';
 import { BASE_DIR, TASKS_DIR } from '../util/constants';
 import { Stream } from '../util/stream';
 
+const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
+
+function createCompletionMarkerDetector() {
+  let rolling = '';
+
+  return {
+    onChunk(chunk: string) {
+      if (chunk === '') {
+        return false;
+      }
+
+      rolling += chunk;
+
+      if (rolling.includes(COMPLETE_MARKER)) {
+        return true;
+      }
+
+      const maxCarry = COMPLETE_MARKER.length - 1;
+
+      if (rolling.length > maxCarry) {
+        rolling = rolling.slice(-maxCarry);
+      }
+
+      return false;
+    },
+  };
+}
+
 export const planCmd = defineCommand({
   meta: {
     name: 'plan',
@@ -33,7 +61,9 @@ export const planCmd = defineCommand({
     },
   },
   async run({ args }) {
-    const backend = new Backend(Config.get('backend'));
+    const config = Config.all();
+    const backend = new Backend(config.backend);
+    const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
     const spin = spinner();
 
     if (args.planFile) {
@@ -53,19 +83,20 @@ export const planCmd = defineCommand({
       }
 
       try {
-        await mkdir(path.join(BASE_DIR, TASKS_DIR), { recursive: true });
+        await mkdir(tasksDirPath, { recursive: true });
         spin.start('Generating task plans from file...');
 
         const proc = Bun.spawn({
           cmd: backend.buildCommand(batchPrompt),
           stdio: ['ignore', 'pipe', 'pipe'],
         });
+        const markerDetector = createCompletionMarkerDetector();
 
         await Promise.allSettled([
           Stream.toOutput(proc.stdout, {
             shouldPrint: args.verbose,
-            onChunk(accumulated) {
-              if (accumulated.includes('<woof>COMPLETE</woof>')) {
+            onChunk({ chunk }) {
+              if (markerDetector.onChunk(chunk)) {
                 proc.kill();
                 return true;
               }
@@ -133,19 +164,20 @@ export const planCmd = defineCommand({
         generated++;
       } else {
         try {
-          await mkdir(path.join(BASE_DIR, TASKS_DIR), { recursive: true });
+          await mkdir(tasksDirPath, { recursive: true });
           spin.start(`Generating task plan ${i + 1} of ${descriptions.length}`);
 
           const proc = Bun.spawn({
             cmd: backend.buildCommand(planPrompt),
             stdio: ['ignore', 'pipe', 'pipe'],
           });
+          const markerDetector = createCompletionMarkerDetector();
 
           await Promise.allSettled([
             Stream.toOutput(proc.stdout, {
               shouldPrint: args.verbose,
-              onChunk(accumulated) {
-                if (accumulated.includes('<woof>COMPLETE</woof>')) {
+              onChunk({ chunk }) {
+                if (markerDetector.onChunk(chunk)) {
                   proc.kill();
                   return true;
                 }

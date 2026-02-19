@@ -5,8 +5,14 @@ import { Backend } from '../backends/backend';
 import { buildRunPrompt } from '../builders/runPrompt';
 import { Config } from '../lib/config';
 import { sendNotification } from '../lib/notify';
-import { Stream } from '../util/stream';
-import { getTaskFilesByLabel, getTaskStates, getTaskStatus, type TaskState } from '../util/task';
+import { Stream, type StreamChunk } from '../util/stream';
+import {
+  getTaskFilesByLabel,
+  getTaskStates,
+  getTaskStatus,
+  resolveTasksDir,
+  type TaskState,
+} from '../util/task';
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
 
@@ -16,8 +22,7 @@ type MarkerDetectionResult = {
 };
 
 function createCompletionMarkerDetector() {
-  let processedLength = 0;
-  let lineBuffer = '';
+  let partialLine = '';
   let hasStrictMatch = false;
   let hasAmbiguousMention = false;
 
@@ -39,25 +44,15 @@ function createCompletionMarkerDetector() {
   };
 
   return {
-    onChunk(accumulated: string) {
-      const chunk = accumulated.slice(processedLength);
-      processedLength = accumulated.length;
-
-      if (chunk === '') {
-        return;
-      }
-
-      lineBuffer += chunk;
-
-      const lines = lineBuffer.split(/\r?\n/);
-      lineBuffer = lines.pop() ?? '';
-
-      for (const line of lines) {
+    onChunk(data: StreamChunk) {
+      for (const line of data.lines) {
         inspectLine(line);
       }
+
+      partialLine = data.partialLine;
     },
     finalize(): MarkerDetectionResult {
-      inspectLine(lineBuffer);
+      inspectLine(partialLine);
 
       return {
         hasStrictMatch,
@@ -112,8 +107,9 @@ export const runCmd = defineCommand({
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
+    const tasksDirPath = resolveTasksDir(config.tasksDir);
 
-    const notifyRaw = args['no-notify'] ? false : (Config.get('notify') ?? false);
+    const notifyRaw = args['no-notify'] ? false : (config.notify ?? false);
     const notifySetting: false | 'all' | 'individual' =
       notifyRaw === true ? 'all' : notifyRaw === false ? false : notifyRaw;
 
@@ -158,7 +154,7 @@ export const runCmd = defineCommand({
     let taskFiles: string[] | undefined;
 
     if (args.label) {
-      taskFiles = await getTaskFilesByLabel(args.label);
+      taskFiles = await getTaskFilesByLabel(args.label, tasksDirPath);
 
       if (taskFiles.length === 0) {
         log.warn(`No tasks found with label "${args.label}"`);
@@ -196,8 +192,8 @@ export const runCmd = defineCommand({
         await Promise.all([
           Stream.toOutput(proc.stdout, {
             shouldPrint: args.verbose,
-            onChunk(accumulated) {
-              markerDetector.onChunk(accumulated);
+            onChunk(chunk) {
+              markerDetector.onChunk(chunk);
             },
           }),
           Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
@@ -227,7 +223,7 @@ export const runCmd = defineCommand({
         }
 
         if (!singleTaskFile && markerDetection.hasStrictMatch) {
-          const taskStates = await getTaskStates(taskFiles);
+          const taskStates = await getTaskStates(taskFiles, tasksDirPath);
           const unresolvedTaskStates = findUnresolvedTaskStates(taskStates);
 
           if (unresolvedTaskStates.length > 0) {

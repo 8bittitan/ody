@@ -25,8 +25,8 @@ export function parseDescription(content: string): string {
   return sentences.slice(0, 3).join(' ').trim();
 }
 
-export function resolveTasksDir() {
-  return path.join(BASE_DIR, Config.get('tasksDir') ?? TASKS_DIR);
+export function resolveTasksDir(tasksDir?: string) {
+  return path.join(BASE_DIR, tasksDir ?? Config.get('tasksDir') ?? TASKS_DIR);
 }
 
 export function parseFrontmatter(content: string): Record<string, string> {
@@ -82,9 +82,11 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
-export async function getTaskFilesByLabel(label: string): Promise<string[]> {
-  const tasksDir = resolveTasksDir();
-  const taskFiles = await getTaskFilesInTasksDir();
+export async function getTaskFilesByLabel(
+  label: string,
+  tasksDir = resolveTasksDir(),
+): Promise<string[]> {
+  const taskFiles = await getTaskFilesInDir(tasksDir);
 
   try {
     const matchedByIndex = await mapWithConcurrency(
@@ -132,9 +134,7 @@ export async function getTaskFilesByLabel(label: string): Promise<string[]> {
   }
 }
 
-export async function getTaskFilesInTasksDir(): Promise<string[]> {
-  const tasksDir = resolveTasksDir();
-
+export async function getTaskFilesInTasksDir(tasksDir = resolveTasksDir()): Promise<string[]> {
   return getTaskFilesInDir(tasksDir);
 }
 
@@ -171,10 +171,12 @@ export async function getTaskStatus(taskFilePath: string): Promise<string | null
   }
 }
 
-export async function getTaskStates(taskFiles?: string[]): Promise<TaskState[]> {
-  const tasksDir = resolveTasksDir();
+export async function getTaskStates(
+  taskFiles?: string[],
+  tasksDir = resolveTasksDir(),
+): Promise<TaskState[]> {
   const targetFiles =
-    taskFiles && taskFiles.length > 0 ? taskFiles : await getTaskFilesInTasksDir();
+    taskFiles && taskFiles.length > 0 ? taskFiles : await getTaskFilesInDir(tasksDir);
 
   return mapWithConcurrency(targetFiles, TASK_READ_CONCURRENCY, async (taskFile) => {
     const taskPath = path.join(tasksDir, taskFile);
