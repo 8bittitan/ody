@@ -1,7 +1,7 @@
 {
-  "backend": "opencode",
+  "backend": "codex",
   "maxIterations": 3,
   "shouldCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "anthropic/claude-opus-4-6"
+  "model": "gpt-5.3-codex"
 }

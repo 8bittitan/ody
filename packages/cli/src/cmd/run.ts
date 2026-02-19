@@ -6,7 +6,74 @@ import { buildRunPrompt } from '../builders/runPrompt';
 import { Config } from '../lib/config';
 import { sendNotification } from '../lib/notify';
 import { Stream } from '../util/stream';
-import { getTaskFilesByLabel } from '../util/task';
+import { getTaskFilesByLabel, getTaskStates, getTaskStatus, type TaskState } from '../util/task';
+
+const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
+
+type MarkerDetectionResult = {
+  hasStrictMatch: boolean;
+  hasAmbiguousMention: boolean;
+};
+
+function createCompletionMarkerDetector() {
+  let processedLength = 0;
+  let lineBuffer = '';
+  let hasStrictMatch = false;
+  let hasAmbiguousMention = false;
+
+  const inspectLine = (line: string) => {
+    const trimmedLine = line.trim();
+
+    if (trimmedLine === '') {
+      return;
+    }
+
+    if (trimmedLine === COMPLETE_MARKER) {
+      hasStrictMatch = true;
+      return;
+    }
+
+    if (line.includes(COMPLETE_MARKER) || line.includes('<woof>') || line.includes('</woof>')) {
+      hasAmbiguousMention = true;
+    }
+  };
+
+  return {
+    onChunk(accumulated: string) {
+      const chunk = accumulated.slice(processedLength);
+      processedLength = accumulated.length;
+
+      if (chunk === '') {
+        return;
+      }
+
+      lineBuffer += chunk;
+
+      const lines = lineBuffer.split(/\r?\n/);
+      lineBuffer = lines.pop() ?? '';
+
+      for (const line of lines) {
+        inspectLine(line);
+      }
+    },
+    finalize(): MarkerDetectionResult {
+      inspectLine(lineBuffer);
+
+      return {
+        hasStrictMatch,
+        hasAmbiguousMention: hasAmbiguousMention && !hasStrictMatch,
+      };
+    },
+  };
+}
+
+function findUnresolvedTaskStates(taskStates: TaskState[]) {
+  return taskStates.filter((taskState) => taskState.status !== 'completed');
+}
+
+function formatTaskStates(taskStates: TaskState[]) {
+  return taskStates.map((taskState) => `${taskState.taskFile} (${taskState.status})`).join(', ');
+}
 
 export const runCmd = defineCommand({
   meta: {
@@ -124,28 +191,59 @@ export const runCmd = defineCommand({
           stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        let tasksDone = false;
+        const markerDetector = createCompletionMarkerDetector();
 
         await Promise.all([
           Stream.toOutput(proc.stdout, {
             shouldPrint: args.verbose,
             onChunk(accumulated) {
-              if (accumulated.includes('<woof>COMPLETE</woof>')) {
-                tasksDone = true;
-                proc.kill();
-                return true;
-              }
+              markerDetector.onChunk(accumulated);
             },
           }),
           Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
         ]);
 
-        await proc.exited;
+        const markerDetection = markerDetector.finalize();
+        const exitCode = await proc.exited;
 
-        if (tasksDone) {
+        if (exitCode !== 0) {
+          throw new Error(`Process exit failure: backend exited with code ${exitCode}`);
+        }
+
+        if (markerDetection.hasAmbiguousMention) {
+          throw new Error(
+            `Marker ambiguity: found marker-like output without standalone ${COMPLETE_MARKER}`,
+          );
+        }
+
+        if (singleTaskFile) {
+          const taskStatus = await getTaskStatus(singleTaskFile);
+
+          if (taskStatus !== 'completed') {
+            throw new Error(
+              `Post-run task state verification failed: ${singleTaskFile} status is "${taskStatus ?? 'unknown'}"`,
+            );
+          }
+        }
+
+        if (!singleTaskFile && markerDetection.hasStrictMatch) {
+          const taskStates = await getTaskStates(taskFiles);
+          const unresolvedTaskStates = findUnresolvedTaskStates(taskStates);
+
+          if (unresolvedTaskStates.length > 0) {
+            throw new Error(
+              `Post-run task state verification failed: completion marker received with unresolved tasks: ${formatTaskStates(unresolvedTaskStates)}`,
+            );
+          }
+        }
+
+        if (markerDetection.hasStrictMatch) {
           completed++;
           agentSpinner?.stop(`Agent task ${i + 1} complete`);
-          log.info('All pending tasks finished');
+
+          if (!singleTaskFile) {
+            log.info('All pending tasks finished');
+          }
 
           break;
         }

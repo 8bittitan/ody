@@ -6,6 +6,11 @@ import { BASE_DIR, TASKS_DIR } from './constants';
 
 const LABELS_REGEX = /\*\*Labels\*\*:\s*(.+)/i;
 
+export type TaskState = {
+  taskFile: string;
+  status: string;
+};
+
 export function parseDescription(content: string): string {
   const match = content.match(/## Description\s*\n([\s\S]*?)(?=\n## |\n---|\n$)/);
   if (!match || !match[1]) return '';
@@ -42,7 +47,7 @@ export function parseTitle(content: string): string {
 }
 
 export async function getTaskFilesByLabel(label: string): Promise<string[]> {
-  const tasksDir = path.join(BASE_DIR, TASKS_DIR);
+  const tasksDir = resolveTasksDir();
   const matchingFiles: string[] = [];
 
   try {
@@ -73,4 +78,46 @@ export async function getTaskFilesByLabel(label: string): Promise<string[]> {
   }
 
   return matchingFiles;
+}
+
+export async function getTaskFilesInTasksDir(): Promise<string[]> {
+  const tasksDir = resolveTasksDir();
+
+  try {
+    const glob = new Bun.Glob('*.code-task.md');
+    return Array.from(glob.scanSync({ cwd: tasksDir }));
+  } catch (err) {
+    log.error(`Failed to load task files: ${String(err)}`);
+    return [];
+  }
+}
+
+export async function getTaskStatus(taskFilePath: string): Promise<string | null> {
+  try {
+    const content = await Bun.file(taskFilePath).text();
+    const frontmatter = parseFrontmatter(content);
+    return frontmatter.status ?? null;
+  } catch (err) {
+    log.error(`Failed to read task file ${taskFilePath}: ${String(err)}`);
+    return null;
+  }
+}
+
+export async function getTaskStates(taskFiles?: string[]): Promise<TaskState[]> {
+  const tasksDir = resolveTasksDir();
+  const targetFiles =
+    taskFiles && taskFiles.length > 0 ? taskFiles : await getTaskFilesInTasksDir();
+  const states: TaskState[] = [];
+
+  for (const taskFile of targetFiles) {
+    const taskPath = path.join(tasksDir, taskFile);
+    const status = await getTaskStatus(taskPath);
+
+    states.push({
+      taskFile,
+      status: status ?? 'unknown',
+    });
+  }
+
+  return states;
 }
