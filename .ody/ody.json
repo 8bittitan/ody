@@ -1,7 +1,7 @@
 {
-  "backend": "codex",
+  "backend": "opencode",
   "maxIterations": 3,
-  "shouldCommit": false,
+  "shouldCommit": true,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "gpt-5.3-codex"
+  "model": "openai/gpt-5.3-codex"
 }

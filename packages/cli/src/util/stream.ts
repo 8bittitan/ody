@@ -1,35 +1,66 @@
 import { log } from '@clack/prompts';
 
+export type StreamChunk = {
+  chunk: string;
+  lines: string[];
+  partialLine: string;
+};
+
 export type StreamOptions = {
   shouldPrint?: boolean;
-  onChunk?: (accumulated: string) => boolean | void;
+  capture?: boolean;
+  onChunk?: (data: StreamChunk) => boolean | void;
 };
 
 export namespace Stream {
   export async function toOutput(stream: ReadableStream, options: StreamOptions = {}) {
-    const { shouldPrint = false, onChunk } = options;
+    const { shouldPrint = false, capture = false, onChunk } = options;
     const decoder = new TextDecoder('utf-8', { fatal: false });
-    let output = '';
+    const capturedChunks: string[] = [];
+    let lineBuffer = '';
+    let shouldStop = false;
 
-    for await (const chunk of stream) {
-      const raw = decoder.decode(chunk, { stream: true });
-      const trimmed = raw.trim();
+    const processChunk = (chunk: string) => {
+      if (chunk === '') {
+        return false;
+      }
+
+      const trimmed = chunk.trim();
 
       if (shouldPrint && trimmed !== '') {
         log.message(trimmed);
       }
 
-      output += raw;
+      if (capture) {
+        capturedChunks.push(chunk);
+      }
 
       if (onChunk) {
-        const shouldStop = onChunk(output);
+        lineBuffer += chunk;
+        const lines = lineBuffer.split(/\r?\n/);
+        lineBuffer = lines.pop() ?? '';
 
-        if (shouldStop) {
-          break;
+        if (onChunk({ chunk, lines, partialLine: lineBuffer })) {
+          return true;
         }
+      }
+
+      return false;
+    };
+
+    for await (const chunk of stream) {
+      const decodedChunk = decoder.decode(chunk, { stream: true });
+
+      if (processChunk(decodedChunk)) {
+        shouldStop = true;
+        break;
       }
     }
 
-    return output;
+    if (!shouldStop) {
+      processChunk(decoder.decode());
+    }
+
+    return capture ? capturedChunks.join('') : '';
   }
 }

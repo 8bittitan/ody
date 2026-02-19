@@ -1,5 +1,7 @@
 import type { JiraCredentials } from './auth';
 
+import { Http } from './http';
+
 const TICKET_KEY_PATTERN = /^[A-Z][A-Z0-9]+-\d+$/;
 
 export type JiraTicket = {
@@ -86,7 +88,14 @@ export namespace Jira {
       headers['Authorization'] = `Basic ${authToken}`;
     }
 
-    const res = await fetch(url, { headers });
+    const res = await Http.fetchWithRetry(
+      url,
+      { headers },
+      {
+        timeoutMs: 6_000,
+        retries: 2,
+      },
+    );
 
     if (!res.ok) {
       switch (res.status) {

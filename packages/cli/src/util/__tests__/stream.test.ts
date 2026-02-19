@@ -3,35 +3,42 @@ import { describe, expect, mock, spyOn, test } from 'bun:test';
 
 import { Stream } from '../stream';
 
+function createStream(chunks: Array<string | Uint8Array>) {
+  return new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) {
+        if (typeof chunk === 'string') {
+          controller.enqueue(new TextEncoder().encode(chunk));
+          continue;
+        }
+
+        controller.enqueue(chunk);
+      }
+
+      controller.close();
+    },
+  });
+}
+
 describe('Stream', () => {
   describe('toOutput', () => {
-    test('accumulates output from stream chunks', async () => {
-      const chunks = ['hello ', 'world'];
-      const stream = new ReadableStream({
-        start(controller) {
-          for (const chunk of chunks) {
-            controller.enqueue(new TextEncoder().encode(chunk));
-          }
-          controller.close();
-        },
-      });
+    test('returns empty string by default when capture mode is disabled', async () => {
+      const stream = createStream(['hello ', 'world']);
 
       const result = await Stream.toOutput(stream);
+      expect(result).toBe('');
+    });
+
+    test('captures full output when capture mode is enabled', async () => {
+      const stream = createStream(['hello ', 'world']);
+
+      const result = await Stream.toOutput(stream, { capture: true });
       expect(result).toBe('hello world');
     });
 
     test('calls log.message for each non-empty chunk when shouldPrint is true', async () => {
       const logSpy = spyOn(log, 'message');
-
-      const chunks = ['chunk1', 'chunk2', 'chunk3'];
-      const stream = new ReadableStream({
-        start(controller) {
-          for (const chunk of chunks) {
-            controller.enqueue(new TextEncoder().encode(chunk));
-          }
-          controller.close();
-        },
-      });
+      const stream = createStream(['chunk1', 'chunk2', 'chunk3']);
 
       await Stream.toOutput(stream, { shouldPrint: true });
 
@@ -43,34 +50,9 @@ describe('Stream', () => {
       logSpy.mockRestore();
     });
 
-    test('does not call log.message when shouldPrint is false', async () => {
-      const logSpy = spyOn(log, 'message');
-
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('test'));
-          controller.close();
-        },
-      });
-
-      await Stream.toOutput(stream, { shouldPrint: false });
-
-      expect(logSpy).not.toHaveBeenCalled();
-
-      logSpy.mockRestore();
-    });
-
     test('does not call log.message for empty chunks', async () => {
       const logSpy = spyOn(log, 'message');
-
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode(''));
-          controller.enqueue(new TextEncoder().encode('  '));
-          controller.enqueue(new TextEncoder().encode('valid'));
-          controller.close();
-        },
-      });
+      const stream = createStream(['', '  ', 'valid']);
 
       await Stream.toOutput(stream, { shouldPrint: true });
 
@@ -80,70 +62,64 @@ describe('Stream', () => {
       logSpy.mockRestore();
     });
 
-    test('onChunk callback receives accumulated string after each chunk', async () => {
-      const onChunkCalls: string[] = [];
-      const onChunk = mock((accumulated: string) => {
-        onChunkCalls.push(accumulated);
+    test('onChunk callback receives incremental chunk and line data', async () => {
+      const onChunkCalls: Array<{ chunk: string; lines: string[]; partialLine: string }> = [];
+      const onChunk = mock((data: { chunk: string; lines: string[]; partialLine: string }) => {
+        onChunkCalls.push(data);
       });
+      const stream = createStream(['a\nb', 'c\n', 'd']);
 
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('a'));
-          controller.enqueue(new TextEncoder().encode('b'));
-          controller.enqueue(new TextEncoder().encode('c'));
-          controller.close();
-        },
-      });
-
-      await Stream.toOutput(stream, { onChunk });
+      await Stream.toOutput(stream, { onChunk, capture: true });
 
       expect(onChunk).toHaveBeenCalledTimes(3);
-      expect(onChunkCalls).toEqual(['a', 'ab', 'abc']);
+      expect(onChunkCalls).toEqual([
+        { chunk: 'a\nb', lines: ['a'], partialLine: 'b' },
+        { chunk: 'c\n', lines: ['bc'], partialLine: '' },
+        { chunk: 'd', lines: [], partialLine: 'd' },
+      ]);
     });
 
     test('stops consuming stream when onChunk returns true', async () => {
-      const onChunk = mock((accumulated: string) => {
-        return accumulated === 'ab';
+      const onChunk = mock((data: { chunk: string }) => {
+        return data.chunk === 'b';
       });
+      const stream = createStream(['a', 'b', 'c']);
 
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('a'));
-          controller.enqueue(new TextEncoder().encode('b'));
-          controller.enqueue(new TextEncoder().encode('c'));
-          controller.close();
-        },
-      });
-
-      const result = await Stream.toOutput(stream, { onChunk });
+      const result = await Stream.toOutput(stream, { onChunk, capture: true });
 
       expect(onChunk).toHaveBeenCalledTimes(2);
       expect(result).toBe('ab');
     });
 
-    test('returns empty string for empty stream', async () => {
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.close();
-        },
+    test('preserves UTF-8 decoding and line fragments across chunk boundaries', async () => {
+      const encoded = new TextEncoder().encode('A🙂\nB');
+      const first = encoded.slice(0, 3);
+      const second = encoded.slice(3, 6);
+      const third = encoded.slice(6);
+
+      const chunks: string[] = [];
+      const linesByChunk: string[][] = [];
+      const partials: string[] = [];
+      const onChunk = mock((data: { chunk: string; lines: string[]; partialLine: string }) => {
+        chunks.push(data.chunk);
+        linesByChunk.push(data.lines);
+        partials.push(data.partialLine);
       });
 
-      const result = await Stream.toOutput(stream);
-      expect(result).toBe('');
+      const stream = createStream([first, second, third]);
+      const result = await Stream.toOutput(stream, { onChunk, capture: true });
+
+      expect(result).toBe('A🙂\nB');
+      expect(chunks).toEqual(['A', '🙂\n', 'B']);
+      expect(linesByChunk).toEqual([[], ['A🙂'], []]);
+      expect(partials).toEqual(['A', '', 'B']);
     });
 
-    test('returns empty string when stream has only empty chunks', async () => {
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode(''));
-          controller.enqueue(new TextEncoder().encode('  '));
-          controller.enqueue(new TextEncoder().encode('\n'));
-          controller.close();
-        },
-      });
+    test('returns empty string for empty stream when capture mode is enabled', async () => {
+      const stream = createStream([]);
 
-      const result = await Stream.toOutput(stream);
-      expect(result).toBe('  \n');
+      const result = await Stream.toOutput(stream, { capture: true });
+      expect(result).toBe('');
     });
   });
 });

@@ -2,6 +2,7 @@ import { $ } from 'bun';
 
 import pkg from '../../package.json';
 import { INSTALL_SCRIPT_PATH, RELEASES_API } from '../util/constants';
+import { Http } from './http';
 
 function stripLeadingV(version: string): string {
   return version.replace(/^v/, '');
@@ -15,12 +16,18 @@ export namespace Installation {
   }
 
   export async function checkLatest() {
-    return fetch(RELEASES_API)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to check for updates');
-        return res.json();
-      })
-      .then((d: any) => stripLeadingV(d.tag_name));
+    const res = await Http.fetchWithRetry(RELEASES_API, undefined, {
+      timeoutMs: 4_000,
+      retries: 2,
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to check for updates');
+    }
+
+    const data = (await res.json()) as any;
+
+    return stripLeadingV(data.tag_name);
   }
 
   export function needsUpdate(latest: string): boolean {

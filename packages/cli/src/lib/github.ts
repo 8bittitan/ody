@@ -1,3 +1,5 @@
+import { Http } from './http';
+
 const GITHUB_URL_PATTERN = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/;
 const SHORTHAND_PATTERN = /^([^/]+)\/([^#]+)#(\d+)$/;
 
@@ -77,7 +79,14 @@ export namespace GitHub {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const issueRes = await fetch(issueUrl, { headers });
+    const issueRes = await Http.fetchWithRetry(
+      issueUrl,
+      { headers },
+      {
+        timeoutMs: 6_000,
+        retries: 2,
+      },
+    );
 
     if (!issueRes.ok) {
       handleApiError(issueRes.status, owner, repo, issueNumber);
@@ -86,7 +95,14 @@ export namespace GitHub {
     const issueData = await issueRes.json();
 
     const commentsUrl = `${issueUrl}/comments`;
-    const commentsRes = await fetch(commentsUrl, { headers });
+    const commentsRes = await Http.fetchWithRetry(
+      commentsUrl,
+      { headers },
+      {
+        timeoutMs: 6_000,
+        retries: 2,
+      },
+    );
     let comments: string[] = [];
 
     if (commentsRes.ok) {
