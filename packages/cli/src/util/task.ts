@@ -1,10 +1,12 @@
 import { log } from '@clack/prompts';
+import { exists } from 'node:fs/promises';
 import path from 'node:path';
 
 import { Config } from '../lib/config';
 import { BASE_DIR, TASKS_DIR } from './constants';
 
 const LABELS_REGEX = /\*\*Labels\*\*:\s*(.+)/i;
+const TASK_FILE_PATTERN = '*.code-task.md';
 
 export type TaskState = {
   taskFile: string;
@@ -49,11 +51,9 @@ export function parseTitle(content: string): string {
 export async function getTaskFilesByLabel(label: string): Promise<string[]> {
   const tasksDir = resolveTasksDir();
   const matchingFiles: string[] = [];
+  const taskFiles = await getTaskFilesInTasksDir();
 
   try {
-    const glob = new Bun.Glob('*.code-task.md');
-    const taskFiles = Array.from(glob.scanSync({ cwd: tasksDir }));
-
     for (const filename of taskFiles) {
       try {
         const filePath = path.join(tasksDir, filename);
@@ -83,9 +83,25 @@ export async function getTaskFilesByLabel(label: string): Promise<string[]> {
 export async function getTaskFilesInTasksDir(): Promise<string[]> {
   const tasksDir = resolveTasksDir();
 
+  return getTaskFilesInDir(tasksDir);
+}
+
+export async function getTaskFilesInDir(tasksDir: string): Promise<string[]> {
+  if (!(await exists(tasksDir))) {
+    return [];
+  }
+
   try {
-    const glob = new Bun.Glob('*.code-task.md');
-    return Array.from(glob.scanSync({ cwd: tasksDir }));
+    const taskFiles: string[] = [];
+    const glob = new Bun.Glob(TASK_FILE_PATTERN);
+
+    for await (const taskFile of glob.scan({ cwd: tasksDir })) {
+      taskFiles.push(taskFile);
+    }
+
+    taskFiles.sort((a, b) => a.localeCompare(b));
+
+    return taskFiles;
   } catch (err) {
     log.error(`Failed to load task files: ${String(err)}`);
     return [];

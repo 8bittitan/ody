@@ -3,7 +3,12 @@ import { defineCommand } from 'citty';
 import { exists } from 'node:fs/promises';
 import path from 'node:path';
 
-import { resolveTasksDir, parseFrontmatter, parseTitle } from '../../util/task';
+import {
+  getTaskFilesInTasksDir,
+  resolveTasksDir,
+  parseFrontmatter,
+  parseTitle,
+} from '../../util/task';
 
 export const listCmd = defineCommand({
   meta: {
@@ -18,9 +23,7 @@ export const listCmd = defineCommand({
       return;
     }
 
-    const glob = new Bun.Glob('*.code-task.md');
-
-    const taskFiles = Array.from(glob.scanSync({ cwd: tasksDir }));
+    const taskFiles = await getTaskFilesInTasksDir();
 
     if (taskFiles.length === 0) {
       log.info('No task files found.');

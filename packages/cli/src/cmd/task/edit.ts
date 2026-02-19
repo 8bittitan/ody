@@ -6,7 +6,7 @@ import { Backend } from '../../backends/backend';
 import { buildEditPlanPrompt } from '../../builders/editPlanPrompt';
 import { Config } from '../../lib/config';
 import { Stream } from '../../util/stream';
-import { resolveTasksDir, parseTitle } from '../../util/task';
+import { getTaskFilesInTasksDir, resolveTasksDir, parseTitle } from '../../util/task';
 
 export const editCmd = defineCommand({
   meta: {
@@ -29,8 +29,7 @@ export const editCmd = defineCommand({
   async run({ args }) {
     const tasksDir = resolveTasksDir();
 
-    const glob = new Bun.Glob('*.code-task.md');
-    const taskFiles = Array.from(glob.scanSync({ cwd: tasksDir }));
+    const taskFiles = await getTaskFilesInTasksDir();
 
     if (taskFiles.length === 0) {
       log.info('No task files found.');
@@ -76,8 +75,8 @@ export const editCmd = defineCommand({
     });
 
     await Promise.all([
-      Stream.toOutput(proc.stdout, { shouldPrint: args.verbose }),
-      Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
+      Stream.toOutput(proc.stdout, { shouldPrint: args.verbose, capture: false }),
+      Stream.toOutput(proc.stderr, { shouldPrint: args.verbose, capture: false }),
     ]);
 
     const exitCode = await proc.exited;

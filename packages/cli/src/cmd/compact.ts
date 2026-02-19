@@ -6,7 +6,13 @@ import path from 'node:path';
 import type { CompletedTask } from '../types/task';
 
 import { BASE_DIR } from '../util/constants';
-import { resolveTasksDir, parseFrontmatter, parseTitle, parseDescription } from '../util/task';
+import {
+  getTaskFilesInTasksDir,
+  resolveTasksDir,
+  parseFrontmatter,
+  parseTitle,
+  parseDescription,
+} from '../util/task';
 
 const PROGRESS_FILE = path.join(BASE_DIR, 'progress.txt');
 
@@ -22,8 +28,7 @@ export const compactCmd = defineCommand({
     const completed: CompletedTask[] = [];
 
     try {
-      const glob = new Bun.Glob('*.code-task.md');
-      const taskFiles = Array.from(glob.scanSync({ cwd: tasksDir }));
+      const taskFiles = await getTaskFilesInTasksDir();
 
       for (const filename of taskFiles) {
         const content = await Bun.file(path.join(tasksDir, filename)).text();
