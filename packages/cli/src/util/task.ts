@@ -7,6 +7,7 @@ import { BASE_DIR, TASKS_DIR } from './constants';
 
 const LABELS_REGEX = /\*\*Labels\*\*:\s*(.+)/i;
 const TASK_FILE_PATTERN = '*.code-task.md';
+const TASK_READ_CONCURRENCY = 8;
 
 export type TaskState = {
   taskFile: string;
@@ -48,36 +49,87 @@ export function parseTitle(content: string): string {
   return match && match[1] ? match[1].trim() : 'Untitled';
 }
 
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const results = Array.from({ length: items.length }) as R[];
+  let nextIndex = 0;
+
+  const workerCount = Math.max(1, Math.min(concurrency, items.length));
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (true) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+
+      if (currentIndex >= items.length) {
+        return;
+      }
+
+      const item = items[currentIndex] as T;
+      results[currentIndex] = await mapper(item, currentIndex);
+    }
+  });
+
+  await Promise.all(workers);
+
+  return results;
+}
+
 export async function getTaskFilesByLabel(label: string): Promise<string[]> {
   const tasksDir = resolveTasksDir();
-  const matchingFiles: string[] = [];
   const taskFiles = await getTaskFilesInTasksDir();
 
   try {
-    for (const filename of taskFiles) {
-      try {
-        const filePath = path.join(tasksDir, filename);
-        const content = await Bun.file(filePath).text();
+    const matchedByIndex = await mapWithConcurrency(
+      taskFiles,
+      TASK_READ_CONCURRENCY,
+      async (filename) => {
+        try {
+          const filePath = path.join(tasksDir, filename);
+          const content = await Bun.file(filePath).text();
 
-        const labelsMatch = content.match(LABELS_REGEX);
+          const labelsMatch = content.match(LABELS_REGEX);
 
-        if (labelsMatch?.[1]) {
-          const labels = labelsMatch[1].split(',').map((l) => l.trim().toLowerCase());
-
-          if (labels.includes(label.toLowerCase())) {
-            matchingFiles.push(filename);
+          if (!labelsMatch?.[1]) {
+            return false;
           }
+
+          const labels = labelsMatch[1].split(',').map((value) => value.trim().toLowerCase());
+
+          return labels.includes(label.toLowerCase());
+        } catch (err) {
+          log.warn(`Failed to read task file ${filename}: ${String(err)}`);
+          return false;
         }
-      } catch (err) {
-        log.warn(`Failed to read task file ${filename}: ${String(err)}`);
+      },
+    );
+
+    const matchingFiles: string[] = [];
+
+    for (const [index, isMatch] of matchedByIndex.entries()) {
+      if (!isMatch) {
+        continue;
+      }
+
+      const filename = taskFiles[index];
+
+      if (filename) {
+        matchingFiles.push(filename);
       }
     }
+
+    return matchingFiles;
   } catch (err) {
     log.error(`Failed to load tasks: ${String(err)}`);
     return [];
   }
-
-  return matchingFiles;
 }
 
 export async function getTaskFilesInTasksDir(): Promise<string[]> {
@@ -123,17 +175,14 @@ export async function getTaskStates(taskFiles?: string[]): Promise<TaskState[]> 
   const tasksDir = resolveTasksDir();
   const targetFiles =
     taskFiles && taskFiles.length > 0 ? taskFiles : await getTaskFilesInTasksDir();
-  const states: TaskState[] = [];
 
-  for (const taskFile of targetFiles) {
+  return mapWithConcurrency(targetFiles, TASK_READ_CONCURRENCY, async (taskFile) => {
     const taskPath = path.join(tasksDir, taskFile);
     const status = await getTaskStatus(taskPath);
 
-    states.push({
+    return {
       taskFile,
       status: status ?? 'unknown',
-    });
-  }
-
-  return states;
+    };
+  });
 }

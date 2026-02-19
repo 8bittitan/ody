@@ -5,10 +5,13 @@ import path from 'node:path';
 
 import {
   getTaskFilesInTasksDir,
-  resolveTasksDir,
+  mapWithConcurrency,
   parseFrontmatter,
   parseTitle,
+  resolveTasksDir,
 } from '../../util/task';
+
+const TASK_READ_CONCURRENCY = 8;
 
 export const listCmd = defineCommand({
   meta: {
@@ -30,17 +33,25 @@ export const listCmd = defineCommand({
       return;
     }
 
-    const pending: { title: string; filename: string }[] = [];
+    const pendingTaskData = await mapWithConcurrency(
+      taskFiles,
+      TASK_READ_CONCURRENCY,
+      async (filename) => {
+        const content = await Bun.file(path.join(tasksDir, filename)).text();
+        const frontmatter = parseFrontmatter(content);
 
-    for (const filename of taskFiles) {
-      const content = await Bun.file(path.join(tasksDir, filename)).text();
-      const frontmatter = parseFrontmatter(content);
+        if (frontmatter.status !== 'pending') {
+          return null;
+        }
 
-      if (frontmatter.status === 'pending') {
         const title = parseTitle(content);
-        pending.push({ title, filename });
-      }
-    }
+        return { title, filename };
+      },
+    );
+
+    const pending = pendingTaskData.filter((task): task is { title: string; filename: string } =>
+      Boolean(task),
+    );
 
     if (pending.length === 0) {
       log.info('No pending tasks.');

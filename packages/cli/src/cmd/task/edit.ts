@@ -6,7 +6,14 @@ import { Backend } from '../../backends/backend';
 import { buildEditPlanPrompt } from '../../builders/editPlanPrompt';
 import { Config } from '../../lib/config';
 import { Stream } from '../../util/stream';
-import { getTaskFilesInTasksDir, resolveTasksDir, parseTitle } from '../../util/task';
+import {
+  getTaskFilesInTasksDir,
+  mapWithConcurrency,
+  parseTitle,
+  resolveTasksDir,
+} from '../../util/task';
+
+const TASK_READ_CONCURRENCY = 8;
 
 export const editCmd = defineCommand({
   meta: {
@@ -36,13 +43,11 @@ export const editCmd = defineCommand({
       return;
     }
 
-    const options: { value: string; label: string }[] = [];
-
-    for (const filename of taskFiles) {
+    const options = await mapWithConcurrency(taskFiles, TASK_READ_CONCURRENCY, async (filename) => {
       const content = await Bun.file(path.join(tasksDir, filename)).text();
       const title = parseTitle(content);
-      options.push({ value: filename, label: `${title}  (${filename})` });
-    }
+      return { value: filename, label: `${title}  (${filename})` };
+    });
 
     const selected = await select({
       message: 'Select a task plan to edit',
