@@ -9,11 +9,17 @@ const jiraCredentialsSchema = z.object({
   apiToken: z.string(),
 });
 
+const githubCredentialsSchema = z.object({
+  token: z.string(),
+});
+
 const authStoreSchema = z.object({
   jira: z.record(z.string(), jiraCredentialsSchema).optional(),
+  github: z.record(z.string(), githubCredentialsSchema).optional(),
 });
 
 export type JiraCredentials = z.infer<typeof jiraCredentialsSchema>;
+export type GitHubCredentials = z.infer<typeof githubCredentialsSchema>;
 export type AuthStore = z.infer<typeof authStoreSchema>;
 
 function resolveDataDir(): string {
@@ -65,6 +71,22 @@ export namespace Auth {
     }
 
     store.jira[profile] = credentials;
+    await save(store);
+  }
+
+  export async function getGitHub(profile = 'default'): Promise<GitHubCredentials | undefined> {
+    const store = await load();
+    return store.github?.[profile];
+  }
+
+  export async function setGitHub(profile: string, credentials: GitHubCredentials): Promise<void> {
+    const store = await load();
+
+    if (!store.github) {
+      store.github = {};
+    }
+
+    store.github[profile] = credentials;
     await save(store);
   }
 }

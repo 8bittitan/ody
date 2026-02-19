@@ -7,6 +7,7 @@ export const authCmd = defineCommand({
   },
   subCommands: {
     jira: () => import('./jira').then((m) => m.jiraAuthCmd),
+    github: () => import('./github').then((m) => m.githubAuthCmd),
     list: () => import('./list').then((m) => m.listAuthCmd),
   },
 });

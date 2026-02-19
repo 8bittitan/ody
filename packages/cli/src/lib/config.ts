@@ -12,7 +12,13 @@ const notifySchema = z
 
 const jiraSchema = z
   .object({
-    baseUrl: z.string().url(),
+    baseUrl: z.url(),
+    profile: z.string().optional(),
+  })
+  .optional();
+
+const githubSchema = z
+  .object({
     profile: z.string().optional(),
   })
   .optional();
@@ -28,6 +34,7 @@ const configSchema = z.object({
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
   notify: notifySchema,
   jira: jiraSchema,
+  github: githubSchema,
 });
 
 export type OdyConfig = z.infer<typeof configSchema>;
@@ -121,10 +128,7 @@ export namespace Config {
       notify: notifySchema.describe('Whether to dispatch OS notification'),
       jira: z
         .object({
-          baseUrl: z
-            .string()
-            .url()
-            .describe('Jira instance base URL (e.g., https://company.atlassian.net)'),
+          baseUrl: z.url().describe('Jira instance base URL (e.g., https://company.atlassian.net)'),
           profile: z
             .string()
             .optional()
@@ -132,6 +136,15 @@ export namespace Config {
         })
         .optional()
         .describe('Jira integration settings'),
+      github: z
+        .object({
+          profile: z
+            .string()
+            .optional()
+            .describe('Named credential profile from auth store (defaults to "default")'),
+        })
+        .optional()
+        .describe('GitHub integration settings'),
     })
     .strict()
     .meta({

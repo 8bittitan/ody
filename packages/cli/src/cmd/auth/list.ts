@@ -23,6 +23,7 @@ export const listAuthCmd = defineCommand({
     const store = await Auth.load();
 
     let jiraConfig: { baseUrl?: string; profile?: string } | undefined;
+    let githubConfig: { profile?: string } | undefined;
 
     try {
       await Config.load();
@@ -31,35 +32,66 @@ export const listAuthCmd = defineCommand({
       if (jira) {
         jiraConfig = jira;
       }
+
+      const github = Config.get('github');
+
+      if (github) {
+        githubConfig = github;
+      }
     } catch {
       // Config may not exist; auth is a skippable command
     }
 
-    const activeProfile = jiraConfig?.profile ?? 'default';
     const jiraProfiles = store.jira;
+    const githubProfiles = store.github;
+    const hasJira = jiraProfiles && Object.keys(jiraProfiles).length > 0;
+    const hasGitHub = githubProfiles && Object.keys(githubProfiles).length > 0;
 
-    if (!jiraProfiles || Object.keys(jiraProfiles).length === 0) {
-      log.warn('No credentials configured. Run `ody auth jira` to set up authentication.');
+    if (!hasJira && !hasGitHub) {
+      log.warn(
+        'No credentials configured. Run `ody auth jira` or `ody auth github` to set up authentication.',
+      );
       outro('Done');
       return;
     }
 
-    log.info('Jira');
+    if (hasJira) {
+      const activeProfile = jiraConfig?.profile ?? 'default';
 
-    for (const [profileName, credentials] of Object.entries(jiraProfiles)) {
-      const isActive = profileName === activeProfile;
-      const activeLabel = isActive ? ' (active)' : '';
-      const masked = maskToken(credentials.apiToken);
+      log.info('Jira');
 
-      let message = `  Profile: ${profileName}${activeLabel}\n`;
-      message += `  Email:   ${credentials.email}\n`;
-      message += `  Token:   ${masked}`;
+      for (const [profileName, credentials] of Object.entries(jiraProfiles)) {
+        const isActive = profileName === activeProfile;
+        const activeLabel = isActive ? ' (active)' : '';
+        const masked = maskToken(credentials.apiToken);
 
-      if (isActive && jiraConfig?.baseUrl) {
-        message += `\n  BaseURL: ${jiraConfig.baseUrl}`;
+        let message = `  Profile: ${profileName}${activeLabel}\n`;
+        message += `  Email:   ${credentials.email}\n`;
+        message += `  Token:   ${masked}`;
+
+        if (isActive && jiraConfig?.baseUrl) {
+          message += `\n  BaseURL: ${jiraConfig.baseUrl}`;
+        }
+
+        log.message(message);
       }
+    }
 
-      log.message(message);
+    if (hasGitHub) {
+      const activeProfile = githubConfig?.profile ?? 'default';
+
+      log.info('GitHub');
+
+      for (const [profileName, credentials] of Object.entries(githubProfiles)) {
+        const isActive = profileName === activeProfile;
+        const activeLabel = isActive ? ' (active)' : '';
+        const masked = maskToken(credentials.token);
+
+        let message = `  Profile: ${profileName}${activeLabel}\n`;
+        message += `  Token:   ${masked}`;
+
+        log.message(message);
+      }
     }
 
     outro('Done');
