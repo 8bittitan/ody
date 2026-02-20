@@ -9,6 +9,7 @@ import { Stream } from '../../util/stream';
 import {
   getTaskFilesInTasksDir,
   mapWithConcurrency,
+  parseFrontmatter,
   parseTitle,
   resolveTasksDir,
 } from '../../util/task';
@@ -43,11 +44,30 @@ export const editCmd = defineCommand({
       return;
     }
 
-    const options = await mapWithConcurrency(taskFiles, TASK_READ_CONCURRENCY, async (filename) => {
-      const content = await Bun.file(path.join(tasksDir, filename)).text();
-      const title = parseTitle(content);
-      return { value: filename, label: `${title}  (${filename})` };
-    });
+    const taskOptions = await mapWithConcurrency(
+      taskFiles,
+      TASK_READ_CONCURRENCY,
+      async (filename) => {
+        const content = await Bun.file(path.join(tasksDir, filename)).text();
+        const frontmatter = parseFrontmatter(content);
+
+        if (frontmatter.status !== 'pending') {
+          return null;
+        }
+
+        const title = parseTitle(content);
+        return { value: filename, label: `${title}  (${filename})` };
+      },
+    );
+
+    const options = taskOptions.filter((task): task is { value: string; label: string } =>
+      Boolean(task),
+    );
+
+    if (options.length === 0) {
+      log.info('No pending tasks to edit.');
+      return;
+    }
 
     const selected = await select({
       message: 'Select a task plan to edit',
