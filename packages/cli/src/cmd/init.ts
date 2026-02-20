@@ -15,7 +15,7 @@ import path from 'path';
 
 import { getAvailableBackends } from '../backends/util';
 import { backendsSchema, Config, type OdyConfig } from '../lib/config';
-import { BASE_DIR, ODY_FILE } from '../util/constants';
+import { BASE_DIR, DOCS_WEBSITE_URL, ODY_FILE } from '../util/constants';
 import { getRandomValidatorPlaceholder } from '../util/inputPrompt';
 
 export const initCmd = defineCommand({
@@ -221,7 +221,12 @@ export const initCmd = defineCommand({
         }
       }
 
-      const configToSave = JSON.stringify(Config.parse(configInput), null, 2);
+      const parsedConfig = Config.parse(configInput);
+      const configToSave = JSON.stringify(
+        { $schema: `${DOCS_WEBSITE_URL}/configuration_schema.json`, ...parsedConfig },
+        null,
+        2,
+      );
 
       if (args['dry-run']) {
         log.info(configToSave);

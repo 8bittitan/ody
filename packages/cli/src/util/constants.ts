@@ -3,6 +3,8 @@ export const ODY_FILE = 'ody.json';
 export const PRD_FILE = 'prd.json';
 export const TASKS_DIR = 'tasks';
 
+export const DOCS_WEBSITE_URL = 'https://odycli.vercel.app';
+
 export const ALLOWED_BACKENDS = ['opencode', 'claude', 'codex'] as const;
 
 export const GITHUB_REPO = '8bittitan/ody';
