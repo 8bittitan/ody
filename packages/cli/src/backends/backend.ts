@@ -24,8 +24,10 @@ export class Backend {
   }
 
   buildCommand(prompt: string, model?: string) {
+    const fallbackModel = typeof this.config.model === 'string' ? this.config.model : undefined;
+
     return this.harness.buildCommand(prompt, {
-      model: model ?? this.config.model,
+      model: model ?? fallbackModel,
       agent: this.config.agent ?? 'build',
     });
   }
