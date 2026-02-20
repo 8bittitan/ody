@@ -125,7 +125,7 @@ jobs:
         run: echo "version=$(jq -r .version packages/cli/package.json)" >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@3bfa3cdf2d0cb22465c3ecbabb545742b70db3c6 # v7
+        uses: peter-evans/create-pull-request@v8.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'release: v${{ steps.new.outputs.version }}'
