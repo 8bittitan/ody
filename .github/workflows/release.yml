@@ -23,7 +23,7 @@ jobs:
       tag: ${{ steps.create-tag.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
 
@@ -59,7 +59,7 @@ jobs:
             artifact: ody-linux-arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
 
@@ -71,7 +71,7 @@ jobs:
         run: bun build --production --compile --target=${{ matrix.target }} --outfile=./dist/${{ matrix.artifact }} ./src/index.ts
 
       - name: Upload artifact
-        uses: actions/upload-artifact@6.0.0
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: ${{ matrix.artifact }}
           path: packages/cli/dist/${{ matrix.artifact }}
@@ -82,7 +82,7 @@ jobs:
     needs: [tag, build]
     steps:
       - name: Checkout
-        uses: actions/checkout@6.0.2
+        uses: actions/checkout@v6.0.2
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
 
@@ -97,13 +97,13 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
-        uses: actions/download-artifact@6.0.0
+        uses: actions/download-artifact@v6.0.0
         with:
           path: artifacts
           merge-multiple: true
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@2.5.0
+        uses: softprops/action-gh-release@v2.5.0
         with:
           tag_name: ${{ needs.tag.outputs.tag }}
           body: ${{ steps.changelog.outputs.body }}
