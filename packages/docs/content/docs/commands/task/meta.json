@@ -1,4 +1,4 @@
 {
   "title": "task",
-  "pages": ["list", "edit"]
+  "pages": ["list", "edit", "import"]
 }

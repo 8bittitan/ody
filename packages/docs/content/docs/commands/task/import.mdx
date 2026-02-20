@@ -1,0 +1,103 @@
+---
+title: ody task import
+description: Import a task from Jira or GitHub
+---
+
+# ody task import
+
+Import an issue from Jira or GitHub and generate a structured `.code-task.md` file in `.ody/tasks/`. The command fetches issue details, builds an import prompt, and runs your configured backend agent.
+
+## Synopsis
+
+```bash
+ody task import [--jira <ticket-or-url> | --github <issue-ref>] [--dry-run] [--verbose]
+```
+
+## Flags
+
+| Flag        | Alias  | Type      | Default | Description                                                 |
+| ----------- | ------ | --------- | ------- | ----------------------------------------------------------- |
+| `--jira`    |        | `string`  |         | Jira ticket key (for example `PROJ-123`) or full ticket URL |
+| `--github`  | `--gh` | `string`  |         | GitHub issue URL or shorthand (`owner/repo#123`)            |
+| `--dry-run` | `-d`   | `boolean` | `false` | Print the generated prompt without running the agent        |
+| `--verbose` |        | `boolean` | `false` | Stream agent output in real time                            |
+
+Exactly one source must be provided: use either `--jira` or `--github`.
+
+## Input Formats
+
+Jira accepts:
+
+- Full URL, for example `https://company.atlassian.net/browse/PROJ-123`
+- Ticket key shorthand, for example `PROJ-123`
+
+GitHub accepts:
+
+- Full URL, for example `https://github.com/owner/repo/issues/123`
+- Issue shorthand, for example `owner/repo#123`
+
+## Behavior
+
+1. Validates input and enforces exactly one source (`--jira` or `--github`).
+2. Resolves source input into a canonical ticket/issue reference.
+3. Fetches issue data from Jira or GitHub.
+4. Converts the fetched issue into task import prompt content.
+5. Runs the configured backend agent to generate a `.code-task.md` file.
+6. Writes the generated task into `.ody/tasks/`.
+
+### Dry run
+
+Use `--dry-run` to print the generated import prompt without invoking the backend agent:
+
+```bash
+ody task import --jira PROJ-123 --dry-run
+```
+
+## Authentication
+
+Credentials must already be configured before importing tasks. Set up your provider profiles with `ody auth`, then run `ody task import`.
+
+## Example
+
+Import from Jira using a ticket key:
+
+```bash
+ody task import --jira PROJ-123
+```
+
+Import from Jira using a full ticket URL:
+
+```bash
+ody task import --jira https://company.atlassian.net/browse/PROJ-123
+```
+
+Import from GitHub using shorthand:
+
+```bash
+ody task import --github owner/repo#123
+```
+
+Import from GitHub using a full issue URL:
+
+```bash
+ody task import --github https://github.com/owner/repo/issues/123
+```
+
+Preview without running the agent:
+
+```bash
+ody task import --github owner/repo#123 --dry-run
+```
+
+Stream backend output:
+
+```bash
+ody task import --jira PROJ-123 --verbose
+```
+
+## Related
+
+- [`ody plan`](/docs/commands/plan/new) -- Create new task plans
+- [`ody task list`](/docs/commands/task/list) -- View pending task files
+- [`ody task edit`](/docs/commands/task/edit) -- Edit an existing task plan
+- [`ody run`](/docs/commands/run) -- Execute pending tasks with the agent loop
