@@ -13,7 +13,8 @@
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt --write .",
     "test": "bun run --filter '*' test",
-    "typecheck": "bun run --filter '*' typecheck"
+    "typecheck": "bun run --filter '*' typecheck",
+    "sync:schema": "bun run --filter '@ody/cli' gen:schema && cp ./packages/cli/dist/configuration_schema.json ./packages/docs/public"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

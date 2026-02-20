@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "JSON schema reference for configuration validation",
+      "type": "string"
+    },
+    "backend": {
+      "anyOf": [
+        {
+          "type": "string",
+          "const": "opencode"
+        },
+        {
+          "type": "string",
+          "const": "claude"
+        },
+        {
+          "type": "string",
+          "const": "codex"
+        }
+      ],
+      "description": "Backend harness to use for agent"
+    },
+    "maxIterations": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Max number of iterations to run in the loop (0 = infinite)"
+    },
+    "shouldCommit": {
+      "default": false,
+      "description": "Generate a commit after each loop iteration",
+      "type": "boolean"
+    },
+    "validatorCommands": {
+      "description": "Specific commands the agent can use to verify the code is in good shape",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "What model the agent should use for the backend"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "run": {
+              "type": "string"
+            },
+            "plan": {
+              "type": "string"
+            }
+          },
+          "description": "Per-command model overrides"
+        }
+      ],
+      "description": "What model the agent should use for the backend"
+    },
+    "skipPermissions": {
+      "default": true,
+      "type": "boolean"
+    },
+    "agent": {
+      "description": "What harness agent should be used",
+      "default": "build",
+      "type": "string",
+      "minLength": 1
+    },
+    "tasksDir": {
+      "description": "Custom path for the tasks directory",
+      "default": "tasks",
+      "type": "string",
+      "minLength": 1
+    },
+    "notify": {
+      "description": "Whether to dispatch OS notification",
+      "default": false,
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "all",
+            "individual"
+          ]
+        }
+      ]
+    },
+    "jira": {
+      "description": "Jira integration settings",
+      "type": "object",
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Jira instance base URL (e.g., https://company.atlassian.net)"
+        },
+        "profile": {
+          "description": "Named credential profile from auth store (defaults to \"default\")",
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseUrl"
+      ]
+    },
+    "github": {
+      "description": "GitHub integration settings",
+      "type": "object",
+      "properties": {
+        "profile": {
+          "description": "Named credential profile from auth store (defaults to \"default\")",
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "backend",
+    "maxIterations",
+    "model"
+  ],
+  "additionalProperties": false,
+  "ref": "Config"
+}

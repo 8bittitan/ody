@@ -1,7 +1,11 @@
 {
+  "$schema": "../packages/docs/public/configuration_schema.json",
   "backend": "opencode",
   "maxIterations": 3,
   "shouldCommit": true,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "openai/gpt-5.3-codex"
+  "model": {
+    "run": "openai/gpt-5.3-codex",
+    "plan": "anthropic/claude-opus-4-6"
+  }
 }

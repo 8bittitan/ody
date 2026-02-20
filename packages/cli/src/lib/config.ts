@@ -23,20 +23,17 @@ const githubSchema = z
   })
   .optional();
 
-const commandModelsSchema = z
-  .object({
-    run: z.string().optional(),
-    plan: z.string().optional(),
-  })
-  .optional();
+const commandModelsSchema = z.object({
+  run: z.string().optional(),
+  plan: z.string().optional(),
+});
 
 const configSchema = z.object({
   backend: backendsSchema,
   maxIterations: z.number().int().nonnegative(),
   shouldCommit: z.boolean().default(false),
   validatorCommands: z.array(z.string()).default([]).optional(),
-  model: z.string().optional(),
-  models: commandModelsSchema,
+  model: z.union([z.string(), commandModelsSchema]).optional(),
   skipPermissions: z.boolean().default(true).optional(),
   agent: z.string().nonempty().default('build').optional(),
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
@@ -83,6 +80,30 @@ async function loadJsonFile(filePath: string): Promise<Record<string, unknown> |
   return JSON.parse(input) as Record<string, unknown>;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(
+  base: Record<string, unknown> | undefined,
+  override: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...base };
+
+  for (const [key, value] of Object.entries(override ?? {})) {
+    const current = result[key];
+
+    if (isPlainObject(current) && isPlainObject(value)) {
+      result[key] = deepMerge(current, value);
+      continue;
+    }
+
+    result[key] = value;
+  }
+
+  return result;
+}
+
 export namespace Config {
   let config: OdyConfig | undefined = undefined;
 
@@ -119,14 +140,12 @@ export namespace Config {
         .default([])
         .optional()
         .describe('Specific commands the agent can use to verify the code is in good shape'),
-      model: z.string().optional().describe('What model the agent should use for the backend'),
-      models: z
-        .object({
-          run: z.string().optional().describe('Override model to use for the run command'),
-          plan: z.string().optional().describe('Override model to use for the plan command'),
-        })
-        .optional()
-        .describe('Per-command model overrides'),
+      model: z
+        .union([
+          z.string().describe('What model the agent should use for the backend'),
+          commandModelsSchema.describe('Per-command model overrides'),
+        ])
+        .describe('What model the agent should use for the backend'),
       skipPermissions: z.boolean().default(true).optional(),
       agent: z
         .string()
@@ -191,7 +210,7 @@ export namespace Config {
       throw new Error('No Ody configuration found. Run `ody init` to get started.');
     }
 
-    const merged = { ...globalRaw, ...localRaw };
+    const merged = deepMerge(globalRaw, localRaw);
 
     config = parse(merged);
   }
@@ -216,10 +235,11 @@ export namespace Config {
     return config[key];
   }
 
-  export function resolveModel(
-    command: 'run' | 'plan',
-    source: Pick<OdyConfig, 'model' | 'models'> = all(),
-  ) {
-    return source.models?.[command] ?? source.model;
+  export function resolveModel(command: 'run' | 'plan', source: Pick<OdyConfig, 'model'> = all()) {
+    if (typeof source.model === 'string') {
+      return source.model;
+    }
+
+    return source.model?.[command];
   }
 }
