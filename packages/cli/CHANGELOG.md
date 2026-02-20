@@ -1,5 +1,11 @@
 # @ody/cli
 
+## 0.5.0
+
+### Minor Changes
+
+- Release (minor bump)
+
 ## 0.4.0
 
 ### Minor Changes
