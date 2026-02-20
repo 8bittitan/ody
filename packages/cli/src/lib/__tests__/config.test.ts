@@ -81,6 +81,72 @@ describe('Config', () => {
       expect(result.validatorCommands).toEqual(['bun lint', 'bun test']);
     });
 
+    test('models object is preserved when provided', () => {
+      const raw = {
+        backend: 'claude',
+        maxIterations: 1,
+        models: {
+          run: 'anthropic/claude-sonnet-4-20250514',
+          plan: 'anthropic/claude-opus-4-6',
+        },
+      };
+      const result = Config.parse(raw);
+
+      expect(result.models).toEqual({
+        run: 'anthropic/claude-sonnet-4-20250514',
+        plan: 'anthropic/claude-opus-4-6',
+      });
+    });
+
+    test('resolveModel uses root model when no per-command override exists', () => {
+      const parsed = Config.parse({
+        backend: 'claude',
+        maxIterations: 1,
+        model: 'anthropic/claude-opus-4-6',
+      });
+
+      expect(Config.resolveModel('run', parsed)).toBe('anthropic/claude-opus-4-6');
+      expect(Config.resolveModel('plan', parsed)).toBe('anthropic/claude-opus-4-6');
+    });
+
+    test('resolveModel prefers per-command run override over root model', () => {
+      const parsed = Config.parse({
+        backend: 'claude',
+        maxIterations: 1,
+        model: 'anthropic/claude-opus-4-6',
+        models: {
+          run: 'anthropic/claude-sonnet-4-20250514',
+        },
+      });
+
+      expect(Config.resolveModel('run', parsed)).toBe('anthropic/claude-sonnet-4-20250514');
+      expect(Config.resolveModel('plan', parsed)).toBe('anthropic/claude-opus-4-6');
+    });
+
+    test('resolveModel prefers per-command plan override over root model', () => {
+      const parsed = Config.parse({
+        backend: 'claude',
+        maxIterations: 1,
+        model: 'anthropic/claude-opus-4-6',
+        models: {
+          plan: 'anthropic/claude-sonnet-4-20250514',
+        },
+      });
+
+      expect(Config.resolveModel('run', parsed)).toBe('anthropic/claude-opus-4-6');
+      expect(Config.resolveModel('plan', parsed)).toBe('anthropic/claude-sonnet-4-20250514');
+    });
+
+    test('resolveModel returns undefined when no model is configured', () => {
+      const parsed = Config.parse({
+        backend: 'claude',
+        maxIterations: 1,
+      });
+
+      expect(Config.resolveModel('run', parsed)).toBeUndefined();
+      expect(Config.resolveModel('plan', parsed)).toBeUndefined();
+    });
+
     test('agent field defaults to build when omitted', () => {
       const raw = { backend: 'claude', maxIterations: 1 };
       const result = Config.parse(raw);

@@ -23,9 +23,9 @@ export class Backend {
     this.config = Config.all();
   }
 
-  buildCommand(prompt: string) {
+  buildCommand(prompt: string, model?: string) {
     return this.harness.buildCommand(prompt, {
-      model: this.config.model,
+      model: model ?? this.config.model,
       agent: this.config.agent ?? 'build',
     });
   }

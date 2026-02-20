@@ -63,6 +63,7 @@ export const planCmd = defineCommand({
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
+    const model = Config.resolveModel('plan', config);
     const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
     const spin = spinner();
 
@@ -87,7 +88,7 @@ export const planCmd = defineCommand({
         spin.start('Generating task plans from file...');
 
         const proc = Bun.spawn({
-          cmd: backend.buildCommand(batchPrompt),
+          cmd: backend.buildCommand(batchPrompt, model),
           stdio: ['ignore', 'pipe', 'pipe'],
         });
         const markerDetector = createCompletionMarkerDetector();
@@ -168,7 +169,7 @@ export const planCmd = defineCommand({
           spin.start(`Generating task plan ${i + 1} of ${descriptions.length}`);
 
           const proc = Bun.spawn({
-            cmd: backend.buildCommand(planPrompt),
+            cmd: backend.buildCommand(planPrompt, model),
             stdio: ['ignore', 'pipe', 'pipe'],
           });
           const markerDetector = createCompletionMarkerDetector();

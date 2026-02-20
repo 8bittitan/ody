@@ -23,12 +23,20 @@ const githubSchema = z
   })
   .optional();
 
+const commandModelsSchema = z
+  .object({
+    run: z.string().optional(),
+    plan: z.string().optional(),
+  })
+  .optional();
+
 const configSchema = z.object({
   backend: backendsSchema,
   maxIterations: z.number().int().nonnegative(),
   shouldCommit: z.boolean().default(false),
   validatorCommands: z.array(z.string()).default([]).optional(),
   model: z.string().optional(),
+  models: commandModelsSchema,
   skipPermissions: z.boolean().default(true).optional(),
   agent: z.string().nonempty().default('build').optional(),
   tasksDir: z.string().nonempty().default(TASKS_DIR).optional(),
@@ -112,6 +120,13 @@ export namespace Config {
         .optional()
         .describe('Specific commands the agent can use to verify the code is in good shape'),
       model: z.string().optional().describe('What model the agent should use for the backend'),
+      models: z
+        .object({
+          run: z.string().optional().describe('Override model to use for the run command'),
+          plan: z.string().optional().describe('Override model to use for the plan command'),
+        })
+        .optional()
+        .describe('Per-command model overrides'),
       skipPermissions: z.boolean().default(true).optional(),
       agent: z
         .string()
@@ -199,5 +214,12 @@ export namespace Config {
     }
 
     return config[key];
+  }
+
+  export function resolveModel(
+    command: 'run' | 'plan',
+    source: Pick<OdyConfig, 'model' | 'models'> = all(),
+  ) {
+    return source.models?.[command] ?? source.model;
   }
 }

@@ -107,6 +107,7 @@ export const runCmd = defineCommand({
   async run({ args }) {
     const config = Config.all();
     const backend = new Backend(config.backend);
+    const model = Config.resolveModel('run', config);
     const tasksDirPath = resolveTasksDir(config.tasksDir);
 
     const notifyRaw = args['no-notify'] ? false : (config.notify ?? false);
@@ -183,7 +184,7 @@ export const runCmd = defineCommand({
 
       try {
         const proc = Bun.spawn({
-          cmd: backend.buildCommand(prompt),
+          cmd: backend.buildCommand(prompt, model),
           stdio: ['ignore', 'pipe', 'pipe'],
         });
 
