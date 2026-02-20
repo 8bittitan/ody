@@ -1,0 +1,4 @@
+{
+  "title": "auth",
+  "pages": ["index", "github", "jira", "list"]
+}

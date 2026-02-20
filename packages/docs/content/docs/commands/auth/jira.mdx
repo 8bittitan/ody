@@ -1,0 +1,50 @@
+---
+title: ody auth jira
+description: Configure Jira authentication credentials
+---
+
+# ody auth jira
+
+Configure and store Jira credentials for a profile. This flow prompts for both email and API token, then saves them in the shared auth store.
+
+## Synopsis
+
+```bash
+ody auth jira [--profile <name>]
+```
+
+## Flags
+
+| Flag        | Alias | Type     | Default   | Description                           |
+| ----------- | ----- | -------- | --------- | ------------------------------------- |
+| `--profile` |       | `string` | `default` | Named profile for storing credentials |
+
+## Behavior
+
+1. Prompts for a Jira email address.
+2. Prompts for a Jira API token.
+3. Validates both values are non-empty.
+4. Saves credentials under the selected profile in `$XDG_DATA_HOME/ody/auth.json`.
+5. Writes the credentials file with `0600` permissions.
+
+If either prompt is cancelled, no changes are written.
+
+## Examples
+
+Store credentials in the default profile:
+
+```bash
+ody auth jira
+```
+
+Store credentials in a named profile:
+
+```bash
+ody auth jira --profile work
+```
+
+## Related
+
+- [`ody auth`](/docs/commands/auth) -- Auth command overview
+- [`ody auth list`](/docs/commands/auth/list) -- View configured profiles
+- [`ody auth github`](/docs/commands/auth/github) -- Configure GitHub credentials

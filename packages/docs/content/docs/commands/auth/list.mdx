@@ -1,0 +1,51 @@
+---
+title: ody auth list
+description: List configured authentication credentials
+---
+
+# ody auth list
+
+Display stored Jira and GitHub credential profiles with sensitive tokens masked. This helps verify what is configured and which profile is active.
+
+## Synopsis
+
+```bash
+ody auth list
+```
+
+## Flags
+
+This command has no flags.
+
+## Behavior
+
+1. Loads credentials from `$XDG_DATA_HOME/ody/auth.json`.
+2. Tries to load project config to determine active Jira and GitHub profiles.
+3. Prints configured Jira and GitHub profiles with masked tokens.
+4. Marks active profiles and includes Jira base URL when configured.
+
+If no credentials are configured, it prints a warning with next steps.
+
+## Example
+
+```text
+Authentication credentials
+
+Jira
+  Profile: default (active)
+  Email:   user@example.com
+  Token:   ******123abc
+  BaseURL: https://company.atlassian.net
+
+GitHub
+  Profile: work (active)
+  Token:   ******789xyz
+
+Done
+```
+
+## Related
+
+- [`ody auth`](/docs/commands/auth) -- Auth command overview
+- [`ody auth jira`](/docs/commands/auth/jira) -- Configure Jira credentials
+- [`ody auth github`](/docs/commands/auth/github) -- Configure GitHub credentials

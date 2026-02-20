@@ -1,0 +1,49 @@
+---
+title: ody auth github
+description: Configure GitHub authentication credentials
+---
+
+# ody auth github
+
+Configure and store a GitHub personal access token for a profile. The token is prompted interactively and written to the shared auth store.
+
+## Synopsis
+
+```bash
+ody auth github [--profile <name>]
+```
+
+## Flags
+
+| Flag        | Alias | Type     | Default   | Description                           |
+| ----------- | ----- | -------- | --------- | ------------------------------------- |
+| `--profile` |       | `string` | `default` | Named profile for storing credentials |
+
+## Behavior
+
+1. Prompts for a GitHub personal access token.
+2. Validates that the token is non-empty.
+3. Saves the token under the selected profile in `$XDG_DATA_HOME/ody/auth.json`.
+4. Writes the credentials file with `0600` permissions.
+
+If the prompt is cancelled, no changes are written.
+
+## Examples
+
+Store credentials in the default profile:
+
+```bash
+ody auth github
+```
+
+Store credentials in a named profile:
+
+```bash
+ody auth github --profile work
+```
+
+## Related
+
+- [`ody auth`](/docs/commands/auth) -- Auth command overview
+- [`ody auth list`](/docs/commands/auth/list) -- View configured profiles
+- [`ody auth jira`](/docs/commands/auth/jira) -- Configure Jira credentials

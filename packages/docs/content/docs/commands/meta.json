@@ -1,4 +1,4 @@
 {
   "title": "Commands",
-  "pages": ["index", "init", "run", "config", "compact", "plan", "task", "update"]
+  "pages": ["index", "init", "run", "config", "auth", "compact", "plan", "task", "update"]
 }
