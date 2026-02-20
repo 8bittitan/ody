@@ -1,5 +1,5 @@
 {
-  "$schema": "../packages/docs/public/configuration_schema.json",
+  "$schema": "https://odycli.vercel.app/configuration_schema.json",
   "backend": "opencode",
   "maxIterations": 3,
   "shouldCommit": true,

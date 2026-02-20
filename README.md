@@ -89,17 +89,17 @@ Compile a native binary:
 bun run build
 ```
 
-This produces `packages/cli/dist/ody`. Once built you can use `./ody` instead of the `bun run ...` invocations above:
+This produces `packages/cli/dist/ody`. Once built you can use the compiled binary directly:
 
 ```bash
-./ody init
-./ody plan
-./ody run
+packages/cli/dist/ody init
+packages/cli/dist/ody plan
+packages/cli/dist/ody run
 ```
 
 ## How it works
 
-1. **Plan** -- `ody plan` prompts you for a description and sends it to the AI backend, which generates a structured `.code-task.md` file under `.ody/tasks/` with frontmatter, requirements, implementation steps, and acceptance criteria.
+1. **Plan** -- `ody plan` prompts you for a description and sends it to the AI backend, which generates structured `.code-task.md` files under the configured tasks directory (default `.ody/tasks/`).
 2. **Run** -- `ody run` starts a loop that picks pending tasks, sends them to the configured backend, monitors for a completion marker, runs validator commands, marks tasks as completed, and optionally git-commits changes.
 3. **Repeat** -- The loop continues until all pending tasks are done or the iteration limit is reached.
 
@@ -131,14 +131,18 @@ Run the agent loop.
 | `--iterations` | `-i`         | Override max iterations                 |
 | `--no-notify`  |              | Disable OS notifications for this run   |
 
-### `ody plan`
+### `ody plan [planFile]`
 
-Generate a new task plan from a description. Enters an interactive loop where you describe tasks and the AI generates structured `.code-task.md` files. You can create multiple plans in one session.
+Generate task plans.
 
-| Flag        | Alias | Description                           |
-| ----------- | ----- | ------------------------------------- |
-| `--dry-run` | `-d`  | Print prompt without sending to agent |
-| `--verbose` |       | Stream agent output                   |
+- Without a positional file argument, enters an interactive loop where you describe tasks and the AI generates `.code-task.md` files.
+- With a positional `planFile`, reads that planning document and generates one or more task files.
+
+| Flag        | Alias        | Description                                         |
+| ----------- | ------------ | --------------------------------------------------- |
+| `planFile`  | (positional) | Path to a planning document to decompose into tasks |
+| `--dry-run` | `-d`         | Print prompt without sending to agent               |
+| `--verbose` |              | Stream agent output                                 |
 
 ### `ody task list`
 
@@ -153,34 +157,79 @@ Edit an existing task plan interactively. Presents a selectable list of tasks an
 | `--dry-run` | `-d`  | Print prompt without sending to agent |
 | `--verbose` |       | Stream agent output                   |
 
-### `ody task compact`
+### `ody task import`
 
-Archive completed tasks to `.ody/history/` and delete the originals.
+Import a task from an external source and generate a `.code-task.md` file.
+
+| Flag        | Alias  | Description                                              |
+| ----------- | ------ | -------------------------------------------------------- |
+| `--jira`    |        | Jira ticket key or URL (for example `PROJ-123`)          |
+| `--github`  | `--gh` | GitHub issue URL or shorthand (for example `org/repo#1`) |
+| `--dry-run` | `-d`   | Print prompt without sending to agent                    |
+| `--verbose` |        | Stream agent output                                      |
+
+### `ody compact`
+
+Archive completed tasks and progress into `.ody/history/YYYY-MM-DD/`.
+
+- Writes archived tasks to `tasks.md`
+- Writes progress entries to `progress.md`
+- Deletes archived completed task files from the active tasks directory
+- Clears `.ody/progress.txt`
 
 ### `ody config`
 
 Display the current configuration.
 
+### `ody auth`
+
+Manage authentication credentials for external integrations.
+
+#### `ody auth jira`
+
+Store Jira credentials (email + API token). Supports `--profile` (defaults to `default`).
+
+#### `ody auth github`
+
+Store GitHub credentials (personal access token). Supports `--profile` (defaults to `default`).
+
+#### `ody auth list`
+
+List configured Jira/GitHub profiles (tokens are masked).
+
+### `ody update`
+
+Check for and install CLI updates from GitHub Releases.
+
+| Flag      | Alias | Description                                   |
+| --------- | ----- | --------------------------------------------- |
+| `--check` | `-c`  | Check only; do not download/install an update |
+
 ## Configuration
 
 Configuration lives in `.ody/ody.json` (per-project). A global config can also be placed at `~/.ody/ody.json` or `~/.config/ody/ody.json`; local settings override global ones.
 
-| Key                 | Type                                    | Description                                                   |
-| ------------------- | --------------------------------------- | ------------------------------------------------------------- |
-| `backend`           | `"claude"` \| `"opencode"` \| `"codex"` | Which AI backend to use                                       |
-| `maxIterations`     | number                                  | Max loop iterations (0 = unlimited)                           |
-| `shouldCommit`      | boolean                                 | Git-commit after each task                                    |
-| `validatorCommands` | string[]                                | Shell commands to validate agent work                         |
-| `model`             | string                                  | Model identifier for the backend                              |
-| `skipPermissions`   | boolean                                 | Skip Claude Code permission checks (default `true`)           |
-| `tasksDir`          | string                                  | Subdirectory under `.ody/` for task files (default `"tasks"`) |
-| `notify`            | boolean \| `"all"` \| `"individual"`    | OS notification behavior                                      |
+| Key                 | Type                                        | Description                                                   |
+| ------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| `backend`           | `"claude"` \| `"opencode"` \| `"codex"`     | Which AI backend to use                                       |
+| `maxIterations`     | number                                      | Max loop iterations (0 = unlimited)                           |
+| `shouldCommit`      | boolean                                     | Git-commit after each task                                    |
+| `validatorCommands` | string[]                                    | Shell commands to validate agent work                         |
+| `model`             | string \| `{ run?: string; plan?: string }` | Default model or per-command model overrides                  |
+| `skipPermissions`   | boolean                                     | Skip Claude Code permission checks (default `true`)           |
+| `agent`             | string                                      | Backend agent profile/persona (default `"build"`)             |
+| `tasksDir`          | string                                      | Subdirectory under `.ody/` for task files (default `"tasks"`) |
+| `notify`            | boolean \| `"all"` \| `"individual"`        | OS notification behavior                                      |
+| `jira`              | `{ baseUrl: string; profile?: string }`     | Jira integration settings                                     |
+| `github`            | `{ profile?: string }`                      | GitHub integration settings                                   |
 
 Prefer using `ody init` to generate or update configuration.
 
+`notify: true` is treated as `"all"` at runtime.
+
 ## Task file format
 
-Tasks are Markdown files (`.code-task.md`) with YAML frontmatter:
+Tasks are Markdown files (`.code-task.md`) with YAML frontmatter and required sections.
 
 ```markdown
 ---
@@ -190,15 +239,41 @@ started: null
 completed: null
 ---
 
-# Task title
+# Task: Add example feature
 
 ## Description
 
-...
+A clear description of what needs to be implemented and why.
+
+## Background
+
+Relevant context and background information.
+
+## Technical Requirements
+
+1. First requirement
+2. Second requirement
+
+## Dependencies
+
+- Dependency details
+
+## Implementation Approach
+
+1. First implementation step
+2. Second implementation step
 
 ## Acceptance Criteria
 
-...
+1. **Example Criterion**
+   - Given some precondition
+   - When an action happens
+   - Then an expected result occurs
+
+## Metadata
+
+- **Complexity**: Medium
+- **Labels**: example, feature
 ```
 
 The `status` field transitions through `pending` -> `in_progress` -> `completed` as the agent works.
@@ -207,7 +282,7 @@ The `status` field transitions through `pending` -> `in_progress` -> `completed`
 
 ```
 packages/
-  cli/                        # @ody/cli -- the main (and only) package
+  cli/                        # @ody/cli -- the main CLI package
     src/
       index.ts                # Entry point
       cmd/                    # CLI commands (citty)
@@ -216,9 +291,10 @@ packages/
       lib/                    # Config, sequencer, logger, notifications
       util/                   # Stream handling, constants, helpers
     dist/                     # Build output (native binary)
+  docs/                       # @ody/docs -- documentation site/assets
 ```
 
-The repo is a Bun workspaces monorepo (`packages/*`), currently containing only the CLI package.
+The repo is a Bun workspaces monorepo (`packages/*`).
 
 ## Development
 
