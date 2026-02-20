@@ -5,5 +5,6 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: 'Ody',
     },
+    githubUrl: 'https://github.com/8bittitan/ody',
   };
 }

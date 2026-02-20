@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
-import { DocsBody, DocsPage } from 'fumadocs-ui/layouts/notebook/page';
+import { DocsBody, DocsPage, DocsTitle, DocsDescription } from 'fumadocs-ui/layouts/notebook/page';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { notFound } from 'next/navigation';
 
-import { source } from '../../../lib/source';
+import { getPageImage, source } from '../../../lib/source';
 import { getMDXComponents } from '../../../mdx-components';
 
 type PageProps = {
@@ -23,6 +23,9 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   return {
     title: page.data.title,
     description: page.data.description,
+    openGraph: {
+      images: getPageImage(page).url,
+    },
   };
 }
 
@@ -40,6 +43,8 @@ export default async function Page(props: PageProps) {
         style: 'clerk',
       }}
     >
+      <DocsTitle>{page.data.title}</DocsTitle>
+      <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
         <MDX
           components={getMDXComponents({
