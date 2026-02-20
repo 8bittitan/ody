@@ -17,6 +17,10 @@ Configuration lives in `.ody/ody.json` in your project root. A global configurat
 
 <TypeTable
   type={{
+    $schema: {
+      description: 'JSON schema reference for configuration validation',
+      type: 'string',
+    },
     backend: {
       description: 'Backend harness to use for agent',
       type: '"opencode" | "claude" | "codex"',
@@ -39,7 +43,8 @@ Configuration lives in `.ody/ody.json` in your project root. A global configurat
     },
     model: {
       description: 'What model the agent should use for the backend',
-      type: 'string',
+      type: 'string | { run?: string; plan?: string }',
+      required: true,
     },
     agent: {
       description: 'What harness agent should be used',
@@ -48,18 +53,26 @@ Configuration lives in `.ody/ody.json` in your project root. A global configurat
     },
     notify: {
       description: 'Whether to dispatch OS notification',
-      type: '"all" | "individual" | true | false',
+      type: 'boolean | "all" | "individual"',
       default: 'false',
     },
     tasksDir: {
-      description: 'Subdirectory under .ody/ for task files',
+      description: 'Custom path for the tasks directory',
       type: 'string',
       default: 'tasks',
     },
     skipPermissions: {
       description: 'Skip Claude Code permission checks',
       type: 'boolean',
-      default: 'false',
+      default: 'true',
+    },
+    jira: {
+      description: 'Jira integration settings',
+      type: '{ baseUrl: string; profile?: string }',
+    },
+    github: {
+      description: 'GitHub integration settings',
+      type: '{ profile?: string }',
     },
   }}
 />
