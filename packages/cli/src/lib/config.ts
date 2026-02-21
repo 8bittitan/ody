@@ -1,5 +1,6 @@
 import os from 'os';
 import path from 'path';
+
 import { z } from 'zod';
 
 import { ALLOWED_BACKENDS, BASE_DIR, ODY_FILE, TASKS_DIR } from '../util/constants';
@@ -24,8 +25,9 @@ const githubSchema = z
   .optional();
 
 const commandModelsSchema = z.object({
-  run: z.string().optional(),
-  plan: z.string().optional(),
+  run: z.string(),
+  plan: z.string(),
+  edit: z.string(),
 });
 
 const configSchema = z.object({
@@ -145,6 +147,7 @@ export namespace Config {
           z.string().describe('What model the agent should use for the backend'),
           commandModelsSchema.describe('Per-command model overrides'),
         ])
+        .optional()
         .describe('What model the agent should use for the backend'),
       skipPermissions: z.boolean().default(true).optional(),
       agent: z
@@ -235,7 +238,10 @@ export namespace Config {
     return config[key];
   }
 
-  export function resolveModel(command: 'run' | 'plan', source: Pick<OdyConfig, 'model'> = all()) {
+  export function resolveModel(
+    command: 'run' | 'plan' | 'edit',
+    source: Pick<OdyConfig, 'model'> = all(),
+  ) {
     if (typeof source.model === 'string') {
       return source.model;
     }

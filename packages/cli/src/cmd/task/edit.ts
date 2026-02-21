@@ -1,11 +1,11 @@
+import path from 'node:path';
+
 import { log, outro, select, isCancel } from '@clack/prompts';
 import { defineCommand } from 'citty';
-import path from 'node:path';
 
 import { Backend } from '../../backends/backend';
 import { buildEditPlanPrompt } from '../../builders/editPlanPrompt';
 import { Config } from '../../lib/config';
-import { Stream } from '../../util/stream';
 import {
   getTaskFilesInTasksDir,
   mapWithConcurrency,
@@ -27,11 +27,6 @@ export const editCmd = defineCommand({
       description: 'Run as dry run, without sending prompt to agent',
       type: 'boolean',
       alias: 'd',
-    },
-    verbose: {
-      default: false,
-      description: "Enable verbose logging, streaming the agent's work in progress",
-      type: 'boolean',
     },
   },
   async run({ args }) {
@@ -80,9 +75,7 @@ export const editCmd = defineCommand({
     }
 
     const filePath = path.join(tasksDir, selected);
-    const fileContent = await Bun.file(filePath).text();
-
-    const editPrompt = buildEditPlanPrompt({ filePath, fileContent });
+    const editPrompt = buildEditPlanPrompt({ filePath });
 
     if (args['dry-run']) {
       log.info(editPrompt);
@@ -90,19 +83,16 @@ export const editCmd = defineCommand({
       return;
     }
 
-    const backend = new Backend(Config.get('backend'));
+    const config = Config.all();
+    const backend = new Backend(config.backend);
+    const model = Config.resolveModel('edit', config);
 
-    log.info('Running editor agent');
+    log.info('Opening editor agent in interactive mode');
 
     const proc = Bun.spawn({
-      cmd: backend.buildCommand(editPrompt),
-      stdio: ['ignore', 'pipe', 'pipe'],
+      cmd: backend.buildInteractiveCommand(editPrompt, model),
+      stdio: ['inherit', 'inherit', 'inherit'],
     });
-
-    await Promise.all([
-      Stream.toOutput(proc.stdout, { shouldPrint: args.verbose, capture: false }),
-      Stream.toOutput(proc.stderr, { shouldPrint: args.verbose, capture: false }),
-    ]);
 
     const exitCode = await proc.exited;
 
@@ -111,7 +101,6 @@ export const editCmd = defineCommand({
       return;
     }
 
-    log.success('Edit complete');
-    outro('Task plan updated');
+    outro('Finished with edit');
   },
 });

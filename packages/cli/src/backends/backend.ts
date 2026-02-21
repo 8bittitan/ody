@@ -1,8 +1,7 @@
-import type { Harness } from './harness';
-
 import { Config, type OdyConfig } from '../lib/config';
 import { Claude } from './claude';
 import { Codex } from './codex';
+import type { Harness } from './harness';
 import { Opencode } from './opencode';
 
 export class Backend {
@@ -28,6 +27,13 @@ export class Backend {
 
     return this.harness.buildCommand(prompt, {
       model: model ?? fallbackModel,
+      agent: this.config.agent ?? 'build',
+    });
+  }
+
+  buildInteractiveCommand(prompt: string, model?: string) {
+    return this.harness.buildInteractiveCommand(prompt, {
+      model,
       agent: this.config.agent ?? 'build',
     });
   }

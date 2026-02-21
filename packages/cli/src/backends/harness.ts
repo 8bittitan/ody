@@ -5,4 +5,8 @@ export type CommandOptions = {
 
 export abstract class Harness {
   abstract buildCommand(prompt: string, opts?: CommandOptions): string[];
+
+  buildInteractiveCommand(prompt: string, opts?: CommandOptions): string[] {
+    return this.buildCommand(prompt, opts);
+  }
 }

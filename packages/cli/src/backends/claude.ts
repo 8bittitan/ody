@@ -1,29 +1,34 @@
-import path from 'path';
-
 import { Config } from '../lib/config';
-import { BASE_DIR, TASKS_DIR } from '../util/constants';
-import { Harness } from './harness';
+import { Harness, type CommandOptions } from './harness';
 
 export class Claude extends Harness {
   name = 'Claude Code';
 
-  override buildCommand(prompt: string): string[] {
+  override buildCommand(prompt: string, opts: CommandOptions = {}): string[] {
     const skipPermissions = Config.get('skipPermissions') ?? true;
 
-    const cmd = ['claude'];
-
-    if (skipPermissions) {
-      cmd.push('--dangerously-skip-permissions');
-    }
-
-    cmd.push(
+    return [
+      'claude',
+      ...(skipPermissions ? ['--dangerously-skip-permissions'] : []),
+      '--disallowedTools=TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet',
+      ...(opts.model ? ['--model', opts.model] : []),
       '--verbose',
       '--output-format',
       'stream-json',
       '-p',
-      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
-    );
+      prompt,
+    ];
+  }
 
-    return cmd;
+  override buildInteractiveCommand(prompt: string, opts: CommandOptions = {}): string[] {
+    const skipPermissions = Config.get('skipPermissions') ?? true;
+
+    return [
+      'claude',
+      ...(skipPermissions ? ['--dangerously-skip-permissions'] : []),
+      '--disallowedTools=TodoWrite,TaskCreate,TaskUpdate,TaskList,TaskGet',
+      ...(opts.model ? ['--model', opts.model] : []),
+      prompt,
+    ];
   }
 }

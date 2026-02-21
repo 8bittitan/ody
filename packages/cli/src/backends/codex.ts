@@ -1,20 +1,15 @@
-import path from 'path';
-
 import { Config } from '../lib/config';
-import { BASE_DIR, TASKS_DIR } from '../util/constants';
-import { Harness } from './harness';
+import { Harness, type CommandOptions } from './harness';
 
 export class Codex extends Harness {
   name = 'Codex';
   shouldCommit = Config.get('shouldCommit');
 
-  override buildCommand(prompt: string): string[] {
-    return [
-      'codex',
-      'exec',
-      '--full-auto',
-      ...(this.shouldCommit ? [] : ['--skip-git-repo-check']),
-      `@${path.join(BASE_DIR, TASKS_DIR)} ${prompt}`,
-    ];
+  override buildCommand(prompt: string, opts: CommandOptions = {}): string[] {
+    return ['codex', 'exec', '--yolo', ...(opts.model ? ['-m', opts.model] : []), prompt];
+  }
+
+  override buildInteractiveCommand(prompt: string, opts: CommandOptions = {}): string[] {
+    return ['codex', ...(opts.model ? ['-m', opts.model] : []), prompt];
   }
 }

@@ -150,12 +150,11 @@ List all pending tasks.
 
 ### `ody task edit`
 
-Edit an existing task plan interactively. Presents a selectable list of tasks and sends the chosen one to the AI backend for modification.
+Edit an existing task plan interactively. Presents a selectable list of tasks, then opens the configured backend harness in interactive/TUI mode with the selected task context and edit prompt preloaded.
 
 | Flag        | Alias | Description                           |
 | ----------- | ----- | ------------------------------------- |
 | `--dry-run` | `-d`  | Print prompt without sending to agent |
-| `--verbose` |       | Stream agent output                   |
 
 ### `ody task import`
 
@@ -215,7 +214,7 @@ Configuration lives in `.ody/ody.json` (per-project). A global config can also b
 | `maxIterations`     | number                                      | Max loop iterations (0 = unlimited)                           |
 | `shouldCommit`      | boolean                                     | Git-commit after each task                                    |
 | `validatorCommands` | string[]                                    | Shell commands to validate agent work                         |
-| `model`             | string \| `{ run?: string; plan?: string }` | Default model or per-command model overrides                  |
+| `model`             | string \| `{ run?: string; plan?: string; edit?: string }` | Default model or per-command model overrides                  |
 | `skipPermissions`   | boolean                                     | Skip Claude Code permission checks (default `true`)           |
 | `agent`             | string                                      | Backend agent profile/persona (default `"build"`)             |
 | `tasksDir`          | string                                      | Subdirectory under `.ody/` for task files (default `"tasks"`) |

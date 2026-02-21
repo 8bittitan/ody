@@ -1,5 +1,6 @@
-import { log } from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+
+import { log } from '@clack/prompts';
 import z, { ZodError } from 'zod';
 
 import { backendsSchema, Config } from '../config';
@@ -88,6 +89,7 @@ describe('Config', () => {
         model: {
           run: 'anthropic/claude-sonnet-4-20250514',
           plan: 'anthropic/claude-opus-4-6',
+          edit: 'anthropic/claude-haiku-4-5',
         },
       };
       const result = Config.parse(raw);
@@ -95,6 +97,7 @@ describe('Config', () => {
       expect(result.model).toEqual({
         run: 'anthropic/claude-sonnet-4-20250514',
         plan: 'anthropic/claude-opus-4-6',
+        edit: 'anthropic/claude-haiku-4-5',
       });
     });
 
@@ -107,6 +110,7 @@ describe('Config', () => {
 
       expect(Config.resolveModel('run', parsed)).toBe('anthropic/claude-opus-4-6');
       expect(Config.resolveModel('plan', parsed)).toBe('anthropic/claude-opus-4-6');
+      expect(Config.resolveModel('edit', parsed)).toBe('anthropic/claude-opus-4-6');
     });
 
     test('resolveModel returns undefined when no model is configured', () => {
@@ -117,6 +121,23 @@ describe('Config', () => {
 
       expect(Config.resolveModel('run', parsed)).toBeUndefined();
       expect(Config.resolveModel('plan', parsed)).toBeUndefined();
+      expect(Config.resolveModel('edit', parsed)).toBeUndefined();
+    });
+
+    test('resolveModel returns command-specific override for edit', () => {
+      const parsed = Config.parse({
+        backend: 'claude',
+        maxIterations: 1,
+        model: {
+          run: 'anthropic/claude-sonnet-4-20250514',
+          edit: 'anthropic/claude-opus-4-6',
+          plan: 'anthropic/claude-haiku-4',
+        },
+      });
+
+      expect(Config.resolveModel('run', parsed)).toBe('anthropic/claude-sonnet-4-20250514');
+      expect(Config.resolveModel('edit', parsed)).toBe('anthropic/claude-opus-4-6');
+      expect(Config.resolveModel('plan', parsed)).toBe('anthropic/claude-haiku-4');
     });
 
     test('agent field defaults to build when omitted', () => {
