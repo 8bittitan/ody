@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-02-20
-started: null
-completed: null
+started: 2026-02-21
+completed: 2026-02-21
 ---
 # Task: Opencode Model Selection via `opencode models` During Init
 

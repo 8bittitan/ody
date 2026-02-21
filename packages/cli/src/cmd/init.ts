@@ -1,3 +1,6 @@
+import { exists, mkdir } from 'fs/promises';
+import path from 'path';
+
 import {
   autocomplete,
   isCancel,
@@ -10,13 +13,36 @@ import {
   select,
 } from '@clack/prompts';
 import { defineCommand } from 'citty';
-import { exists, mkdir } from 'fs/promises';
-import path from 'path';
 
 import { getAvailableBackends } from '../backends/util';
 import { backendsSchema, Config, type OdyConfig } from '../lib/config';
 import { BASE_DIR, DOCS_WEBSITE_URL, ODY_FILE } from '../util/constants';
 import { getRandomValidatorPlaceholder } from '../util/inputPrompt';
+
+async function getOpencodeModels() {
+  try {
+    const proc = Bun.spawn(['opencode', 'models'], {
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    const stdoutBuffer = await Bun.readableStreamToArrayBuffer(proc.stdout);
+    const exitCode = await proc.exited;
+
+    if (exitCode !== 0) {
+      return [];
+    }
+
+    const output = new TextDecoder().decode(stdoutBuffer);
+
+    return output
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  } catch {
+    return [];
+  }
+}
 
 export const initCmd = defineCommand({
   meta: {
@@ -118,13 +144,44 @@ export const initCmd = defineCommand({
       let model = args.model;
 
       if (!model) {
-        model = (
-          await text({
-            message: 'You can choose a model to use for your backend',
-            placeholder: 'Leave blank to use default model set on backend',
-            defaultValue: '',
-          })
-        ).toString();
+        if (backend === 'opencode') {
+          const models = await getOpencodeModels();
+
+          if (models.length > 0) {
+            const modelChoice = await autocomplete({
+              message: 'Select a model to use with OpenCode',
+              placeholder: 'Type to search, leave blank for default',
+              options: [
+                { label: 'Default (backend decides)', value: '' },
+                ...models.map((m) => ({ label: m, value: m })),
+              ],
+            });
+
+            if (isCancel(modelChoice)) {
+              cancel('Model selection cancelled.');
+              process.exit(0);
+            }
+
+            model = modelChoice.toString();
+          } else {
+            log.warn('Could not load models from `opencode models`. Falling back to manual entry.');
+            model = (
+              await text({
+                message: 'You can choose a model to use for your backend',
+                placeholder: 'Leave blank to use default model set on backend',
+                defaultValue: '',
+              })
+            ).toString();
+          }
+        } else {
+          model = (
+            await text({
+              message: 'You can choose a model to use for your backend',
+              placeholder: 'Leave blank to use default model set on backend',
+              defaultValue: '',
+            })
+          ).toString();
+        }
       }
 
       if (model && model.trim() !== '') {
