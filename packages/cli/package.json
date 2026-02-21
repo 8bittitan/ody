@@ -26,10 +26,11 @@
     "build": "bun build --production --compile --outfile=./dist/ody ./src/index.ts",
     "gen:schema": "bun run ./scripts/schema.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bunx tsgo --noEmit"
   },
   "dependencies": {
     "@clack/prompts": "^1.0.1",
+    "@typescript/native-preview": "^7.0.0-dev.20260220.1",
     "citty": "^0.2.1",
     "consola": "^3.4.2",
     "xdg-basedir": "^5.1.0",

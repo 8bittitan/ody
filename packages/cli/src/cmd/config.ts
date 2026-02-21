@@ -1,4 +1,4 @@
-import { intro, log } from '@clack/prompts';
+import { intro, log, outro } from '@clack/prompts';
 import { defineCommand } from 'citty';
 
 import { Config } from '../lib/config';
@@ -9,11 +9,10 @@ export const configCmd = defineCommand({
     description: 'Display the current Ody configuration',
   },
   async run() {
-    let config;
-
-    config = Config.all();
+    const config = Config.all();
 
     intro('Ody configuration');
     log.message(JSON.stringify(config, null, 2));
+    outro();
   },
 });
