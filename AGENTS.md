@@ -178,3 +178,7 @@ Focus on Bun + TypeScript CLI tooling.
 - `bun lint` to validate lint.
 - `bun fmt` to normalize formatting.
 - `bun test path/to/file.test.ts` for a single test file (if tests exist).
+
+## MCPs
+
+When you need to search docs, use `context7` tools.
