@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { AgentRunner } from './AgentRunner';
 import { ArchiveViewer } from './ArchiveViewer';
 import { AuthPanel } from './AuthPanel';
+import { ConfigEditor } from './ConfigEditor';
 import { ConfigPanel } from './ConfigPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 import { InitWizard } from './InitWizard';
@@ -35,6 +36,10 @@ const VIEW_META: Record<ViewId, { title: string; subtitle: string }> = {
   plan: { title: 'Plan Operations', subtitle: 'Shape the next set of implementation steps.' },
   import: { title: 'Task Import', subtitle: 'Pull task files into the project workflow.' },
   config: { title: 'Configuration', subtitle: 'Adjust backend, limits, and validator commands.' },
+  'config-editor': {
+    title: 'Config Editor',
+    subtitle: 'Edit local .ody/ody.json directly with syntax highlighting.',
+  },
   auth: { title: 'Auth Management', subtitle: 'Manage provider credentials and profiles.' },
   archive: { title: 'Archive', subtitle: 'Inspect completed runs and historical results.' },
   editor: { title: 'Task Editor', subtitle: 'Edit and refine the selected task file.' },
@@ -55,6 +60,7 @@ export const Layout = () => {
   const { projects, activeProjectPath, isLoading, addProject, removeProject, switchProject } =
     useProjects();
   const isRunning = useStore((state) => state.isRunning);
+  const setConfigEditorPath = useStore((state) => state.setConfigEditorPath);
   const resetAgentState = useStore((state) => state.resetAgentState);
   const { loadConfig, config } = useConfig();
   const { loadTasks, setSelectedTaskPath } = useTasks();
@@ -377,6 +383,19 @@ export const Layout = () => {
                         <ConfigPanel
                           onOpenInitWizard={() => {
                             setShowInitWizard(true);
+                          }}
+                          onEditJson={(configPath) => {
+                            setConfigEditorPath(configPath);
+                            setActiveView('config-editor');
+                          }}
+                        />
+                      </ErrorBoundary>
+                    ) : activeView === 'config-editor' ? (
+                      <ErrorBoundary title="Config editor view error">
+                        <ConfigEditor
+                          onBack={() => {
+                            setConfigEditorPath(null);
+                            setActiveView('config');
                           }}
                         />
                       </ErrorBoundary>

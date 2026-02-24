@@ -15,13 +15,17 @@ type ConfigValidation = {
 
 export type ConfigSlice = {
   config: Record<string, unknown> | null;
+  localConfigPath: string | null;
+  configEditorPath: string | null;
   layers: ConfigLayers;
   validation: ConfigValidation;
   isLoadingConfig: boolean;
   setConfigData: (payload: {
     config: Record<string, unknown> | null;
+    localConfigPath: string | null;
     layers: ConfigLayers;
   }) => void;
+  setConfigEditorPath: (path: string | null) => void;
   setConfigLoading: (isLoading: boolean) => void;
   setValidation: (validation: ConfigValidation) => void;
   resetGuiOverridesState: () => void;
@@ -29,6 +33,8 @@ export type ConfigSlice = {
 
 export const createConfigSlice: StateCreator<AppStore, [], [], ConfigSlice> = (set) => ({
   config: null,
+  localConfigPath: null,
+  configEditorPath: null,
   layers: {
     gui: null,
     local: null,
@@ -36,11 +42,13 @@ export const createConfigSlice: StateCreator<AppStore, [], [], ConfigSlice> = (s
   },
   validation: null,
   isLoadingConfig: false,
-  setConfigData: ({ config, layers }) =>
+  setConfigData: ({ config, localConfigPath, layers }) =>
     set({
       config,
+      localConfigPath,
       layers,
     }),
+  setConfigEditorPath: (configEditorPath) => set({ configEditorPath }),
   setConfigLoading: (isLoadingConfig) => set({ isLoadingConfig }),
   setValidation: (validation) => set({ validation }),
   resetGuiOverridesState: () =>

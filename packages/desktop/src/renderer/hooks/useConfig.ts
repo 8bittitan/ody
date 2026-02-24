@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 
 export const useConfig = () => {
   const config = useStore((state) => state.config);
+  const localConfigPath = useStore((state) => state.localConfigPath);
   const layers = useStore((state) => state.layers);
   const validation = useStore((state) => state.validation);
   const isLoading = useStore((state) => state.isLoadingConfig);
@@ -18,7 +19,11 @@ export const useConfig = () => {
 
     try {
       const result = await api.config.load();
-      setConfigData({ config: result.merged, layers: result.layers });
+      setConfigData({
+        config: result.merged,
+        localConfigPath: result.localConfigPath,
+        layers: result.layers,
+      });
       return result;
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unable to load configuration';
@@ -89,6 +94,7 @@ export const useConfig = () => {
 
   return {
     config,
+    localConfigPath,
     layers,
     validation,
     isLoading,

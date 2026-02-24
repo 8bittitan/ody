@@ -34,3 +34,5 @@
 2026-02-23: Completed task board column scroll areas using a new Base UI ScrollArea wrapper with styled vertical scrollbars, preserving card spacing and full-height column layout; lint/fmt/typecheck passing.
 2026-02-23: Completed backend PATH detection hardening by removing shell-based which/where checks, adding cross-platform in-process executable lookup (including PATHEXT support), and passing lint/fmt/typecheck.
 2026-02-23: Completed tabs active-indicator polish by strengthening default active contrast, upgrading line variant primary underline/sideline thickness for both orientations, and passing lint/fmt/typecheck.
+2026-02-24: Re-implemented desktop Config panel with layered source badges and full edit/save/reset flows, tightened Init Wizard backend detection + Claude-only permission toggle, and passing lint/fmt/typecheck.
+2026-02-24: Added Config "Edit as JSON" flow with a dedicated JSON CodeMirror editor view, local config path wiring, save-time JSON validation, and passing lint/fmt/typecheck.

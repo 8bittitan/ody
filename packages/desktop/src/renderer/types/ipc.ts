@@ -73,6 +73,7 @@ export type GitHubImportIssue = {
 
 export type ConfigLoadResult = {
   merged: Record<string, unknown> | null;
+  localConfigPath: string | null;
   layers: {
     gui: Record<string, unknown> | null;
     local: Record<string, unknown> | null;

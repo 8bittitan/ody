@@ -12,6 +12,8 @@ type EditorToolbarProps = {
   onRedo: () => void;
   onAiEdit: () => void;
   onOpenTerminal: () => void;
+  showAiEdit?: boolean;
+  showOpenTerminal?: boolean;
 };
 
 export const EditorToolbar = ({
@@ -26,6 +28,8 @@ export const EditorToolbar = ({
   onRedo,
   onAiEdit,
   onOpenTerminal,
+  showAiEdit = true,
+  showOpenTerminal = true,
 }: EditorToolbarProps) => {
   return (
     <header className="bg-panel border-edge flex items-center justify-between gap-3 rounded-md border px-3 py-2">
@@ -72,22 +76,26 @@ export const EditorToolbar = ({
         >
           Redo
         </button>
-        <button
-          type="button"
-          onClick={onAiEdit}
-          className="text-mid hover:text-light hover:bg-background border-edge inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
-        >
-          <WandSparkles className="size-3.5" />
-          AI Edit
-        </button>
-        <button
-          type="button"
-          onClick={onOpenTerminal}
-          className="text-mid hover:text-light hover:bg-background border-edge inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
-        >
-          <TerminalSquare className="size-3.5" />
-          Open in Terminal
-        </button>
+        {showAiEdit ? (
+          <button
+            type="button"
+            onClick={onAiEdit}
+            className="text-mid hover:text-light hover:bg-background border-edge inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
+          >
+            <WandSparkles className="size-3.5" />
+            AI Edit
+          </button>
+        ) : null}
+        {showOpenTerminal ? (
+          <button
+            type="button"
+            onClick={onOpenTerminal}
+            className="text-mid hover:text-light hover:bg-background border-edge inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs"
+          >
+            <TerminalSquare className="size-3.5" />
+            Open in Terminal
+          </button>
+        ) : null}
       </div>
     </header>
   );

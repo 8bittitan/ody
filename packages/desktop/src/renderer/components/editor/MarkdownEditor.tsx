@@ -1,4 +1,5 @@
 import { redo, redoDepth, undo, undoDepth } from '@codemirror/commands';
+import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { Compartment, EditorState, RangeSetBuilder } from '@codemirror/state';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -14,6 +15,7 @@ type SelectionRange = {
 type MarkdownEditorProps = {
   value: string;
   onChange: (nextValue: string) => void;
+  language?: 'markdown' | 'json';
   readOnly?: boolean;
   highlightedRange?: SelectionRange | null;
   onInlinePrompt?: (selection: SelectionRange | null) => void;
@@ -63,7 +65,15 @@ const artDecoTheme = EditorView.theme({
 
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
   (
-    { value, onChange, readOnly = false, highlightedRange = null, onInlinePrompt, onHistoryChange },
+    {
+      value,
+      onChange,
+      language = 'markdown',
+      readOnly = false,
+      highlightedRange = null,
+      onInlinePrompt,
+      onHistoryChange,
+    },
     ref,
   ) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -138,7 +148,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         doc: value,
         extensions: [
           basicSetup,
-          markdown(),
+          language === 'json' ? json() : markdown(),
           oneDark,
           artDecoTheme,
           EditorView.lineWrapping,
@@ -180,7 +190,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         view.destroy();
         viewRef.current = null;
       };
-    }, [onChange, readOnly, value]);
+    }, [language, onChange, readOnly, value]);
 
     useEffect(() => {
       if (!viewRef.current) {

@@ -49,10 +49,17 @@ export const InitWizard = ({ open, onOpenChange, onInitialized }: InitWizardProp
     });
   }, [open]);
 
-  const backendOptions = useMemo(
-    () => (availableBackends.length > 0 ? availableBackends : ['opencode', 'claude', 'codex']),
-    [availableBackends],
-  );
+  const backendOptions = useMemo(() => availableBackends, [availableBackends]);
+
+  useEffect(() => {
+    if (backendOptions.length === 0) {
+      return;
+    }
+
+    if (!backendOptions.includes(form.backend)) {
+      setForm((prev) => ({ ...prev, backend: backendOptions[0] ?? prev.backend }));
+    }
+  }, [backendOptions, form.backend]);
 
   const preview = JSON.stringify(toConfigPayload(form), null, 2);
 
@@ -73,6 +80,11 @@ export const InitWizard = ({ open, onOpenChange, onInitialized }: InitWizardProp
     setIsSubmitting(true);
 
     try {
+      if (backendOptions.length === 0) {
+        setIssues(['No supported backends were detected on this machine.']);
+        return;
+      }
+
       const payload = toConfigPayload(form);
       const result = await validateConfig(payload);
       if (!result.valid) {
@@ -121,6 +133,12 @@ export const InitWizard = ({ open, onOpenChange, onInitialized }: InitWizardProp
             </Select>
           </label>
 
+          {backendOptions.length === 0 ? (
+            <p className="text-red text-xs">
+              No supported backends were detected. Install one backend binary before continuing.
+            </p>
+          ) : null}
+
           <div className="grid gap-3 md:grid-cols-2">
             <label className="block space-y-1">
               <span className="text-light text-sm">Max Iterations</span>
@@ -156,15 +174,23 @@ export const InitWizard = ({ open, onOpenChange, onInitialized }: InitWizardProp
               />
             </label>
 
-            <label className="bg-background/40 border-edge flex items-center justify-between rounded-md border px-3 py-2">
-              <span className="text-light text-sm">Skip Permissions</span>
-              <Switch
-                checked={form.skipPermissions}
-                onCheckedChange={(checked) => {
-                  setForm((prev) => ({ ...prev, skipPermissions: checked }));
-                }}
-              />
-            </label>
+            {form.backend === 'claude' ? (
+              <label className="bg-background/40 border-edge flex items-center justify-between rounded-md border px-3 py-2">
+                <span className="text-light text-sm">Skip Permissions</span>
+                <Switch
+                  checked={form.skipPermissions}
+                  onCheckedChange={(checked) => {
+                    setForm((prev) => ({ ...prev, skipPermissions: checked }));
+                  }}
+                />
+              </label>
+            ) : (
+              <div className="bg-background/25 border-edge rounded-md border px-3 py-2 text-xs">
+                <p className="text-mid">
+                  Skip Permissions is only available for the Claude backend.
+                </p>
+              </div>
+            )}
           </div>
 
           <label className="block space-y-1">
@@ -378,7 +404,7 @@ export const InitWizard = ({ open, onOpenChange, onInitialized }: InitWizardProp
             Cancel
           </Button>
           <Button
-            disabled={isSubmitting}
+            disabled={isSubmitting || backendOptions.length === 0}
             onClick={() => {
               void submit();
             }}

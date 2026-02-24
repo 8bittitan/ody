@@ -394,6 +394,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     if (!hasAnyLayer) {
       return {
         merged: null,
+        localConfigPath,
         layers: {
           gui: guiLayer,
           local: localLayer,
@@ -405,6 +406,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     try {
       return {
         merged: Config.parse(mergedRaw),
+        localConfigPath,
         layers: {
           gui: guiLayer,
           local: localLayer,
@@ -414,6 +416,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     } catch {
       return {
         merged: null,
+        localConfigPath,
         layers: {
           gui: guiLayer,
           local: localLayer,

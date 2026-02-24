@@ -14,7 +14,16 @@ type Project = {
   name: string;
 };
 
-export type ViewId = 'tasks' | 'run' | 'plan' | 'import' | 'config' | 'auth' | 'archive' | 'editor';
+export type ViewId =
+  | 'tasks'
+  | 'run'
+  | 'plan'
+  | 'import'
+  | 'config'
+  | 'config-editor'
+  | 'auth'
+  | 'archive'
+  | 'editor';
 
 type SidebarProps = {
   projects: Project[];
