@@ -160,19 +160,19 @@ export { createSequencer } from './sequencer';
 
 #### Config Schema (Complete)
 
-| Field               | Type                                                  | Default   | Required | Description                                            |
-| ------------------- | ----------------------------------------------------- | --------- | -------- | ------------------------------------------------------ |
-| `backend`           | `'opencode' \| 'claude' \| 'codex'`                  | --        | yes      | Backend harness                                        |
-| `maxIterations`     | `number` (int, >= 0)                                  | --        | yes      | Max loop iterations (0 = infinite)                     |
-| `shouldCommit`      | `boolean`                                             | `false`   | no       | Generate commit after each iteration                   |
-| `validatorCommands` | `string[]`                                            | `[]`      | no       | Shell commands for validation                          |
-| `model`             | `string \| { run: string; plan: string; edit: string}` | --        | no       | Model for the backend (string or per-command object)   |
-| `skipPermissions`   | `boolean`                                             | `true`    | no       | Skip Claude Code permission checks                     |
-| `agent`             | `string` (nonempty)                                   | `'build'` | no       | Harness agent profile/persona                          |
-| `tasksDir`          | `string` (nonempty)                                   | `'tasks'` | no       | Custom path for tasks directory                        |
-| `notify`            | `boolean \| 'all' \| 'individual'`                    | `false`   | no       | OS notification preference                             |
-| `jira`              | `{ baseUrl: url; profile?: string }`                  | --        | no       | Jira integration settings                              |
-| `github`            | `{ profile?: string }`                                | --        | no       | GitHub integration settings                            |
+| Field               | Type                                                   | Default   | Required | Description                                          |
+| ------------------- | ------------------------------------------------------ | --------- | -------- | ---------------------------------------------------- |
+| `backend`           | `'opencode' \| 'claude' \| 'codex'`                    | --        | yes      | Backend harness                                      |
+| `maxIterations`     | `number` (int, >= 0)                                   | --        | yes      | Max loop iterations (0 = infinite)                   |
+| `shouldCommit`      | `boolean`                                              | `false`   | no       | Generate commit after each iteration                 |
+| `validatorCommands` | `string[]`                                             | `[]`      | no       | Shell commands for validation                        |
+| `model`             | `string \| { run: string; plan: string; edit: string}` | --        | no       | Model for the backend (string or per-command object) |
+| `skipPermissions`   | `boolean`                                              | `true`    | no       | Skip Claude Code permission checks                   |
+| `agent`             | `string` (nonempty)                                    | `'build'` | no       | Harness agent profile/persona                        |
+| `tasksDir`          | `string` (nonempty)                                    | `'tasks'` | no       | Custom path for tasks directory                      |
+| `notify`            | `boolean \| 'all' \| 'individual'`                     | `false`   | no       | OS notification preference                           |
+| `jira`              | `{ baseUrl: url; profile?: string }`                   | --        | no       | Jira integration settings                            |
+| `github`            | `{ profile?: string }`                                 | --        | no       | GitHub integration settings                          |
 
 `Config.Schema` is a strict variant of the schema with `.describe()` annotations and `.strict()` mode, plus an optional `$schema` field. It is used for JSON schema generation (exported to docs).
 
@@ -205,14 +205,14 @@ Backend harness abstraction, concrete implementations, and backend detection.
 
 #### What Gets Extracted
 
-| Current Location       | Internal Module    | Changes Needed                                                                                                         |
-| ---------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `backends/harness.ts`  | `harness.ts`       | None -- already pure types.                                                                                            |
-| `backends/backend.ts`  | `backend.ts`       | None -- pure factory.                                                                                                  |
-| `backends/claude.ts`   | `claude.ts`        | None -- pure data transformation.                                                                                      |
-| `backends/opencode.ts` | `opencode.ts`      | None -- pure data transformation.                                                                                      |
-| `backends/codex.ts`    | `codex.ts`         | None -- pure data transformation.                                                                                      |
-| `backends/util.ts`     | `util.ts`          | Replace `Bun.which()` with a runtime-agnostic helper (fallback to Node's `child_process.execSync('which ...')` or `where` on Windows). |
+| Current Location       | Internal Module | Changes Needed                                                                                                                         |
+| ---------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `backends/harness.ts`  | `harness.ts`    | None -- already pure types.                                                                                                            |
+| `backends/backend.ts`  | `backend.ts`    | None -- pure factory.                                                                                                                  |
+| `backends/claude.ts`   | `claude.ts`     | None -- pure data transformation.                                                                                                      |
+| `backends/opencode.ts` | `opencode.ts`   | None -- pure data transformation.                                                                                                      |
+| `backends/codex.ts`    | `codex.ts`      | None -- pure data transformation.                                                                                                      |
+| `backends/util.ts`     | `util.ts`       | Replace `Bun.which()` with a runtime-agnostic helper (fallback to Node's `child_process.execSync('which ...')` or `where` on Windows). |
 
 #### API Surface
 
@@ -234,11 +234,11 @@ Each backend has two command-building methods:
 
 Backend-specific details:
 
-| Backend    | Non-Interactive (`buildCommand`)                                                                                             | Interactive (`buildInteractiveCommand`)                              |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **Claude** | `claude --dangerously-skip-permissions --disallowedTools=TodoWrite,... --model M --verbose --output-format stream-json -p P` | `claude --dangerously-skip-permissions --disallowedTools=... --model M P` (no `-p`, no `--verbose`, no `--output-format`) |
-| **Opencode** | `opencode --agent A -m M run P`                                                                                           | `opencode --agent A -m M --prompt P` (uses `--prompt` instead of `run`) |
-| **Codex**  | `codex exec --yolo -m M P`                                                                                                  | `codex -m M P` (no `exec`, no `--yolo`)                             |
+| Backend      | Non-Interactive (`buildCommand`)                                                                                             | Interactive (`buildInteractiveCommand`)                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Claude**   | `claude --dangerously-skip-permissions --disallowedTools=TodoWrite,... --model M --verbose --output-format stream-json -p P` | `claude --dangerously-skip-permissions --disallowedTools=... --model M P` (no `-p`, no `--verbose`, no `--output-format`) |
+| **Opencode** | `opencode --agent A -m M run P`                                                                                              | `opencode --agent A -m M --prompt P` (uses `--prompt` instead of `run`)                                                   |
+| **Codex**    | `codex exec --yolo -m M P`                                                                                                   | `codex -m M P` (no `exec`, no `--yolo`)                                                                                   |
 
 ---
 
@@ -248,14 +248,14 @@ All prompt template builders for run, plan, edit, import, and inline edit operat
 
 #### What Gets Extracted
 
-| Current Location             | Internal Module                | Changes Needed                                                                                                                                                                         |
-| ---------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `builders/shared.ts`         | `shared.ts`                    | None -- pure constant (`TASK_FILE_FORMAT`).                                                                                                                                            |
-| `builders/runPrompt.ts`      | `runPrompt.ts`                 | None -- pure string templates.                                                                                                                                                         |
-| `builders/planPrompt.ts`     | `planPrompt.ts`                | None -- pure string templates. Includes both `buildPlanPrompt` and `buildBatchPlanPrompt`.                                                                                             |
-| `builders/editPlanPrompt.ts` | `editPlanPrompt.ts`            | None -- pure string templates.                                                                                                                                                         |
-| `builders/importPrompt.ts`   | `importPrompt.ts`              | None -- pure string templates. Builds prompts from Jira ticket or GitHub issue data.                                                                                                   |
-| _(new)_                      | `inlineEditPrompt.ts`          | New builder for the desktop editor's Cmd+K AI edit flow. Takes file content, optional selection range, and user instruction. Instructs the agent to output the complete modified file.  |
+| Current Location             | Internal Module       | Changes Needed                                                                                                                                                                         |
+| ---------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `builders/shared.ts`         | `shared.ts`           | None -- pure constant (`TASK_FILE_FORMAT`).                                                                                                                                            |
+| `builders/runPrompt.ts`      | `runPrompt.ts`        | None -- pure string templates.                                                                                                                                                         |
+| `builders/planPrompt.ts`     | `planPrompt.ts`       | None -- pure string templates. Includes both `buildPlanPrompt` and `buildBatchPlanPrompt`.                                                                                             |
+| `builders/editPlanPrompt.ts` | `editPlanPrompt.ts`   | None -- pure string templates.                                                                                                                                                         |
+| `builders/importPrompt.ts`   | `importPrompt.ts`     | None -- pure string templates. Builds prompts from Jira ticket or GitHub issue data.                                                                                                   |
+| _(new)_                      | `inlineEditPrompt.ts` | New builder for the desktop editor's Cmd+K AI edit flow. Takes file content, optional selection range, and user instruction. Instructs the agent to output the complete modified file. |
 
 #### API Surface
 
@@ -298,6 +298,7 @@ export { TASK_FILE_FORMAT } from './shared';
 **`buildEditPlanPrompt({ filePath })`** -- Interactive session for editing an existing task plan in place. Preserves YAML frontmatter and all required sections.
 
 **`buildImportPrompt({ data, source })`** -- Two variants based on `source`:
+
 - `'jira'`: Maps Jira ticket summary to task name, description/comments to sections, ticket key to labels, priority to complexity.
 - `'github'`: Maps GitHub issue title to task name, body/comments to sections, issue reference to labels, issue labels to complexity.
 
@@ -311,10 +312,10 @@ Task file utilities for parsing, listing, filtering, and status management.
 
 #### What Gets Extracted
 
-| Current Location | Internal Module | Changes Needed                                                                                               |
-| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
+| Current Location | Internal Module | Changes Needed                                                                                                                                                 |
+| ---------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `util/task.ts`   | `task.ts`       | Replace `Bun.Glob` with a Node-compatible glob (e.g., `fast-glob` or `node:fs` + manual filtering). Replace `Bun.file().text()` with `fs/promises.readFile()`. |
-| `types/task.ts`  | `types.ts`      | None -- pure types.                                                                                          |
+| `types/task.ts`  | `types.ts`      | None -- pure types.                                                                                                                                            |
 
 #### API Surface
 
@@ -343,18 +344,18 @@ export type { CompletedTask } from './types';
 
 #### Function Details
 
-| Function | Purpose |
-| --- | --- |
-| `resolveTasksDir(tasksDir?)` | Resolves full tasks directory path (`BASE_DIR/tasksDir` or from config) |
-| `parseFrontmatter(content)` | Parses YAML-like frontmatter between `---` delimiters into key-value pairs |
-| `parseTitle(content)` | Extracts `# Task: ...` heading, returns `'Untitled'` if not found |
-| `parseDescription(content)` | Extracts `## Description` section, condenses to 2-3 sentences (max 200 chars) |
-| `getTaskFilesByLabel(label, tasksDir?)` | Reads all task files, filters by `**Labels**: ...` pattern (case-insensitive) |
-| `getTaskFilesInDir(tasksDir)` | Scans directory for `*.code-task.md` files, returns sorted filenames |
-| `getTaskFilesInTasksDir(tasksDir?)` | Delegates to `getTaskFilesInDir` with resolved path |
-| `getTaskStatus(taskFilePath)` | Reads file, parses frontmatter, returns status field |
-| `getTaskStates(taskFiles?, tasksDir?)` | Gets status for each task file with bounded concurrency |
-| `mapWithConcurrency(items, concurrency, mapper)` | Runs async mapper over items with bounded concurrency, preserves order |
+| Function                                         | Purpose                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `resolveTasksDir(tasksDir?)`                     | Resolves full tasks directory path (`BASE_DIR/tasksDir` or from config)       |
+| `parseFrontmatter(content)`                      | Parses YAML-like frontmatter between `---` delimiters into key-value pairs    |
+| `parseTitle(content)`                            | Extracts `# Task: ...` heading, returns `'Untitled'` if not found             |
+| `parseDescription(content)`                      | Extracts `## Description` section, condenses to 2-3 sentences (max 200 chars) |
+| `getTaskFilesByLabel(label, tasksDir?)`          | Reads all task files, filters by `**Labels**: ...` pattern (case-insensitive) |
+| `getTaskFilesInDir(tasksDir)`                    | Scans directory for `*.code-task.md` files, returns sorted filenames          |
+| `getTaskFilesInTasksDir(tasksDir?)`              | Delegates to `getTaskFilesInDir` with resolved path                           |
+| `getTaskStatus(taskFilePath)`                    | Reads file, parses frontmatter, returns status field                          |
+| `getTaskStates(taskFiles?, tasksDir?)`           | Gets status for each task file with bounded concurrency                       |
+| `mapWithConcurrency(items, concurrency, mapper)` | Runs async mapper over items with bounded concurrency, preserves order        |
 
 ---
 
@@ -364,8 +365,8 @@ Credential store for Jira and GitHub authentication, managed by named profiles.
 
 #### What Gets Extracted
 
-| Current Location | Internal Module | Changes Needed                                                                                              |
-| ---------------- | --------------- | ----------------------------------------------------------------------------------------------------------- |
+| Current Location | Internal Module | Changes Needed                                                                                          |
+| ---------------- | --------------- | ------------------------------------------------------------------------------------------------------- |
 | `lib/auth.ts`    | `auth.ts`       | Replace `Bun.write`/`Bun.file` with `node:fs/promises`. Replace `Bun.spawn` chmod with `node:fs.chmod`. |
 
 #### API Surface
@@ -379,15 +380,15 @@ export type { JiraCredentials, GitHubCredentials, AuthStore } from './auth';
 
 #### Auth Namespace Members
 
-| Member | Purpose |
-| --- | --- |
-| `Auth.resolveAuthPath()` | Returns `$XDG_DATA_HOME/ody/auth.json` or `~/.local/share/ody/auth.json` |
-| `Auth.load()` | Reads and parses `auth.json`, returns empty object if not found |
-| `Auth.save(store)` | Creates dir, writes JSON, sets chmod `0o600` for security |
-| `Auth.getJira(profile?)` | Returns Jira credentials for a profile (default: `'default'`) |
-| `Auth.setJira(profile, credentials)` | Saves Jira email + API token under a named profile |
-| `Auth.getGitHub(profile?)` | Returns GitHub credentials for a profile (default: `'default'`) |
-| `Auth.setGitHub(profile, credentials)` | Saves GitHub personal access token under a named profile |
+| Member                                 | Purpose                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `Auth.resolveAuthPath()`               | Returns `$XDG_DATA_HOME/ody/auth.json` or `~/.local/share/ody/auth.json` |
+| `Auth.load()`                          | Reads and parses `auth.json`, returns empty object if not found          |
+| `Auth.save(store)`                     | Creates dir, writes JSON, sets chmod `0o600` for security                |
+| `Auth.getJira(profile?)`               | Returns Jira credentials for a profile (default: `'default'`)            |
+| `Auth.setJira(profile, credentials)`   | Saves Jira email + API token under a named profile                       |
+| `Auth.getGitHub(profile?)`             | Returns GitHub credentials for a profile (default: `'default'`)          |
+| `Auth.setGitHub(profile, credentials)` | Saves GitHub personal access token under a named profile                 |
 
 Credential types:
 
@@ -448,23 +449,24 @@ export { Http } from './http';
 
 #### Jira Namespace Members
 
-| Member | Purpose |
-| --- | --- |
+| Member                                   | Purpose                                                                                                  |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `Jira.parseInput(input, configBaseUrl?)` | Parses URL (`/browse/PROJ-123`) or bare ticket key (`PROJ-123`). Requires `configBaseUrl` for bare keys. |
-| `Jira.fetchTicket(baseUrl, key, auth?)` | Calls Jira REST API v3. Uses Basic auth (email + API token). Retries with 6s timeout, 2 retries. |
-| `Jira.formatAsDescription(ticket)` | Formats ticket data as a multiline text block for prompt consumption. |
+| `Jira.fetchTicket(baseUrl, key, auth?)`  | Calls Jira REST API v3. Uses Basic auth (email + API token). Retries with 6s timeout, 2 retries.         |
+| `Jira.formatAsDescription(ticket)`       | Formats ticket data as a multiline text block for prompt consumption.                                    |
 
 #### GitHub Namespace Members
 
-| Member | Purpose |
-| --- | --- |
-| `GitHub.parseInput(input)` | Parses full URL (`https://github.com/owner/repo/issues/N`) or shorthand (`owner/repo#N`). |
+| Member                                           | Purpose                                                                                                    |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `GitHub.parseInput(input)`                       | Parses full URL (`https://github.com/owner/repo/issues/N`) or shorthand (`owner/repo#N`).                  |
 | `GitHub.fetchIssue(owner, repo, number, token?)` | Calls GitHub API v3. Fetches issue + comments. Uses Bearer token auth. Retries with 6s timeout, 2 retries. |
-| `GitHub.formatAsDescription(issue, owner, repo)` | Formats issue data as a multiline text block for prompt consumption. |
+| `GitHub.formatAsDescription(issue, owner, repo)` | Formats issue data as a multiline text block for prompt consumption.                                       |
 
 #### HTTP Retry Utilities
 
 `Http.fetchWithRetry(input, init?, options?)` wraps `fetch` with:
+
 - Configurable timeout via `AbortController` (default 5s)
 - Retry on 408, 429, 5xx status codes
 - Retry on `TypeError`, `AbortError`, and timeout errors
@@ -494,19 +496,19 @@ export { Http } from './http';
 
 ### Technology Choices
 
-| Concern            | Choice                                                 | Rationale                                                                                                                                                                  |
-| ------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework          | Electron                                               | Per the plan's scope; team is JS/TS.                                                                                                                                       |
-| Build tooling      | Electron Forge + Vite                                  | Modern, fast bundling. Forge handles packaging/signing.                                                                                                                    |
-| Frontend framework | React                                                  | Component model maps well to the multi-panel UI. Wide ecosystem.                                                                                                           |
-| Component library  | shadcn/ui                                              | Accessible, composable React components built on Radix UI primitives. Installed on-demand via CLI (`npx shadcn add`). Styled via CSS variables, fully compatible with Tailwind v4 and the Art Deco design system. Not a dependency -- components are copied into the project and owned by the team. |
-| State management   | Zustand                                                | Lightweight, works well with React. No boilerplate.                                                                                                                        |
-| Terminal emulation | xterm.js                                               | Standard for embedded terminals. Needed for `--once` equivalent (PTY mode).                                                                                                |
-| Code editor        | CodeMirror 6                                           | Lightweight (~130KB), excellent markdown support, extensible. Used by Obsidian, Replit. `@codemirror/merge` provides built-in diff view.                                   |
-| Styling            | Tailwind CSS v4                                        | Utility-first, fast iteration, good for data-dense UIs. v4 uses CSS-first configuration via `@theme` directive -- no `tailwind.config.js`. Integrated via `@tailwindcss/vite` plugin instead of PostCSS. |
-| Animation          | tw-animate-css                                         | shadcn's recommended CSS animation utility for Tailwind v4. Provides ready-made animation classes for entrances, exits, and transitions used by shadcn components.         |
+| Concern            | Choice                                                 | Rationale                                                                                                                                                                                                                                                                                                                                          |
+| ------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework          | Electron                                               | Per the plan's scope; team is JS/TS.                                                                                                                                                                                                                                                                                                               |
+| Build tooling      | Electron Forge + Vite                                  | Modern, fast bundling. Forge handles packaging/signing.                                                                                                                                                                                                                                                                                            |
+| Frontend framework | React                                                  | Component model maps well to the multi-panel UI. Wide ecosystem.                                                                                                                                                                                                                                                                                   |
+| Component library  | shadcn/ui                                              | Accessible, composable React components built on Radix UI primitives. Installed on-demand via CLI (`npx shadcn add`). Styled via CSS variables, fully compatible with Tailwind v4 and the Art Deco design system. Not a dependency -- components are copied into the project and owned by the team.                                                |
+| State management   | Zustand                                                | Lightweight, works well with React. No boilerplate.                                                                                                                                                                                                                                                                                                |
+| Terminal emulation | xterm.js                                               | Standard for embedded terminals. Needed for `--once` equivalent (PTY mode).                                                                                                                                                                                                                                                                        |
+| Code editor        | CodeMirror 6                                           | Lightweight (~130KB), excellent markdown support, extensible. Used by Obsidian, Replit. `@codemirror/merge` provides built-in diff view.                                                                                                                                                                                                           |
+| Styling            | Tailwind CSS v4                                        | Utility-first, fast iteration, good for data-dense UIs. v4 uses CSS-first configuration via `@theme` directive -- no `tailwind.config.js`. Integrated via `@tailwindcss/vite` plugin instead of PostCSS.                                                                                                                                           |
+| Animation          | tw-animate-css                                         | shadcn's recommended CSS animation utility for Tailwind v4. Provides ready-made animation classes for entrances, exits, and transitions used by shadcn components.                                                                                                                                                                                 |
 | Theming            | Light + Dark, OS default                               | Follow OS preference via `nativeTheme.shouldUseDarkColors`. User can override in settings. Dark mode via `@custom-variant dark (&:is(.dark *))` (Tailwind v4 class-based pattern). shadcn CSS variable convention (`:root` / `.dark` blocks) with `@theme inline` bridge to Tailwind utilities. CSS custom properties for CodeMirror/xterm themes. |
-| IPC layer          | Electron `ipcMain` / `ipcRenderer` via `contextBridge` | Standard secure pattern. Preload script exposes typed API.                                                                                                                 |
+| IPC layer          | Electron `ipcMain` / `ipcRenderer` via `contextBridge` | Standard secure pattern. Preload script exposes typed API.                                                                                                                                                                                                                                                                                         |
 
 ### Directory Structure
 
@@ -601,40 +603,40 @@ packages/desktop/
 
 ### `ody init` -> Init Wizard Panel
 
-| CLI Behavior                              | Desktop Equivalent                                                                        |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `@clack/prompts` autocomplete for backend | Dropdown/combobox with detected backends                                                  |
-| Text input for model                      | Text input field (with auto-detect button for opencode -- fetches available models via subprocess) |
-| Per-command model object `{ run, plan, edit }` | Toggle between "Single model" and "Per-command" mode; per-command shows three text inputs |
-| Text input for agent profile (default "build") | Text input with default value                                                          |
-| Confirm + loop for validator commands     | Dynamic list builder (add/remove/reorder)                                                 |
-| `skipPermissions` toggle for Claude       | Checkbox (shown only when Claude is the selected backend)                                 |
-| `tasksDir` (default "tasks")              | Text input with default value                                                             |
-| Notification preference select            | Radio group (Disabled / On completion / Per iteration)                                    |
-| Jira config (`baseUrl`, `profile`)        | Jira section: URL input for base URL, dropdown for auth profile                           |
-| GitHub config (`profile`)                 | GitHub section: dropdown for auth profile                                                 |
-| `--dry-run` prints config                 | "Preview" button shows JSON before saving                                                 |
-| Writes `.ody/ody.json`                    | Same -- writes via main process IPC                                                       |
+| CLI Behavior                                   | Desktop Equivalent                                                                                 |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `@clack/prompts` autocomplete for backend      | Dropdown/combobox with detected backends                                                           |
+| Text input for model                           | Text input field (with auto-detect button for opencode -- fetches available models via subprocess) |
+| Per-command model object `{ run, plan, edit }` | Toggle between "Single model" and "Per-command" mode; per-command shows three text inputs          |
+| Text input for agent profile (default "build") | Text input with default value                                                                      |
+| Confirm + loop for validator commands          | Dynamic list builder (add/remove/reorder)                                                          |
+| `skipPermissions` toggle for Claude            | Checkbox (shown only when Claude is the selected backend)                                          |
+| `tasksDir` (default "tasks")                   | Text input with default value                                                                      |
+| Notification preference select                 | Radio group (Disabled / On completion / Per iteration)                                             |
+| Jira config (`baseUrl`, `profile`)             | Jira section: URL input for base URL, dropdown for auth profile                                    |
+| GitHub config (`profile`)                      | GitHub section: dropdown for auth profile                                                          |
+| `--dry-run` prints config                      | "Preview" button shows JSON before saving                                                          |
+| Writes `.ody/ody.json`                         | Same -- writes via main process IPC                                                                |
 
 **UI:** A stepped wizard dialog (or a single form panel) within the main window. Accessed from sidebar or on first launch if no config exists. The wizard's backend selector only shows detected backends (from `getAvailableBackends()`). Integration sections (Jira/GitHub) are collapsible and optional.
 
 ### `ody run` -> Agent Runner Panel
 
-| CLI Behavior                      | Desktop Equivalent                                             |
-| --------------------------------- | -------------------------------------------------------------- |
-| Spinner with iteration count      | Progress bar + iteration counter in UI                         |
-| `--verbose` streams output        | Always-visible output panel (collapsible). Scrolling log view. |
-| `--once` PTY mode                 | Embedded terminal (xterm.js + node-pty) in a tab/panel         |
-| `<woof>COMPLETE</woof>` detection | Same logic in main process; sends `agent:complete` IPC event   |
-| Ambiguous marker detection        | Warning banner in output panel if partial `<woof>` tags found without exact match |
+| CLI Behavior                      | Desktop Equivalent                                                                                                                                              |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spinner with iteration count      | Progress bar + iteration counter in UI                                                                                                                          |
+| `--verbose` streams output        | Always-visible output panel (collapsible). Scrolling log view.                                                                                                  |
+| `--once` PTY mode                 | Embedded terminal (xterm.js + node-pty) in a tab/panel                                                                                                          |
+| `<woof>COMPLETE</woof>` detection | Same logic in main process; sends `agent:complete` IPC event                                                                                                    |
+| Ambiguous marker detection        | Warning banner in output panel if partial `<woof>` tags found without exact match                                                                               |
 | Post-run task verification        | After each iteration: single-task mode checks status is `completed`; multi-task mode scans all task states for unresolved tasks. Failures shown as error in UI. |
-| `--label` filter                  | Label chips/filter bar above task list                         |
-| `--iterations` override           | Number input in run configuration                              |
-| `--no-notify`                     | Toggle in settings or run config                               |
-| Task file positional arg          | Click-to-run on a specific task card                           |
-| `--dry-run`                       | "Show Command" button that displays the command array          |
-| Notification on completion        | Electron `Notification` API (native OS notification)           |
-| Progress file `.ody/progress.txt` | Collapsible "Progress" section in Run View showing file contents |
+| `--label` filter                  | Label chips/filter bar above task list                                                                                                                          |
+| `--iterations` override           | Number input in run configuration                                                                                                                               |
+| `--no-notify`                     | Toggle in settings or run config                                                                                                                                |
+| Task file positional arg          | Click-to-run on a specific task card                                                                                                                            |
+| `--dry-run`                       | "Show Command" button that displays the command array                                                                                                           |
+| Notification on completion        | Electron `Notification` API (native OS notification)                                                                                                            |
+| Progress file `.ody/progress.txt` | Collapsible "Progress" section in Run View showing file contents                                                                                                |
 
 **Run Confirmation Modal:** Clicking "Run" on a task card opens a confirmation modal before starting the agent:
 
@@ -712,15 +714,15 @@ Stop Agent
 
 ### `ody auth` -> Auth Management Panel
 
-| CLI Behavior                                     | Desktop Equivalent                                                                       |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `ody auth jira` prompts for email + API token    | Form with email text input + API token password input                                    |
-| `ody auth github` prompts for personal access token | Form with PAT password input                                                           |
-| `ody auth list` shows configured credentials     | Table listing all profiles with masked tokens (last 6 chars visible)                     |
-| `--profile` named profiles                       | Profile selector dropdown + "Add Profile" button                                         |
-| Active profile indicator (from config)           | "(active)" badge next to profile in table, derived from `config.jira.profile` / `config.github.profile` |
-| Stored in `$XDG_DATA_HOME/ody/auth.json`         | Same path -- read/write via main process IPC                                             |
-| `chmod 0o600` on auth file                       | Same -- handled by `@internal/auth` in main process                                      |
+| CLI Behavior                                        | Desktop Equivalent                                                                                      |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ody auth jira` prompts for email + API token       | Form with email text input + API token password input                                                   |
+| `ody auth github` prompts for personal access token | Form with PAT password input                                                                            |
+| `ody auth list` shows configured credentials        | Table listing all profiles with masked tokens (last 6 chars visible)                                    |
+| `--profile` named profiles                          | Profile selector dropdown + "Add Profile" button                                                        |
+| Active profile indicator (from config)              | "(active)" badge next to profile in table, derived from `config.jira.profile` / `config.github.profile` |
+| Stored in `$XDG_DATA_HOME/ody/auth.json`            | Same path -- read/write via main process IPC                                                            |
+| `chmod 0o600` on auth file                          | Same -- handled by `@internal/auth` in main process                                                     |
 
 **UI:** A panel accessible from the sidebar (under a "Settings" or "Integrations" group). Two tabs: **Jira** and **GitHub**.
 
@@ -753,16 +755,16 @@ Tokens are always masked in the UI. The full token value is only sent from main 
 
 ### `ody task import` -> Task Import Panel
 
-| CLI Behavior                                   | Desktop Equivalent                                                                     |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `--jira PROJ-123` or Jira URL                  | Source selector (Jira / GitHub) + text input for ticket key or URL                     |
-| `--github owner/repo#123` or GitHub URL        | Same input -- auto-detects format via `Jira.parseInput()` / `GitHub.parseInput()`      |
-| Fetches ticket/issue data via REST API         | Loading state with fetched data preview before agent spawn                              |
-| Formats data via `formatAsDescription()`       | Preview pane shows the formatted data that will be sent to the agent                   |
-| Spawns agent to generate `.code-task.md`       | Same spawn + stream; output renders in a live preview panel                            |
-| `--dry-run` shows prompt                       | "Preview Prompt" button shows the full prompt without executing                        |
-| `--verbose` streams agent output               | Always-visible streaming output (same as Run View pattern)                             |
-| Requires auth credentials                      | Checks for credentials before fetch; shows "Configure credentials" link to Auth Panel if missing |
+| CLI Behavior                             | Desktop Equivalent                                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `--jira PROJ-123` or Jira URL            | Source selector (Jira / GitHub) + text input for ticket key or URL                               |
+| `--github owner/repo#123` or GitHub URL  | Same input -- auto-detects format via `Jira.parseInput()` / `GitHub.parseInput()`                |
+| Fetches ticket/issue data via REST API   | Loading state with fetched data preview before agent spawn                                       |
+| Formats data via `formatAsDescription()` | Preview pane shows the formatted data that will be sent to the agent                             |
+| Spawns agent to generate `.code-task.md` | Same spawn + stream; output renders in a live preview panel                                      |
+| `--dry-run` shows prompt                 | "Preview Prompt" button shows the full prompt without executing                                  |
+| `--verbose` streams agent output         | Always-visible streaming output (same as Run View pattern)                                       |
+| Requires auth credentials                | Checks for credentials before fetch; shows "Configure credentials" link to Auth Panel if missing |
 
 **UI:** A panel accessible from the Task Board toolbar ("Import" button) or sidebar. Stepped flow:
 
@@ -794,13 +796,13 @@ After clicking "Generate Task", the agent spawns and the panel shows streaming o
 
 ### `ody plan new` -> Plan Creator
 
-| CLI Behavior                               | Desktop Equivalent                                                                           |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Text prompt for description                | Multi-line text area                                                                         |
-| Spawns backend to generate `.code-task.md` | Same spawn + stream, but output renders in a preview panel                                   |
-| Loop: "Add another plan?"                  | "Create Another" button after completion                                                     |
-| `--dry-run`                                | "Preview Prompt" button                                                                      |
-| `ody plan <planFile>` batch mode           | "Batch" sub-tab with file picker / drag-and-drop zone for planning documents                 |
+| CLI Behavior                               | Desktop Equivalent                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Text prompt for description                | Multi-line text area                                                                          |
+| Spawns backend to generate `.code-task.md` | Same spawn + stream, but output renders in a preview panel                                    |
+| Loop: "Add another plan?"                  | "Create Another" button after completion                                                      |
+| `--dry-run`                                | "Preview Prompt" button                                                                       |
+| `ody plan <planFile>` batch mode           | "Batch" sub-tab with file picker / drag-and-drop zone for planning documents                  |
 | Batch mode generates multiple tasks        | Same spawn + stream; progress shown with task count. Reads file via `buildBatchPlanPrompt()`. |
 
 **UI:** A panel or modal with sub-tabs: **Single** | **Batch**.
@@ -819,12 +821,12 @@ After clicking "Generate Task", the agent spawns and the panel shows streaming o
 
 ### `ody plan edit` / `ody task edit` -> Task Editor (CodeMirror 6 + AI Inline Editing)
 
-| CLI Behavior                 | Desktop Equivalent                                                                                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- |
-| Select prompt to pick task   | Click a task card from the Task Board                                                             |
-| Spawns backend to edit       | Inline prompt (Cmd+K) spawns backend directly; result shown as diff                               |
-| Agent modifies file in place | Agent output captured; proposed changes shown in side-by-side diff view. User accepts or rejects. |
-| `ody task edit` interactive mode | Available via "Open in Terminal" action -- spawns PTY session using `buildInteractiveCommand()` |
+| CLI Behavior                     | Desktop Equivalent                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Select prompt to pick task       | Click a task card from the Task Board                                                             |
+| Spawns backend to edit           | Inline prompt (Cmd+K) spawns backend directly; result shown as diff                               |
+| Agent modifies file in place     | Agent output captured; proposed changes shown in side-by-side diff view. User accepts or rejects. |
+| `ody task edit` interactive mode | Available via "Open in Terminal" action -- spawns PTY session using `buildInteractiveCommand()`   |
 
 **Editor component:** CodeMirror 6 with `@codemirror/lang-markdown` for syntax highlighting, `@codemirror/merge` for the diff review view, and custom extensions for the inline prompt keybinding and selection highlighting.
 
@@ -942,18 +944,9 @@ type IpcChannels = {
     issue: GitHubIssue;
     formatted: string;
   }; // Fetch and format GitHub issue data
-  'agent:importFromJira': (opts: {
-    input: string;
-    verbose?: boolean;
-  }) => void; // Spawn agent to generate task from Jira ticket
-  'agent:importFromGitHub': (opts: {
-    input: string;
-    verbose?: boolean;
-  }) => void; // Spawn agent to generate task from GitHub issue
-  'agent:importDryRun': (opts: {
-    source: 'jira' | 'github';
-    input: string;
-  }) => string; // Returns the prompt that would be sent
+  'agent:importFromJira': (opts: { input: string; verbose?: boolean }) => void; // Spawn agent to generate task from Jira ticket
+  'agent:importFromGitHub': (opts: { input: string; verbose?: boolean }) => void; // Spawn agent to generate task from GitHub issue
+  'agent:importDryRun': (opts: { source: 'jira' | 'github'; input: string }) => string; // Returns the prompt that would be sent
 
   // Auth
   'auth:list': () => AuthStore; // List all configured credentials
@@ -1057,8 +1050,7 @@ contextBridge.exposeInMainWorld('ody', {
     onStopped: (cb) => ipcRenderer.on('agent:stopped', () => cb()),
     onEditResult: (cb) => ipcRenderer.on('agent:editResult', (_, content) => cb(content)),
     onAmbiguousMarker: (cb) => ipcRenderer.on('agent:ambiguousMarker', () => cb()),
-    onVerifyFailed: (cb) =>
-      ipcRenderer.on('agent:verifyFailed', (_, details) => cb(details)),
+    onVerifyFailed: (cb) => ipcRenderer.on('agent:verifyFailed', (_, details) => cb(details)),
     removeAllListeners: () => {
       [
         'agent:output',
@@ -1215,8 +1207,7 @@ class AgentRunner {
 
       this.proc.on('close', (code) => {
         // Check for ambiguous mentions (partial <woof> tags)
-        const hasAmbiguous =
-          accumulated.includes('woof') && !accumulated.includes(COMPLETE_MARKER);
+        const hasAmbiguous = accumulated.includes('woof') && !accumulated.includes(COMPLETE_MARKER);
         resolve({
           markerResult: { hasStrictMatch: false, hasAmbiguousMention: hasAmbiguous },
         });
@@ -1395,10 +1386,10 @@ Kanban board with three columns: **Pending** (amber indicator), **In Progress** 
 +----------------------------------------------------+
 ```
 
-  - Header bar: "Agent Active" with pulsing accent dot + iteration counter (e.g., "iter 2 / 5")
-  - Log area: mono font (9px), timestamped entries, 72px max height with scroll overflow
-  - Blinking cursor on the latest line indicates active streaming
-  - Color-coded sources: `ody` (accent), `agent` (light)
+- Header bar: "Agent Active" with pulsing accent dot + iteration counter (e.g., "iter 2 / 5")
+- Log area: mono font (9px), timestamped entries, 72px max height with scroll overflow
+- Blinking cursor on the latest line indicates active streaming
+- Color-coded sources: `ody` (accent), `agent` (light)
 - Footer shows "Started 3m ago" + a `[Stop]` button (red background) replacing the normal Run/Edit/Del actions.
 
 **Completed task cards:**
@@ -1629,8 +1620,8 @@ The styling system has three layers, all defined in `globals.css`:
 These map the Art Deco palette onto shadcn/ui's standard CSS variable convention. shadcn components reference these variables internally, so this mapping ensures all shadcn components render with the Art Deco look out of the box. Since the app is dark-first, `:root` contains the dark palette.
 
 ```css
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -1638,46 +1629,46 @@ These map the Art Deco palette onto shadcn/ui's standard CSS variable convention
   --radius: 0.5rem;
 
   /* Surface colors (Art Deco backgrounds) */
-  --background: #0d0e14;            /* Art Deco: base */
-  --foreground: #e8e9f0;            /* Art Deco: bright */
-  --card: #1a1b28;                  /* Art Deco: card */
-  --card-foreground: #e8e9f0;       /* Art Deco: bright */
-  --popover: #141520;               /* Art Deco: panel */
-  --popover-foreground: #e8e9f0;    /* Art Deco: bright */
+  --background: #0d0e14; /* Art Deco: base */
+  --foreground: #e8e9f0; /* Art Deco: bright */
+  --card: #1a1b28; /* Art Deco: card */
+  --card-foreground: #e8e9f0; /* Art Deco: bright */
+  --popover: #141520; /* Art Deco: panel */
+  --popover-foreground: #e8e9f0; /* Art Deco: bright */
 
   /* Primary (accent teal) */
-  --primary: #00f5d4;               /* Art Deco: accent */
-  --primary-foreground: #0d0e14;    /* Art Deco: base */
+  --primary: #00f5d4; /* Art Deco: accent */
+  --primary-foreground: #0d0e14; /* Art Deco: base */
 
   /* Secondary (panel surface) */
-  --secondary: #141520;             /* Art Deco: panel */
-  --secondary-foreground: #c4c6d6;  /* Art Deco: light */
+  --secondary: #141520; /* Art Deco: panel */
+  --secondary-foreground: #c4c6d6; /* Art Deco: light */
 
   /* Muted (card surface for subdued areas) */
-  --muted: #1a1b28;                 /* Art Deco: card */
-  --muted-foreground: #6b6d84;      /* Art Deco: dim */
+  --muted: #1a1b28; /* Art Deco: card */
+  --muted-foreground: #6b6d84; /* Art Deco: dim */
 
   /* Accent (subtle accent background) */
   --accent: rgba(0, 245, 212, 0.07); /* Art Deco: accent-bg */
-  --accent-foreground: #00f5d4;     /* Art Deco: accent */
+  --accent-foreground: #00f5d4; /* Art Deco: accent */
 
   /* Destructive */
-  --destructive: #f87171;           /* Art Deco: red */
+  --destructive: #f87171; /* Art Deco: red */
   --destructive-foreground: #e8e9f0; /* Art Deco: bright */
 
   /* Chrome */
-  --border: #262838;                /* Art Deco: edge */
-  --input: #262838;                 /* Art Deco: edge */
-  --ring: rgba(0, 245, 212, 0.4);  /* Art Deco: accent @ 40% */
+  --border: #262838; /* Art Deco: edge */
+  --input: #262838; /* Art Deco: edge */
+  --ring: rgba(0, 245, 212, 0.4); /* Art Deco: accent @ 40% */
 
   /* Sidebar */
-  --sidebar: #141520;               /* Art Deco: panel */
-  --sidebar-foreground: #c4c6d6;    /* Art Deco: light */
-  --sidebar-primary: #00f5d4;       /* Art Deco: accent */
+  --sidebar: #141520; /* Art Deco: panel */
+  --sidebar-foreground: #c4c6d6; /* Art Deco: light */
+  --sidebar-primary: #00f5d4; /* Art Deco: accent */
   --sidebar-primary-foreground: #0d0e14; /* Art Deco: base */
   --sidebar-accent: rgba(0, 245, 212, 0.07); /* Art Deco: accent-bg */
   --sidebar-accent-foreground: #00f5d4; /* Art Deco: accent */
-  --sidebar-border: #262838;        /* Art Deco: edge */
+  --sidebar-border: #262838; /* Art Deco: edge */
   --sidebar-ring: rgba(0, 245, 212, 0.4);
 }
 ```
@@ -1733,7 +1724,7 @@ These are design tokens unique to the Art Deco visual language that go beyond sh
   --color-edge: #262838;
 
   /* Five-step text hierarchy */
-  --color-ody-muted: #3d3f54;  /* Timestamps, disabled -- renamed to avoid shadcn "muted" collision */
+  --color-ody-muted: #3d3f54; /* Timestamps, disabled -- renamed to avoid shadcn "muted" collision */
   --color-dim: #6b6d84;
   --color-mid: #9496ac;
   --color-light: #c4c6d6;
@@ -1754,8 +1745,8 @@ These are design tokens unique to the Art Deco visual language that go beyond sh
   --color-amber-bg: rgba(245, 166, 35, 0.08);
 
   /* Fonts */
-  --font-sans: "Sora", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: 'Sora', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 ```
 
@@ -1780,55 +1771,55 @@ The tables below provide a quick reference for the raw hex values. In implementa
 
 #### Backgrounds
 
-| Token | Hex | Usage |
-| --- | --- | --- |
-| `base` | `#0d0e14` | Deepest background (body, status bar) |
+| Token   | Hex       | Usage                                              |
+| ------- | --------- | -------------------------------------------------- |
+| `base`  | `#0d0e14` | Deepest background (body, status bar)              |
 | `panel` | `#141520` | Sidebar, panels, agent output area, modal surfaces |
-| `card` | `#1a1b28` | Card backgrounds, form inputs, nested containers |
+| `card`  | `#1a1b28` | Card backgrounds, form inputs, nested containers   |
 
 #### Borders & Separators
 
-| Token | Hex | Usage |
-| --- | --- | --- |
+| Token  | Hex       | Usage                                            |
+| ------ | --------- | ------------------------------------------------ |
 | `edge` | `#262838` | Default border color for cards, inputs, dividers |
 
 #### Text Scale
 
 Five-step grayscale text hierarchy, from dimmest to brightest:
 
-| Token | Hex | Usage |
-| --- | --- | --- |
-| `muted` | `#3d3f54` | Timestamps, disabled elements, scrollbar tracks |
-| `dim` | `#6b6d84` | Secondary labels, hints, inactive nav items |
-| `mid` | `#9496ac` | Body text, descriptions, log output |
-| `light` | `#c4c6d6` | Default readable text, input values |
-| `bright` | `#e8e9f0` | Headings, emphasized text, active labels |
+| Token    | Hex       | Usage                                           |
+| -------- | --------- | ----------------------------------------------- |
+| `muted`  | `#3d3f54` | Timestamps, disabled elements, scrollbar tracks |
+| `dim`    | `#6b6d84` | Secondary labels, hints, inactive nav items     |
+| `mid`    | `#9496ac` | Body text, descriptions, log output             |
+| `light`  | `#c4c6d6` | Default readable text, input values             |
+| `bright` | `#e8e9f0` | Headings, emphasized text, active labels        |
 
 #### Accent (Teal)
 
-| Token | Value | Usage |
-| --- | --- | --- |
-| `accent` | `#00f5d4` | Primary interactive color: buttons, active states, links, status dots |
-| `accent-hover` | `#33f7de` | Hover state for accent-colored elements |
-| `accent-bg` | `rgba(0, 245, 212, 0.07)` | Subtle background for active nav items, selected cards, accent containers |
+| Token          | Value                     | Usage                                                                     |
+| -------------- | ------------------------- | ------------------------------------------------------------------------- |
+| `accent`       | `#00f5d4`                 | Primary interactive color: buttons, active states, links, status dots     |
+| `accent-hover` | `#33f7de`                 | Hover state for accent-colored elements                                   |
+| `accent-bg`    | `rgba(0, 245, 212, 0.07)` | Subtle background for active nav items, selected cards, accent containers |
 
 #### Semantic Colors
 
 Each semantic color has a solid variant and a `-bg` variant (low-opacity background):
 
-| Token | Hex | `-bg` Value | Usage |
-| --- | --- | --- | --- |
-| `green` | `#4ade80` | `rgba(74, 222, 128, 0.08)` | Success states, completed tasks, checkmarks, PASS status |
-| `red` | `#f87171` | `rgba(248, 113, 113, 0.08)` | Errors, delete actions, security labels, FAIL status |
-| `blue` | `#60a5fa` | `rgba(96, 165, 250, 0.08)` | Informational labels (e.g., `api` tag) |
-| `amber` | `#f5a623` | `rgba(245, 166, 35, 0.08)` | Warnings, pending status, validator source, stop actions |
+| Token   | Hex       | `-bg` Value                 | Usage                                                    |
+| ------- | --------- | --------------------------- | -------------------------------------------------------- |
+| `green` | `#4ade80` | `rgba(74, 222, 128, 0.08)`  | Success states, completed tasks, checkmarks, PASS status |
+| `red`   | `#f87171` | `rgba(248, 113, 113, 0.08)` | Errors, delete actions, security labels, FAIL status     |
+| `blue`  | `#60a5fa` | `rgba(96, 165, 250, 0.08)`  | Informational labels (e.g., `api` tag)                   |
+| `amber` | `#f5a623` | `rgba(245, 166, 35, 0.08)`  | Warnings, pending status, validator source, stop actions |
 
 ### Typography
 
-| Role | Font Family | Weights | Usage |
-| --- | --- | --- | --- |
-| Sans | **Sora** | 300 (light), 400 (regular), 500 (medium), 600 (semibold), 700 (bold) | Headings, labels, body text, buttons, navigation |
-| Mono | **JetBrains Mono** | 400 (regular), 500 (medium) | Agent output logs, code/model names, file paths, timestamps, validator commands |
+| Role | Font Family        | Weights                                                              | Usage                                                                           |
+| ---- | ------------------ | -------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Sans | **Sora**           | 300 (light), 400 (regular), 500 (medium), 600 (semibold), 700 (bold) | Headings, labels, body text, buttons, navigation                                |
+| Mono | **JetBrains Mono** | 400 (regular), 500 (medium)                                          | Agent output logs, code/model names, file paths, timestamps, validator commands |
 
 Both fonts are loaded from Google Fonts. Tailwind aliases: `font-sans` -> Sora, `font-mono` -> JetBrains Mono.
 
@@ -1843,11 +1834,11 @@ The main content area uses a subtle grid background:
 
 ### Animations
 
-| Name | Duration | Easing | Behavior | Usage |
-| --- | --- | --- | --- | --- |
-| `fadeUp` | 0.4s | ease-out | `opacity: 0, translateY(8px)` -> `opacity: 1, translateY(0)` | Kanban columns, cards on initial load. Staggered with 60ms delays per element (classes `d1`, `d2`, `d3`). |
-| `pulse` | 2s | ease-in-out | Infinite `opacity: 1` -> `0.5` -> `1` | Status indicator dots (running, streaming, agent active) |
-| `blink` | 1s | step | `opacity: 1` (0-50%) -> `opacity: 0` (51-100%) | Blinking cursor in agent output terminal |
+| Name     | Duration | Easing      | Behavior                                                     | Usage                                                                                                     |
+| -------- | -------- | ----------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `fadeUp` | 0.4s     | ease-out    | `opacity: 0, translateY(8px)` -> `opacity: 1, translateY(0)` | Kanban columns, cards on initial load. Staggered with 60ms delays per element (classes `d1`, `d2`, `d3`). |
+| `pulse`  | 2s       | ease-in-out | Infinite `opacity: 1` -> `0.5` -> `1`                        | Status indicator dots (running, streaming, agent active)                                                  |
+| `blink`  | 1s       | step        | `opacity: 1` (0-50%) -> `opacity: 0` (51-100%)               | Blinking cursor in agent output terminal                                                                  |
 
 ### Scrollbar
 
@@ -1863,16 +1854,19 @@ Custom slim scrollbar (WebKit):
 All form components are built on **shadcn/ui primitives** (which use Radix UI under the hood), styled with Art Deco tokens via CSS variable overrides and `className` props. The `cn()` utility from `lib/utils.ts` (`clsx` + `tailwind-merge`) is used for composing conditional class names.
 
 **Toggle switches** -- Built on shadcn `<Switch>` (`@radix-ui/react-switch`):
+
 - Track: 36x20px, `muted/40` background, rounded-full
 - Knob: 16x16px circle, `dim` color, positioned with 2px inset
 - Active state: track becomes `accent/30`, knob translates 16px right and changes to `accent` color
 - All transitions: 0.2s ease
 
 **Text inputs** -- Built on shadcn `<Input>`:
+
 - Card bg (`bg-card`), edge border (`border-edge`), rounded-lg
 - Art Deco focus ring applied globally (see below)
 
 **Tag inputs** -- Custom component (no shadcn primitive; built on `<Input>` for the text entry):
+
 - Container: card background with edge border, flex-wrap layout, min-height 38px
 - Tags: pill-shaped (10px text, accent-bg background, accent/15 border, accent text)
 - Click a tag to remove it (with fadeUp entrance animation)
@@ -1880,36 +1874,43 @@ All form components are built on **shadcn/ui primitives** (which use Radix UI un
 - Focus ring on the container when the input is focused
 
 **Selects** -- Built on shadcn `<Select>` (`@radix-ui/react-select`):
+
 - Trigger styled with card bg, edge border, rounded-lg (matching text inputs)
 - Dropdown content uses `popover` bg with `edge` border
 - Chevron icon via Lucide (`ChevronDown`)
 - Items highlight with `accent-bg` on hover
 
 **Radio card selects** -- Built on shadcn `<RadioGroup>` (`@radix-ui/react-radio-group`) with custom card-style items:
+
 - Full-card clickable labels with radio input
 - Standard: card bg, edge border
 - Selected: accent/20 border with accent-colored "Active" badge
 - Used for backend selection and stop-mode options
 
 **Tabs** -- Built on shadcn `<Tabs>` (`@radix-ui/react-tabs`):
+
 - Used in Auth view (Jira/GitHub), Plan view (Single/Batch/List), and Settings modal (General/Backend/Validators)
 - Tab triggers styled with dim text, accent underline on active
 
 **Dropdown menus** -- Built on shadcn `<DropdownMenu>` (`@radix-ui/react-dropdown-menu`):
+
 - Used for project context menu (right-click sidebar item)
 - Panel bg, edge border, items highlight with accent-bg on hover
 - Destructive items (e.g., "Remove") use `text-red`
 
 **Cards** -- Built on shadcn `<Card>`:
+
 - Task cards, validator command cards, profile cards
 - Card bg (`bg-card`), edge border, rounded-lg
 - Art Deco hover and status styling applied via `className`
 
 **Badges** -- Built on shadcn `<Badge>`:
+
 - Label chips on task cards (colored per-category: blue, red, green, amber with matching `-bg` backgrounds)
 - Status badges ("Active", completion markers)
 
 **Focus ring (all inputs):**
+
 - Border color: `rgba(0, 245, 212, 0.4)`
 - Box shadow: `0 0 0 2px rgba(0, 245, 212, 0.08)`
 - No outline (`outline: none`)
@@ -1948,15 +1949,15 @@ All modals are built on shadcn `<Dialog>` (`@radix-ui/react-dialog`), which prov
 
 **Modal inventory (from design):**
 
-| Modal | Width | Icon Color | Primary Action | Action Color |
-| --- | --- | --- | --- | --- |
-| New Plan | 520px | accent (plus) | "Create Plan" | accent |
-| Edit Task | 520px | blue (pencil) | "Save Changes" | accent |
-| Delete Task | 400px | red (trash) | "Delete Task" | red |
-| Stop Agent | 420px | amber (warning) | "Stop Agent" | amber |
-| Run Task | 420px | accent (play) | "Start Agent" | accent |
-| Settings | 500px | accent (gear) | "Save Settings" | accent |
-| Add Project | 420px | accent (folder) | "Add Project" | accent |
+| Modal       | Width | Icon Color      | Primary Action  | Action Color |
+| ----------- | ----- | --------------- | --------------- | ------------ |
+| New Plan    | 520px | accent (plus)   | "Create Plan"   | accent       |
+| Edit Task   | 520px | blue (pencil)   | "Save Changes"  | accent       |
+| Delete Task | 400px | red (trash)     | "Delete Task"   | red          |
+| Stop Agent  | 420px | amber (warning) | "Stop Agent"    | amber        |
+| Run Task    | 420px | accent (play)   | "Start Agent"   | accent       |
+| Settings    | 500px | accent (gear)   | "Save Settings" | accent       |
+| Add Project | 420px | accent (folder) | "Add Project"   | accent       |
 
 ### Toast Notification System
 
@@ -1968,12 +1969,12 @@ In-app feedback toasts for immediate user actions (distinct from the OS-level `N
 
 **Color variants** (applied via `className` on the `<Sonner>` provider or per-toast `className`):
 
-| Variant | Border Color | Dot + Text Color | Use Case |
-| --- | --- | --- | --- |
-| `accent` | `accent/20` | `accent` | General feedback (output cleared, settings opened, draft saved) |
-| `green` | `green/20` | `green` | Success (plan created, task updated, project added, validator added) |
-| `red` | `red/20` | `red` | Destructive (task deleted, force stopped) |
-| `amber` | `amber/20` | `amber` | Warning (agent stopping gracefully) |
+| Variant  | Border Color | Dot + Text Color | Use Case                                                             |
+| -------- | ------------ | ---------------- | -------------------------------------------------------------------- |
+| `accent` | `accent/20`  | `accent`         | General feedback (output cleared, settings opened, draft saved)      |
+| `green`  | `green/20`   | `green`          | Success (plan created, task updated, project added, validator added) |
+| `red`    | `red/20`     | `red`            | Destructive (task deleted, force stopped)                            |
+| `amber`  | `amber/20`   | `amber`          | Warning (agent stopping gracefully)                                  |
 
 **Structure:** Panel bg, colored border, rounded-lg. Contains a small colored dot (1.5x1.5) + message text (xs, medium weight). Sonner's default toast layout is overridden via the `toastOptions.className` and `toastOptions.style` props on `<Sonner>` to match the Art Deco design.
 
@@ -2020,6 +2021,7 @@ function sendNotification(title: string, body: string) {
 This is cross-platform (macOS, Windows, Linux) with no shell commands needed.
 
 The notification behavior follows the same config semantics as the CLI:
+
 - `notify: false` -- No notifications
 - `notify: 'individual'` -- Notification after each loop iteration
 - `notify: 'all'` -- Notification after the entire run loop completes
@@ -2110,16 +2112,16 @@ The `components.json` file configures the `shadcn` CLI for component installatio
     "config": "",
     "css": "src/renderer/globals.css",
     "baseColor": "neutral",
-    "cssVariables": true
+    "cssVariables": true,
   },
   "aliases": {
     "components": "@/components",
     "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks",
-    "utils": "@/lib/utils"
+    "utils": "@/lib/utils",
   },
-  "iconLibrary": "lucide"
+  "iconLibrary": "lucide",
 }
 ```
 
@@ -2140,8 +2142,8 @@ Components are installed on-demand: `npx shadcn add button dialog input select s
     "@internal/tasks": "workspace:*",
     "@internal/auth": "workspace:*",
     "@internal/integrations": "workspace:*",
-    "node-pty": "^1.0.0",       // PTY for terminal mode
-    "zod": "^4.3.6",            // Shared dep
+    "node-pty": "^1.0.0", // PTY for terminal mode
+    "zod": "^4.3.6", // Shared dep
   },
   "devDependencies": {
     // Electron & build tooling
@@ -2162,15 +2164,15 @@ Components are installed on-demand: `npx shadcn add button dialog input select s
 
     // Tailwind CSS v4 (CSS-first, no tailwind.config.js)
     "tailwindcss": "^4.0.0",
-    "@tailwindcss/vite": "^4.0.0",   // Vite plugin (replaces PostCSS integration)
+    "@tailwindcss/vite": "^4.0.0", // Vite plugin (replaces PostCSS integration)
 
     // shadcn/ui dependencies
-    "tw-animate-css": "^1.0.0",              // Animation utility for shadcn/Tailwind v4
-    "class-variance-authority": "^0.7.0",    // Component variant API (used by shadcn components)
-    "clsx": "^2.0.0",                        // Conditional className strings
-    "tailwind-merge": "^3.0.0",             // Intelligent Tailwind class deduplication
-    "lucide-react": "^0.500.0",             // Icon library (shadcn default)
-    "sonner": "^2.0.0",                     // Toast notifications (shadcn recommended)
+    "tw-animate-css": "^1.0.0", // Animation utility for shadcn/Tailwind v4
+    "class-variance-authority": "^0.7.0", // Component variant API (used by shadcn components)
+    "clsx": "^2.0.0", // Conditional className strings
+    "tailwind-merge": "^3.0.0", // Intelligent Tailwind class deduplication
+    "lucide-react": "^0.500.0", // Icon library (shadcn default)
+    "sonner": "^2.0.0", // Toast notifications (shadcn recommended)
     // Note: Radix UI primitives (@radix-ui/react-dialog, @radix-ui/react-select, etc.)
     // are installed automatically when running `npx shadcn add <component>`.
     // They do not need to be listed here manually.

@@ -1,7 +1,6 @@
 import { intro, isCancel, log, outro, password, text } from '@clack/prompts';
+import { Auth } from '@internal/auth';
 import { defineCommand } from 'citty';
-
-import { Auth } from '../../lib/auth';
 
 export const jiraAuthCmd = defineCommand({
   meta: {

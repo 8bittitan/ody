@@ -2,7 +2,7 @@
   "$schema": "https://odycli.vercel.app/configuration_schema.json",
   "backend": "opencode",
   "maxIterations": 3,
-  "shouldCommit": true,
+  "shouldCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
   "model": {
     "run": "openai/gpt-5.3-codex",

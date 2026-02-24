@@ -5,7 +5,7 @@ const PRIMARY = 'lab(88.4575% -1.94722 -16.9139)';
 export default function HomePage() {
   return (
     <div
-      className="overflow-hidden min-h-screen relative text-gray-600 dark:text-slate-600 bg-gray-50 dark:bg-[#0a0e18]"
+      className="relative min-h-screen overflow-hidden bg-gray-50 text-gray-600 dark:bg-[#0a0e18] dark:text-slate-600"
       style={{
         transition:
           'background 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -37,7 +37,7 @@ export default function HomePage() {
 
       {/* Noise grain overlay */}
       <div
-        className="fixed inset-0 pointer-events-none z-50 opacity-[0.03] transition-opacity duration-500"
+        className="pointer-events-none fixed inset-0 z-50 opacity-[0.03] transition-opacity duration-500"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
           backgroundSize: '128px 128px',
@@ -47,7 +47,7 @@ export default function HomePage() {
 
       {/* Background orbs */}
       <div
-        className="fixed top-[-10%] right-[10%] size-125 rounded-[50%] opacity-[0.1] blur-[60px] pointer-events-none"
+        className="pointer-events-none fixed top-[-10%] right-[10%] size-125 rounded-[50%] opacity-[0.1] blur-[60px]"
         style={{
           background: `radial-gradient(circle, ${PRIMARY} 0%, transparent 70%)`,
           animation: 'softFloat 10s ease-in-out infinite',
@@ -83,7 +83,7 @@ export default function HomePage() {
       >
         <div style={{ marginBottom: '48px' }}>
           <div
-            className="bg-white/70 dark:bg-white/5 border border-black/5 text-[#34628c] dark:text-[#aac3e2]"
+            className="border border-black/5 bg-white/70 text-[#34628c] dark:bg-white/5 dark:text-[#aac3e2]"
             style={{
               display: 'inline-block',
               padding: '4px 14px',
@@ -114,7 +114,7 @@ export default function HomePage() {
             <br />
             <span className="text-[#6f8eb1] dark:text-[#aac3e2]">autonomous agents</span>
           </h1>
-          <p className="text-[#777] dark:text-[#5a6a88] max-w-[65ch] leading-relaxed transition-colors duration-500">
+          <p className="max-w-[65ch] leading-relaxed text-[#777] transition-colors duration-500 dark:text-[#5a6a88]">
             Ody is a CLI that orchestrates AI coding agents. Point it at a task, and it loops until
             the work is done. No babysitting required.
           </p>
@@ -124,7 +124,7 @@ export default function HomePage() {
         <Terminal />
 
         {/* Feature grid */}
-        <div className="grid grid-cols-2 gap-3 mb-18">
+        <div className="mb-18 grid grid-cols-2 gap-3">
           {[
             { title: 'Multi-backend', desc: 'OpenCode, Claude, Codex. Pick your engine.' },
             { title: 'Auto-loop', desc: 'Set iterations and let it run to completion.' },
@@ -133,7 +133,7 @@ export default function HomePage() {
           ].map((f, i) => (
             <div
               key={i}
-              className="bg-[rgba(255,255,255,0.5)] dark:bg-[rgba(255,255,255,0.03)] border border-[rgba(0,0,0,0.05)] dark:border-[rgba(255,255,255,0.05)]"
+              className="border border-[rgba(0,0,0,0.05)] bg-[rgba(255,255,255,0.5)] dark:border-[rgba(255,255,255,0.05)] dark:bg-[rgba(255,255,255,0.03)]"
               style={{
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
@@ -145,14 +145,14 @@ export default function HomePage() {
                 transition: 'background 0.5s, border-color 0.5s',
               }}
             >
-              <div className="text-[#6f8eb1] dark:text-[#aac3e2] text-[11px] mb-1.5 tracking-wider font-semibold">
+              <div className="mb-1.5 text-[11px] font-semibold tracking-wider text-[#6f8eb1] dark:text-[#aac3e2]">
                 0{i + 1}
               </div>
-              <div className="text-[#1a1f2e] dark:text-[#c0cce0] text-sm mb-1 transition-colors duration-500 font-semibold">
+              <div className="mb-1 text-sm font-semibold text-[#1a1f2e] transition-colors duration-500 dark:text-[#c0cce0]">
                 {f.title}
               </div>
               <div
-                className="text-gray-400 dark:text-gray-[#4a5878] text-xs transition-colors duration-500"
+                className="dark:text-gray-[#4a5878] text-xs text-gray-400 transition-colors duration-500"
                 style={{
                   lineHeight: 1.6,
                 }}

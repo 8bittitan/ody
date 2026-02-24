@@ -1,18 +1,18 @@
 import { outro, spinner, log, type SpinnerResult } from '@clack/prompts';
-import { defineCommand } from 'citty';
-
-import { Backend } from '../backends/backend';
-import { buildRunPrompt } from '../builders/runPrompt';
-import { Config } from '../lib/config';
-import { sendNotification } from '../lib/notify';
-import { Stream, type StreamChunk } from '../util/stream';
+import { Backend } from '@internal/backends';
+import { buildRunPrompt } from '@internal/builders';
+import { Config } from '@internal/config';
 import {
   getTaskFilesByLabel,
   getTaskStates,
   getTaskStatus,
   resolveTasksDir,
   type TaskState,
-} from '../util/task';
+} from '@internal/tasks';
+import { defineCommand } from 'citty';
+
+import { sendNotification } from '../lib/notify';
+import { Stream, type StreamChunk } from '../util/stream';
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
 
@@ -106,7 +106,7 @@ export const runCmd = defineCommand({
   },
   async run({ args }) {
     const config = Config.all();
-    const backend = new Backend(config.backend);
+    const backend = new Backend(config.backend, config);
     const model = Config.resolveModel('run', config);
     const tasksDirPath = resolveTasksDir(config.tasksDir);
 

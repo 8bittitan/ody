@@ -1,7 +1,6 @@
 import { intro, log, outro } from '@clack/prompts';
+import { Config } from '@internal/config';
 import { defineCommand } from 'citty';
-
-import { Config } from '../lib/config';
 
 export const configCmd = defineCommand({
   meta: {

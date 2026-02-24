@@ -12,11 +12,17 @@ import {
   confirm,
   select,
 } from '@clack/prompts';
+import { getAvailableBackends } from '@internal/backends';
+import {
+  BASE_DIR,
+  DOCS_WEBSITE_URL,
+  ODY_FILE,
+  backendsSchema,
+  Config,
+  type OdyConfig,
+} from '@internal/config';
 import { defineCommand } from 'citty';
 
-import { getAvailableBackends } from '../backends/util';
-import { backendsSchema, Config, type OdyConfig } from '../lib/config';
-import { BASE_DIR, DOCS_WEBSITE_URL, ODY_FILE } from '../util/constants';
 import { getRandomValidatorPlaceholder } from '../util/inputPrompt';
 
 async function getOpencodeModels() {

@@ -2,13 +2,15 @@
   "name": "ody",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "internal/*"
   ],
   "scripts": {
     "build": "bun run --filter '*' build",
     "build:cli": "bun run --filter '@ody/cli' build",
     "build:docs": "bun sync:schema && bun run --filter '@ody/docs' build",
     "dev:docs": "bun run --filter '@ody/docs' dev",
+    "dev:desktop": "bun run --filter '@ody/desktop' start",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt --write .",

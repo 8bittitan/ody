@@ -1,7 +1,6 @@
-import type { Metadata } from 'next';
-
 import { DocsBody, DocsPage, DocsTitle, DocsDescription } from 'fumadocs-ui/layouts/notebook/page';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { getPageImage, source } from '../../../lib/source';

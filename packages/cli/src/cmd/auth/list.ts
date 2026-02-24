@@ -1,8 +1,7 @@
 import { intro, log, outro } from '@clack/prompts';
+import { Auth } from '@internal/auth';
+import { Config } from '@internal/config';
 import { defineCommand } from 'citty';
-
-import { Auth } from '../../lib/auth';
-import { Config } from '../../lib/config';
 
 function maskToken(token: string): string {
   if (token.length <= 6) {

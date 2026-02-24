@@ -1,8 +1,11 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "singleQuote": true,
+  "experimentalTailwindcss": {
+    "functions": ["cn", "cva", "clsx"]
+  },
   "experimentalSortImports": {
-    "internalPattern": ["~/*"]
+    "internalPattern": ["~/*", "@internal/*"]
   },
   "ignorePatterns": [".ody/*"]
 }
