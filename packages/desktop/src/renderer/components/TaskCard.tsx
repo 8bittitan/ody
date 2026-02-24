@@ -105,11 +105,6 @@ export const TaskCard = ({
         </div>
       ) : null}
 
-      <div className="text-dim mt-3 flex items-center justify-between text-[11px]">
-        <span>{task.complexity ?? 'Unspecified'}</span>
-        <span>{task.created ?? 'No date'}</span>
-      </div>
-
       {!isCompleted ? (
         <div className="mt-3 flex gap-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
           <button
@@ -147,6 +142,11 @@ export const TaskCard = ({
           </button>
         </div>
       ) : null}
+
+      <div className="text-dim mt-3 flex items-center justify-between text-[11px]">
+        <span>{task.complexity ?? 'Unspecified'}</span>
+        <span>{task.created ?? 'No date'}</span>
+      </div>
     </article>
   );
 };
