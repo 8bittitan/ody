@@ -15,6 +15,7 @@ import {
   ScrollAreaViewport,
 } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { stripAnsi } from '@/lib/ansi';
 import { api } from '@/lib/api';
 import { useStore } from '@/store';
 import type { TaskSummary } from '@/types/ipc';
@@ -125,7 +126,7 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
   );
 
   const outputPreview = useMemo(() => {
-    const content = output.join('');
+    const content = stripAnsi(output.join(''));
     const lines = content.split(/\r?\n/).filter((line) => line.length > 0);
     return lines.slice(-6).join('\n');
   }, [output]);

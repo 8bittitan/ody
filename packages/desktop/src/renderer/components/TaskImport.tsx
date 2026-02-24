@@ -5,7 +5,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useImport } from '@/hooks/useImport';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useTasks } from '@/hooks/useTasks';
+import { toAnsiHtml } from '@/lib/ansi';
 import { Import } from 'lucide-react';
+import { useMemo } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -40,6 +42,8 @@ export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportPr
     config,
     onComplete: refreshTasks,
   });
+
+  const streamOutputHtml = useMemo(() => toAnsiHtml(streamOutput), [streamOutput]);
 
   const handleFetch = async () => {
     try {
@@ -268,13 +272,16 @@ export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportPr
               Open Task Board
             </Button>
           </div>
-          <pre className="bg-background border-edge max-h-56 min-h-28 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
-            {streamOutput.trim().length > 0
-              ? streamOutput
-              : isGenerating
-                ? 'Waiting for first output...'
-                : 'No output yet.'}
-          </pre>
+          {streamOutput.trim().length > 0 ? (
+            <pre
+              className="bg-background border-edge max-h-56 min-h-28 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200"
+              dangerouslySetInnerHTML={{ __html: streamOutputHtml }}
+            />
+          ) : (
+            <pre className="bg-background border-edge max-h-56 min-h-28 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
+              {isGenerating ? 'Waiting for first output...' : 'No output yet.'}
+            </pre>
+          )}
         </div>
       </div>
     </section>

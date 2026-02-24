@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-02-24
-started: null
-completed: null
+started: 2026-02-24
+completed: 2026-02-24
 ---
 # Task: Move Generation Output to Right Column and Remove Pending Tasks List
 

@@ -1,38 +1,15 @@
 import { MergeView } from '@codemirror/merge';
 import { EditorState } from '@codemirror/state';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorView } from '@codemirror/view';
 import { useEffect, useRef } from 'react';
+
+import { odyDiffTheme, odySyntax } from './theme';
 
 type DiffViewProps = {
   original: string;
   proposed: string;
   onProposedChange: (value: string) => void;
 };
-
-const diffTheme = EditorView.theme({
-  '&': {
-    backgroundColor: 'var(--color-card)',
-    color: 'var(--color-light)',
-    height: '100%',
-  },
-  '.cm-gutters': {
-    backgroundColor: 'var(--color-panel)',
-    color: 'var(--color-dim)',
-    borderRight: '1px solid var(--color-edge)',
-  },
-  '.cm-content': {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '13px',
-    lineHeight: '1.5',
-  },
-  '.cm-focused': {
-    outline: 'none',
-  },
-  '.cm-mergeView .cm-changedLine': {
-    backgroundColor: 'rgb(0 245 212 / 8%)',
-  },
-});
 
 export const DiffView = ({ original, proposed, onProposedChange }: DiffViewProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -56,15 +33,15 @@ export const DiffView = ({ original, proposed, onProposedChange }: DiffViewProps
         extensions: [
           EditorState.readOnly.of(true),
           EditorView.editable.of(false),
-          oneDark,
-          diffTheme,
+          odySyntax,
+          odyDiffTheme,
         ],
       },
       b: {
         doc: proposed,
         extensions: [
-          oneDark,
-          diffTheme,
+          odySyntax,
+          odyDiffTheme,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onProposedChange(update.state.doc.toString());

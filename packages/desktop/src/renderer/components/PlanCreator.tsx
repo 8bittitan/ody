@@ -1,74 +1,33 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useTasks } from '@/hooks/useTasks';
 import { api } from '@/lib/api';
-import { useEffect, useRef, useState } from 'react';
+import type { MutableRefObject } from 'react';
+import { useState } from 'react';
 
 type PlanCreatorProps = {
-  onOpenTaskBoard: () => void;
+  isGenerating: boolean;
+  isGeneratingRef: MutableRefObject<boolean>;
+  setIsGenerating: (value: boolean) => void;
+  setStreamOutput: (updater: (prev: string) => string) => void;
+  resetStream: () => void;
 };
 
-export const PlanCreator = ({ onOpenTaskBoard }: PlanCreatorProps) => {
-  const { refreshTasks } = useTasks();
-  const { accent, warning, error, success } = useNotifications();
+export const PlanCreator = ({
+  isGenerating,
+  isGeneratingRef,
+  setIsGenerating,
+  resetStream,
+}: PlanCreatorProps) => {
+  const { accent, warning } = useNotifications();
   const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
   const [description, setDescription] = useState('');
   const [planFilePath, setPlanFilePath] = useState('');
   const [previewPrompt, setPreviewPrompt] = useState('');
-  const [streamOutput, setStreamOutput] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isPromptLoading, setIsPromptLoading] = useState(false);
-  const isGeneratingRef = useRef(false);
-
-  useEffect(() => {
-    const onOutput = api.agent.onOutput((chunk) => {
-      if (!isGeneratingRef.current) {
-        return;
-      }
-
-      setStreamOutput((prev) => `${prev}${chunk}`);
-    });
-
-    const finish = () => {
-      if (!isGeneratingRef.current) {
-        return;
-      }
-
-      isGeneratingRef.current = false;
-      setIsGenerating(false);
-      void refreshTasks();
-    };
-
-    const onComplete = api.agent.onComplete(() => {
-      finish();
-      success({ title: 'Plan generation finished' });
-    });
-
-    const onStopped = api.agent.onStopped(() => {
-      finish();
-    });
-
-    const onVerifyFailed = api.agent.onVerifyFailed((message) => {
-      if (!isGeneratingRef.current) {
-        return;
-      }
-
-      isGeneratingRef.current = false;
-      setIsGenerating(false);
-      error({ title: 'Plan generation failed', description: message });
-    });
-
-    return () => {
-      onOutput();
-      onComplete();
-      onStopped();
-      onVerifyFailed();
-    };
-  }, [error, refreshTasks, success]);
 
   const beginGeneration = () => {
     setPreviewPrompt('');
-    setStreamOutput('');
+    resetStream();
     isGeneratingRef.current = true;
     setIsGenerating(true);
   };
@@ -222,26 +181,6 @@ export const PlanCreator = ({ onOpenTaskBoard }: PlanCreatorProps) => {
           </pre>
         </div>
       ) : null}
-
-      <div className="mt-3">
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-dim text-xs">Generation output</p>
-          <button
-            type="button"
-            className="text-mid hover:text-light text-xs"
-            onClick={onOpenTaskBoard}
-          >
-            Open Task Board
-          </button>
-        </div>
-        <pre className="bg-background border-edge max-h-56 min-h-28 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
-          {streamOutput.trim().length > 0
-            ? streamOutput
-            : isGenerating
-              ? 'Waiting for agent output...'
-              : 'No output yet.'}
-        </pre>
-      </div>
     </section>
   );
 };

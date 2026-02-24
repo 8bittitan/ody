@@ -2,10 +2,11 @@ import { redo, redoDepth, undo, undoDepth } from '@codemirror/commands';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { Compartment, EditorState, RangeSetBuilder } from '@codemirror/state';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { Decoration, EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
+
+import { odyEditorTheme, odySyntax } from './theme';
 
 type SelectionRange = {
   from: number;
@@ -28,40 +29,6 @@ export type MarkdownEditorHandle = {
   focus: () => void;
   getSelectionRange: () => SelectionRange | null;
 };
-
-const artDecoTheme = EditorView.theme({
-  '&': {
-    backgroundColor: 'var(--color-card)',
-    color: 'var(--color-light)',
-    height: '100%',
-  },
-  '.cm-gutters': {
-    backgroundColor: 'var(--color-panel)',
-    color: 'var(--color-dim)',
-    borderRight: '1px solid var(--color-edge)',
-  },
-  '.cm-activeLine': {
-    backgroundColor: 'rgb(0 245 212 / 5%)',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: 'rgb(0 245 212 / 5%)',
-    color: 'var(--color-light)',
-  },
-  '.cm-selectionBackground, ::selection': {
-    backgroundColor: 'rgb(0 245 212 / 20%) !important',
-  },
-  '.cm-cursor': {
-    borderLeftColor: 'var(--color-primary)',
-  },
-  '.cm-content': {
-    fontFamily: 'var(--font-mono)',
-    fontSize: '13px',
-    lineHeight: '1.5',
-  },
-  '.cm-focused': {
-    outline: 'none',
-  },
-});
 
 export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
   (
@@ -98,12 +65,15 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       return builder.finish();
     };
 
-    const syncHistory = (state: EditorState) => {
-      onHistoryChange?.({
-        canUndo: undoDepth(state) > 0,
-        canRedo: redoDepth(state) > 0,
-      });
-    };
+    const syncHistory = useCallback(
+      (state: EditorState) => {
+        onHistoryChange?.({
+          canUndo: undoDepth(state) > 0,
+          canRedo: redoDepth(state) > 0,
+        });
+      },
+      [onHistoryChange],
+    );
 
     useImperativeHandle(ref, () => ({
       undo: () => {
@@ -149,8 +119,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         extensions: [
           basicSetup,
           language === 'json' ? json() : markdown(),
-          oneDark,
-          artDecoTheme,
+          odySyntax,
+          odyEditorTheme,
           EditorView.lineWrapping,
           readOnlyCompartment.current.of(EditorState.readOnly.of(readOnly)),
           highlightCompartment.current.of(
@@ -190,7 +160,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         view.destroy();
         viewRef.current = null;
       };
-    }, [language, onChange, readOnly, value]);
+    }, [language, onChange, readOnly, value, syncHistory, highlightedRange, onInlinePrompt]);
 
     useEffect(() => {
       if (!viewRef.current) {

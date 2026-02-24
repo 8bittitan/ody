@@ -10,10 +10,11 @@ import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
+import { api } from '@/lib/api';
 import { useStore } from '@/store';
 import type { MenuAction } from '@/types/ipc';
 import { CircleHelp, FolderPlus, Settings } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 
 import { AgentRunner } from './AgentRunner';
 import { ArchiveViewer } from './ArchiveViewer';
@@ -21,9 +22,9 @@ import { AuthPanel } from './AuthPanel';
 import { ConfigEditor } from './ConfigEditor';
 import { ConfigPanel } from './ConfigPanel';
 import { ErrorBoundary } from './ErrorBoundary';
+import { GenerationOutput } from './GenerationOutput';
 import { InitWizard } from './InitWizard';
 import { PlanCreator } from './PlanCreator';
-import { PlanList } from './PlanList';
 import { SettingsModal } from './SettingsModal';
 import { Sidebar, type ViewId } from './Sidebar';
 import { TaskBoard } from './TaskBoard';
@@ -66,6 +67,62 @@ export const Layout = () => {
   const { loadTasks, setSelectedTaskPath } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
   const backendName = typeof config?.backend === 'string' ? config.backend : 'opencode';
+
+  const [planStreamOutput, setPlanStreamOutput] = useState('');
+  const [isPlanGenerating, setIsPlanGenerating] = useState(false);
+  const isPlanGeneratingRef = useRef(false);
+
+  const resetPlanStream = useCallback(() => {
+    setPlanStreamOutput('');
+  }, []);
+
+  useEffect(() => {
+    const onOutput = api.agent.onOutput((chunk) => {
+      if (!isPlanGeneratingRef.current) {
+        return;
+      }
+
+      setPlanStreamOutput((prev) => `${prev}${chunk}`);
+    });
+
+    const finish = () => {
+      if (!isPlanGeneratingRef.current) {
+        return;
+      }
+
+      isPlanGeneratingRef.current = false;
+      setIsPlanGenerating(false);
+      void loadTasks().catch(() => {
+        return;
+      });
+    };
+
+    const onComplete = api.agent.onComplete(() => {
+      finish();
+      success({ title: 'Plan generation finished' });
+    });
+
+    const onStopped = api.agent.onStopped(() => {
+      finish();
+    });
+
+    const onVerifyFailed = api.agent.onVerifyFailed((message) => {
+      if (!isPlanGeneratingRef.current) {
+        return;
+      }
+
+      isPlanGeneratingRef.current = false;
+      setIsPlanGenerating(false);
+      error({ title: 'Plan generation failed', description: message });
+    });
+
+    return () => {
+      onOutput();
+      onComplete();
+      onStopped();
+      onVerifyFailed();
+    };
+  }, [error, loadTasks, success]);
   const activeProject = useMemo(() => {
     if (!activeProjectPath) {
       return null;
@@ -403,11 +460,19 @@ export const Layout = () => {
                       <ErrorBoundary title="Plan view error">
                         <div className="grid h-full gap-3 lg:grid-cols-[1.25fr_0.75fr]">
                           <PlanCreator
+                            isGenerating={isPlanGenerating}
+                            isGeneratingRef={isPlanGeneratingRef}
+                            setIsGenerating={setIsPlanGenerating}
+                            setStreamOutput={setPlanStreamOutput}
+                            resetStream={resetPlanStream}
+                          />
+                          <GenerationOutput
+                            streamOutput={planStreamOutput}
+                            isGenerating={isPlanGenerating}
                             onOpenTaskBoard={() => {
                               setActiveView('tasks');
                             }}
                           />
-                          <PlanList />
                         </div>
                       </ErrorBoundary>
                     ) : activeView === 'auth' ? (
@@ -465,7 +530,7 @@ export const Layout = () => {
               />
               {isRunning ? 'running' : 'idle'}
             </span>
-            <span>{activeProject?.name ? `${activeProject.name}` : 'No active project'}</span>
+            <span>{activeProject?.path ? `${activeProject.path}` : 'No active project'}</span>
           </div>
 
           <div className="text-dim flex items-center gap-3">

@@ -7,6 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAgent } from '@/hooks/useAgent';
 import { useConfig } from '@/hooks/useConfig';
@@ -233,20 +240,24 @@ export const AgentRunner = () => {
 
         <label className="mt-3 block">
           <span className="text-dim mb-1 block text-xs">Specific task (optional)</span>
-          <select
+          <Select
             value={selectedTaskPath}
-            onChange={(event) => {
-              setSelectedTaskPath(event.target.value);
+            onValueChange={(value) => {
+              setSelectedTaskPath(String(value));
             }}
-            className="bg-background border-edge text-light h-8 w-full rounded border px-2 text-sm"
           >
-            <option value="">Run current task filter</option>
-            {pendingTasks.map((task: TaskSummary) => (
-              <option key={task.filePath} value={task.filePath}>
-                {task.title}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger size="sm" className="w-full">
+              <SelectValue placeholder="Run current task filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Run current task filter</SelectItem>
+              {pendingTasks.map((task: TaskSummary) => (
+                <SelectItem key={task.filePath} value={task.filePath}>
+                  {task.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
 
         <p className="text-dim mt-3 text-xs">

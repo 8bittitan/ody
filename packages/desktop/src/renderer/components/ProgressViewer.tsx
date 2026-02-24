@@ -1,7 +1,7 @@
 import { useNotifications } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
 import { NotebookText } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -18,7 +18,7 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
   const [loadError, setLoadError] = useState<string | null>(null);
   const { error } = useNotifications();
 
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     setIsLoading(true);
 
     try {
@@ -32,7 +32,7 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [error]);
 
   const clearProgress = async () => {
     try {
@@ -46,7 +46,7 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
 
   useEffect(() => {
     void loadProgress();
-  }, []);
+  }, [loadProgress]);
 
   useEffect(() => {
     if (iteration === 0 && !isRunning) {
@@ -54,7 +54,7 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
     }
 
     void loadProgress();
-  }, [iteration, isRunning]);
+  }, [iteration, isRunning, loadProgress]);
 
   return (
     <section className="bg-panel/90 border-edge rounded-lg border">

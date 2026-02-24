@@ -92,7 +92,7 @@ export const useAgent = () => {
 
       return result;
     },
-    [setRunning],
+    [setRunning, setError],
   );
 
   useEffect(() => {
