@@ -68,3 +68,17 @@
   - Added detailTarget state (TaskSummary | null) in TaskBoard.tsx following existing runTarget/deleteTarget pattern
   - Handles error state if readTask fails, clears state on dialog close
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
+
+2026-02-24 | collapsible-sidebar-with-keybind | Completed
+  - Created UISlice in store/slices/uiSlice.ts with sidebarCollapsed boolean, toggleSidebar action, and localStorage persistence
+  - Wired UISlice into combined Zustand store (store/index.ts) as part of AppStore type
+  - Created lightweight Tooltip component (ui/tooltip.tsx) for hover tooltips since @base-ui/react has no tooltip primitive
+  - Refactored Sidebar.tsx to accept collapsed/onToggle props; conditionally renders icon-only mode vs full-width mode
+  - In collapsed mode: nav items show only icons with tooltips, projects show single-char avatars with tooltips, status section shows compact icons
+  - In expanded mode: project names truncate with ellipsis, full labels visible
+  - Added ChevronsLeft/ChevronsRight toggle button at sidebar bottom
+  - Sidebar animates between w-56 (224px) and w-14 (56px) via transition-all duration-200
+  - Added Cmd+[ / Ctrl+[ keyboard shortcut in Layout.tsx to toggle sidebar
+  - Layout.tsx consumes sidebarCollapsed and toggleSidebar from Zustand store, passes to Sidebar
+  - Collapsed state persists via localStorage across view changes and app restarts
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)

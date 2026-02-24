@@ -63,6 +63,8 @@ export const Layout = () => {
   const isRunning = useStore((state) => state.isRunning);
   const setConfigEditorPath = useStore((state) => state.setConfigEditorPath);
   const resetAgentState = useStore((state) => state.resetAgentState);
+  const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useStore((state) => state.toggleSidebar);
   const { loadConfig, config } = useConfig();
   const { loadTasks, setSelectedTaskPath } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
@@ -290,6 +292,20 @@ export const Layout = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === '[' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [toggleSidebar]);
+
   return (
     <div className="bg-background text-foreground h-screen overflow-hidden">
       <div className="flex h-full flex-col">
@@ -352,6 +368,8 @@ export const Layout = () => {
               backendName={backendName}
               agentState={isRunning ? 'running' : 'idle'}
               isLoadingProjects={isLoading}
+              collapsed={sidebarCollapsed}
+              onToggle={toggleSidebar}
             />
 
             <main className="bg-grid min-w-0 flex-1">
