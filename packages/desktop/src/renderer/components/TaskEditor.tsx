@@ -72,6 +72,24 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
     }
   }, [error, fileName, save, success]);
 
+  const handleInlinePrompt = useCallback(
+    (selection: { from: number; to: number } | null) => {
+      const result = beginInlinePrompt(selection);
+      if (!result.ok && result.reason) {
+        warning({ title: result.reason });
+      }
+    },
+    [beginInlinePrompt, warning],
+  );
+
+  const handleHistoryChange = useCallback(
+    (historyState: { canUndo: boolean; canRedo: boolean }) => {
+      setCanUndo(historyState.canUndo);
+      setCanRedo(historyState.canRedo);
+    },
+    [],
+  );
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
@@ -225,17 +243,9 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
               value={content}
               readOnly={isInlineRunning}
               highlightedRange={editorMode === 'prompt' ? inlineSelection : null}
-              onInlinePrompt={(selection) => {
-                const result = beginInlinePrompt(selection);
-                if (!result.ok && result.reason) {
-                  warning({ title: result.reason });
-                }
-              }}
+              onInlinePrompt={handleInlinePrompt}
               onChange={setContent}
-              onHistoryChange={(historyState) => {
-                setCanUndo(historyState.canUndo);
-                setCanRedo(historyState.canRedo);
-              }}
+              onHistoryChange={handleHistoryChange}
             />
             <InlinePrompt
               open={editorMode === 'prompt'}

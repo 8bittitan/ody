@@ -39,11 +39,17 @@ export type TaskState = {
   status: TaskStatus;
 };
 
-export type ArchiveEntry = {
+export type ArchiveFile = {
   filePath: string;
-  createdAt: string;
-  taskCount: number;
   content: string;
+  taskCount: number;
+};
+
+export type ArchiveEntry = {
+  date: string;
+  tasks: ArchiveFile | null;
+  progress: ArchiveFile | null;
+  legacy: ArchiveFile | null;
 };
 
 export type ImportSource = 'jira' | 'github';

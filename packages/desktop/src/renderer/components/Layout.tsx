@@ -408,6 +408,9 @@ export const Layout = () => {
                         <button
                           type="button"
                           className="bg-primary text-primary-foreground hover:bg-accent-hover border-primary/60 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
+                          onClick={() => {
+                            setActiveView('plan');
+                          }}
                         >
                           New Task
                         </button>

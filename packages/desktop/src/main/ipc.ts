@@ -242,15 +242,23 @@ const readActiveProjectPath = () => appStore.get('activeProject', null);
 const resolveTasksDirPath = (projectPath: string) => join(projectPath, BASE_DIR, TASKS_DIR);
 const resolveProgressFilePath = (projectPath: string) =>
   join(projectPath, BASE_DIR, 'progress.txt');
-const resolveArchivesDirPath = (projectPath: string) => join(projectPath, BASE_DIR, 'archives');
+const resolveHistoryDirPath = (projectPath: string) => join(projectPath, BASE_DIR, 'history');
 
 const parseTaskCountFromArchive = (content: string) => {
-  const countMatch = content.match(/^## Tasks \((\d+)\)/m);
-  if (countMatch?.[1]) {
-    return Number.parseInt(countMatch[1], 10);
+  // CLI format: "Total tasks archived: N"
+  const cliMatch = content.match(/^Total tasks archived:\s*(\d+)/m);
+  if (cliMatch?.[1]) {
+    return Number.parseInt(cliMatch[1], 10);
   }
 
-  const headings = content.match(/^### /gm);
+  // Desktop legacy format: "## Tasks (N)"
+  const desktopMatch = content.match(/^## Tasks \((\d+)\)/m);
+  if (desktopMatch?.[1]) {
+    return Number.parseInt(desktopMatch[1], 10);
+  }
+
+  // Fallback: count ## headings (task entries)
+  const headings = content.match(/^## /gm);
   return headings?.length ?? 0;
 };
 
@@ -1361,36 +1369,33 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       progressContent = '';
     }
 
-    const archivesDirPath = resolveArchivesDirPath(activeProjectPath);
-    await mkdir(archivesDirPath, { recursive: true });
-
     const now = new Date();
     const dateStamp = now.toISOString().slice(0, 10);
-    const timeStamp = now.toISOString().replace(/[:.]/g, '-');
-    const archiveFilePath = join(archivesDirPath, `archive-${timeStamp}.md`);
+    const timestamp = now.toISOString();
 
-    const archiveBody = [
-      `# Ody Archive - ${dateStamp}`,
-      '',
-      `## Tasks (${completedTasks.length})`,
-      '',
-      ...completedTasks.flatMap((task, index) => [
-        `### ${index + 1}. ${task.title}`,
-        `- File: ${task.filePath}`,
-        '',
-        '```markdown',
-        task.content.trimEnd(),
-        '```',
-        '',
-      ]),
-      '## Progress Notes',
-      '',
-      progressContent.trim().length > 0 ? '```text' : '_No progress notes recorded._',
-      ...(progressContent.trim().length > 0 ? [progressContent.trimEnd(), '```'] : []),
-      '',
-    ].join('\n');
+    // Write to .ody/history/YYYY-MM-DD/ matching CLI compact format
+    const historyDirPath = join(resolveHistoryDirPath(activeProjectPath), dateStamp);
+    await mkdir(historyDirPath, { recursive: true });
 
-    await writeFile(archiveFilePath, archiveBody, 'utf-8');
+    // Build tasks.md in CLI format
+    let taskArchive = `# Task Archive\n\nGenerated: ${timestamp}\n\nTotal tasks archived: ${completedTasks.length}\n\n---\n\n`;
+    for (const task of completedTasks) {
+      taskArchive += `## ${task.title}\n\n`;
+      taskArchive += `- File: ${task.filePath}\n\n`;
+      taskArchive += '```markdown\n';
+      taskArchive += `${task.content.trimEnd()}\n`;
+      taskArchive += '```\n\n---\n\n';
+    }
+
+    const tasksFilePath = join(historyDirPath, 'tasks.md');
+    await writeFile(tasksFilePath, taskArchive, 'utf-8');
+
+    // Build progress.md in CLI format
+    if (progressContent.trim().length > 0) {
+      const progressArchive = `# Progress Log\n\nGenerated: ${timestamp}\n\n---\n\n${progressContent.trimEnd()}\n`;
+      const progressArchivePath = join(historyDirPath, 'progress.md');
+      await writeFile(progressArchivePath, progressArchive, 'utf-8');
+    }
 
     for (const task of completedTasks) {
       try {
@@ -1405,7 +1410,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     return {
       archived: completedTasks.map((task) => task.filePath),
-      archiveFilePath,
+      archiveFilePath: tasksFilePath,
     };
   });
   registerHandler('archive:list', async () => {
@@ -1415,31 +1420,90 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       return [];
     }
 
-    const archivesDirPath = resolveArchivesDirPath(activeProjectPath);
+    const historyDirPath = resolveHistoryDirPath(activeProjectPath);
 
     try {
-      const entries = await readdir(archivesDirPath, { withFileTypes: true });
-      const archiveFiles = entries
-        .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-        .map((entry) => entry.name)
-        .sort((a, b) => b.localeCompare(a));
+      const entries = await readdir(historyDirPath, { withFileTypes: true });
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      const legacyPattern = /^archive-(\d{4}-\d{2}-\d{2})/;
 
-      const archives = await Promise.all(
-        archiveFiles.map(async (fileName) => {
-          const filePath = join(archivesDirPath, fileName);
-          const content = await readFile(filePath, 'utf-8');
-          const dateMatch = fileName.match(/archive-(\d{4}-\d{2}-\d{2})/);
+      const archiveMap = new Map<
+        string,
+        {
+          tasks: { filePath: string; content: string; taskCount: number } | null;
+          progress: { filePath: string; content: string; taskCount: number } | null;
+          legacy: { filePath: string; content: string; taskCount: number } | null;
+        }
+      >();
 
-          return {
-            filePath,
-            createdAt: dateMatch?.[1] ?? fileName,
-            taskCount: parseTaskCountFromArchive(content),
-            content,
-          };
-        }),
-      );
+      // Process date-stamped subdirectories (YYYY-MM-DD/)
+      for (const entry of entries) {
+        if (entry.isDirectory() && datePattern.test(entry.name)) {
+          const date = entry.name;
+          const dirPath = join(historyDirPath, date);
+          const group = archiveMap.get(date) ?? { tasks: null, progress: null, legacy: null };
 
-      return archives;
+          try {
+            const tasksPath = join(dirPath, 'tasks.md');
+            const tasksContent = await readFile(tasksPath, 'utf-8');
+            group.tasks = {
+              filePath: tasksPath,
+              content: tasksContent,
+              taskCount: parseTaskCountFromArchive(tasksContent),
+            };
+          } catch {
+            // tasks.md may not exist in this date directory
+          }
+
+          try {
+            const progressPath = join(dirPath, 'progress.md');
+            const progressContent = await readFile(progressPath, 'utf-8');
+            group.progress = {
+              filePath: progressPath,
+              content: progressContent,
+              taskCount: 0,
+            };
+          } catch {
+            // progress.md may not exist in this date directory
+          }
+
+          if (group.tasks || group.progress) {
+            archiveMap.set(date, group);
+          }
+        }
+      }
+
+      // Process legacy flat archive files (archive-YYYY-MM-DD*.md)
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith('.md')) {
+          const legacyMatch = entry.name.match(legacyPattern);
+          if (legacyMatch?.[1]) {
+            const date = legacyMatch[1];
+            const filePath = join(historyDirPath, entry.name);
+            const content = await readFile(filePath, 'utf-8');
+            const group = archiveMap.get(date) ?? { tasks: null, progress: null, legacy: null };
+            group.legacy = {
+              filePath,
+              content,
+              taskCount: parseTaskCountFromArchive(content),
+            };
+            archiveMap.set(date, group);
+          }
+        }
+      }
+
+      // Sort by date descending (newest first)
+      const sortedDates = [...archiveMap.keys()].sort((a, b) => b.localeCompare(a));
+
+      return sortedDates.map((date) => {
+        const group = archiveMap.get(date)!;
+        return {
+          date,
+          tasks: group.tasks,
+          progress: group.progress,
+          legacy: group.legacy,
+        };
+      });
     } catch {
       return [];
     }

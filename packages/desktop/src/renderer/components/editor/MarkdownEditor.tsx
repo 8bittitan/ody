@@ -4,7 +4,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { Compartment, EditorState, RangeSetBuilder } from '@codemirror/state';
 import { Decoration, EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 import { odyEditorTheme, odySyntax } from './theme';
 
@@ -47,6 +47,22 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const viewRef = useRef<EditorView | null>(null);
     const readOnlyCompartment = useRef(new Compartment());
     const highlightCompartment = useRef(new Compartment());
+    const keymapCompartment = useRef(new Compartment());
+
+    // Stable refs for mutable callbacks — the CodeMirror extensions read from
+    // these so the editor never needs to be torn down when callbacks change.
+    const onChangeRef = useRef(onChange);
+    const onInlinePromptRef = useRef(onInlinePrompt);
+    const onHistoryChangeRef = useRef(onHistoryChange);
+
+    // Keep refs in sync with latest props on every render.
+    onChangeRef.current = onChange;
+    onInlinePromptRef.current = onInlinePrompt;
+    onHistoryChangeRef.current = onHistoryChange;
+
+    // Capture the initial value for the editor doc so we don't depend on
+    // the `value` prop inside the initialization effect.
+    const initialValueRef = useRef(value);
 
     const buildHighlightDecorations = (range: SelectionRange | null, docLength: number) => {
       if (!range || range.from >= range.to) {
@@ -65,15 +81,12 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       return builder.finish();
     };
 
-    const syncHistory = useCallback(
-      (state: EditorState) => {
-        onHistoryChange?.({
-          canUndo: undoDepth(state) > 0,
-          canRedo: redoDepth(state) > 0,
-        });
-      },
-      [onHistoryChange],
-    );
+    const syncHistory = (state: EditorState) => {
+      onHistoryChangeRef.current?.({
+        canUndo: undoDepth(state) > 0,
+        canRedo: redoDepth(state) > 0,
+      });
+    };
 
     useImperativeHandle(ref, () => ({
       undo: () => {
@@ -109,13 +122,19 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
       },
     }));
 
+    // Initialize the CodeMirror EditorView once. The only dependency is
+    // `language` which determines the parser extension and is static per
+    // editor session. All mutable props are read via refs so the editor
+    // is never destroyed and recreated during normal editing.
     useEffect(() => {
       if (!containerRef.current || viewRef.current) {
         return;
       }
 
+      const doc = initialValueRef.current;
+
       const startState = EditorState.create({
-        doc: value,
+        doc,
         extensions: [
           basicSetup,
           language === 'json' ? json() : markdown(),
@@ -124,21 +143,23 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
           EditorView.lineWrapping,
           readOnlyCompartment.current.of(EditorState.readOnly.of(readOnly)),
           highlightCompartment.current.of(
-            EditorView.decorations.of(buildHighlightDecorations(highlightedRange, value.length)),
+            EditorView.decorations.of(buildHighlightDecorations(highlightedRange, doc.length)),
           ),
-          keymap.of([
-            {
-              key: 'Mod-k',
-              run: (view) => {
-                const { from, to } = view.state.selection.main;
-                onInlinePrompt?.(from === to ? null : { from, to });
-                return true;
+          keymapCompartment.current.of(
+            keymap.of([
+              {
+                key: 'Mod-k',
+                run: (view) => {
+                  const { from, to } = view.state.selection.main;
+                  onInlinePromptRef.current?.(from === to ? null : { from, to });
+                  return true;
+                },
               },
-            },
-          ]),
+            ]),
+          ),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
-              onChange(update.state.doc.toString());
+              onChangeRef.current(update.state.doc.toString());
             }
 
             if (update.docChanged || update.transactions.some((txn) => txn.isUserEvent('undo'))) {
@@ -160,7 +181,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         view.destroy();
         viewRef.current = null;
       };
-    }, [language, onChange, readOnly, value, syncHistory, highlightedRange, onInlinePrompt]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [language]);
 
     useEffect(() => {
       if (!viewRef.current) {

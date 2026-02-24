@@ -1,6 +1,6 @@
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { tags } from '@lezer/highlight';
 import { EditorView } from '@codemirror/view';
+import { tags } from '@lezer/highlight';
 
 /**
  * Custom syntax highlight style that harmonizes with the app's

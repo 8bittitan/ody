@@ -29,6 +29,7 @@ import { useTasks } from '../hooks/useTasks';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TaskCard } from './TaskCard';
+import { TaskDetailDialog } from './TaskDetailDialog';
 
 type TaskBoardProps = {
   onOpenPlan: () => void;
@@ -53,13 +54,14 @@ const COLUMN_META = {
 
 export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoardProps) => {
   const activeProjectPath = useStore((state) => state.activeProjectPath);
-  const { tasks, loadTasks, setFilters, labelFilter, isLoading } = useTasks();
+  const { tasks, filteredTasks, loadTasks, setFilters, labelFilter, isLoading } = useTasks();
   const { config } = useConfig();
   const { start, stop, isRunning, output, iteration, maxIterations } = useAgent();
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
   const [runTarget, setRunTarget] = useState<TaskSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskSummary | null>(null);
+  const [detailTarget, setDetailTarget] = useState<TaskSummary | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [runIterations, setRunIterations] = useState<number>(
     typeof config?.maxIterations === 'number' ? config.maxIterations : 1,
@@ -94,11 +96,11 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
     const query = search.trim().toLowerCase();
 
     if (query.length === 0) {
-      return tasks;
+      return filteredTasks;
     }
 
-    return tasks.filter((task) => task.title.toLowerCase().includes(query));
-  }, [search, tasks]);
+    return filteredTasks.filter((task) => task.title.toLowerCase().includes(query));
+  }, [search, filteredTasks]);
 
   const uniqueLabels = useMemo(() => {
     const labels = new Set<string>();
@@ -373,6 +375,7 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
                           task={task}
                           outputPreview={status === 'in_progress' ? outputPreview : undefined}
                           isRunning={isRunning}
+                          onClick={setDetailTarget}
                           onRun={setRunTarget}
                           onEdit={(target) => {
                             onOpenEditor(target.filePath);
@@ -556,6 +559,17 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TaskDetailDialog
+        task={detailTarget}
+        open={detailTarget !== null}
+        onClose={() => {
+          setDetailTarget(null);
+        }}
+        onEdit={(filePath) => {
+          onOpenEditor(filePath);
+        }}
+      />
 
       {isRunning ? (
         <div className="text-dim border-edge bg-background/40 rounded-lg border px-3 py-2 text-xs">

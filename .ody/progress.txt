@@ -24,3 +24,47 @@
   - Updated PlanCreator.tsx to accept stream control props from parent; removed generation output JSX and ANSI rendering
   - Updated Layout.tsx to render GenerationOutput in place of PlanList, wiring lifted state between both components
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
+
+2026-02-24 | fix-editor-cursor-reset-on-keystroke | Completed
+  - Root cause: CodeMirror init useEffect depended on unstable callback props (onChange, onInlinePrompt, syncHistory), causing editor destroy/recreate on every keystroke
+  - Stored onChange, onInlinePrompt, onHistoryChange callbacks in useRef holders; CodeMirror extensions now read from refs instead of closing over props
+  - Removed unstable dependencies from init useEffect; now only depends on `language` (static per session)
+  - Added keymapCompartment for the Cmd+K binding so it reads onInlinePromptRef.current
+  - updateListener reads onChangeRef.current and onHistoryChangeRef.current for stable closures
+  - Removed useCallback wrapper from syncHistory; it now reads directly from onHistoryChangeRef
+  - Memoized onInlinePrompt and onHistoryChange handlers in TaskEditor.tsx with useCallback as defense-in-depth
+  - Existing value-sync, readOnly, and highlightedRange useEffects unchanged (already correct)
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
+
+2026-02-24 | fix-task-board-label-filter | Completed
+  - Bug: TaskBoard used raw `tasks` array instead of `filteredTasks` from useTasks hook, so label filter state was written to Zustand store but never consumed for rendering
+  - Added `filteredTasks` to the destructured return from `useTasks()` in TaskBoard.tsx
+  - Changed `filteredBySearch` memo to use `filteredTasks` as its base instead of `tasks`, so label filtering is applied before text search
+  - `uniqueLabels` still derives from full `tasks` array so all labels remain visible in filter UI regardless of active filter
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
+
+2026-02-24 | fix-archive-viewer-history-directory | Completed
+  - Renamed resolveArchivesDirPath to resolveHistoryDirPath, pointing to .ody/history instead of .ody/archives
+  - Redesigned ArchiveEntry type to support date-grouped archives with separate tasks/progress/legacy file slots
+  - Rewrote archive:list IPC handler to traverse date-stamped subdirectories (YYYY-MM-DD/) and legacy flat .md files
+  - Updated parseTaskCountFromArchive to support CLI format ("Total tasks archived: N") alongside desktop legacy format
+  - Rewrote archive:compact handler to write to .ody/history/YYYY-MM-DD/ with separate tasks.md and progress.md matching CLI format
+  - Redesigned ArchiveViewer.tsx to render date-grouped cards with separate Tasks/Progress toggle sections per date
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
+
+2026-02-24 | wire-new-task-button-to-plan-view | Completed
+  - Added onClick handler to the "New Task" button in Layout.tsx (line 408) that calls setActiveView('plan')
+  - Consistent with existing navigation patterns: sidebar, Electron menu (CmdOrCtrl+N), TaskBoard empty state onOpenPlan
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
+
+2026-02-24 | add-task-detail-dialog | Completed
+  - Added optional onClick prop to TaskCard with stopPropagation on Run, Edit, Del, and Stop action buttons
+  - Created TaskDetailDialog component at renderer/components/TaskDetailDialog.tsx
+  - Dialog fetches full task markdown via readTask(filePath) from useTasks hook, shows loading spinner while fetching
+  - Parses markdown into sections (strips YAML frontmatter, splits on ## headings) and renders with styled headings, lists, paragraphs
+  - Displays task title in DialogTitle, status badge in header, labels/complexity/dates in metadata strip
+  - Uses max-w-2xl width, ScrollArea with max-h-[70vh] for scrollable content, bg-panel border-edge styling
+  - Footer includes Close button and Edit button that calls onOpenEditor and closes the dialog
+  - Added detailTarget state (TaskSummary | null) in TaskBoard.tsx following existing runTarget/deleteTarget pattern
+  - Handles error state if readTask fails, clears state on dialog close
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
