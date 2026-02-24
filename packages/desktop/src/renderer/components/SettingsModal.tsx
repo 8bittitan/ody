@@ -202,9 +202,9 @@ export const SettingsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-panel border-edge max-w-[560px] p-0" showCloseButton={false}>
+      <DialogContent className="bg-panel border-edge max-w-[560px] p-0">
         <DialogHeader className="border-edge border-b px-5 py-4">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 pr-6">
             <div className="bg-accent-bg border-primary/35 text-primary mt-0.5 rounded-md border p-2">
               <Settings2 className="size-4" />
             </div>

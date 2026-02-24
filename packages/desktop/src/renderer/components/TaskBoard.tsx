@@ -14,7 +14,6 @@ import {
   ScrollAreaThumb,
   ScrollAreaViewport,
 } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
 import { stripAnsi } from '@/lib/ansi';
 import { api } from '@/lib/api';
 import { useStore } from '@/store';
@@ -59,16 +58,9 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
   const { start, stop, isRunning, output, iteration, maxIterations } = useAgent();
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
-  const [runTarget, setRunTarget] = useState<TaskSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TaskSummary | null>(null);
   const [detailTarget, setDetailTarget] = useState<TaskSummary | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
-  const [runIterations, setRunIterations] = useState<number>(
-    typeof config?.maxIterations === 'number' ? config.maxIterations : 1,
-  );
-  const [runShouldCommit, setRunShouldCommit] = useState<boolean>(
-    typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false,
-  );
   const [viewError, setViewError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,11 +72,6 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
       setViewError(cause instanceof Error ? cause.message : 'Unable to load tasks');
     });
   }, [activeProjectPath, loadTasks]);
-
-  useEffect(() => {
-    setRunIterations(typeof config?.maxIterations === 'number' ? config.maxIterations : 1);
-    setRunShouldCommit(typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false);
-  }, [config?.maxIterations, config?.shouldCommit]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -133,16 +120,24 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
     return lines.slice(-6).join('\n');
   }, [output]);
 
-  const startTaskRun = async () => {
-    if (!activeProjectPath || !runTarget) {
+  const startTaskRun = async (task: TaskSummary) => {
+    if (!activeProjectPath) {
       return;
     }
+
+    if (isRunning) {
+      warning({ title: 'Agent is already running' });
+      return;
+    }
+
+    const iterations = typeof config?.maxIterations === 'number' ? config.maxIterations : 1;
+    const shouldCommit = typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false;
 
     try {
       const result = await start({
         projectDir: activeProjectPath,
-        taskFiles: [runTarget.filePath],
-        iterations: Math.max(1, runIterations),
+        taskFiles: [task.filePath],
+        iterations: Math.max(1, iterations),
       });
 
       if (!result.started) {
@@ -150,10 +145,9 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
         return;
       }
 
-      setRunTarget(null);
       accent({
         title: 'Task run started',
-        description: runShouldCommit ? 'Auto-commit requested in preview.' : undefined,
+        description: shouldCommit ? 'Auto-commit enabled.' : undefined,
       });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unable to start task run';
@@ -376,7 +370,9 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
                           outputPreview={status === 'in_progress' ? outputPreview : undefined}
                           isRunning={isRunning}
                           onClick={setDetailTarget}
-                          onRun={setRunTarget}
+                          onRun={(target) => {
+                            void startTaskRun(target);
+                          }}
                           onEdit={(target) => {
                             onOpenEditor(target.filePath);
                           }}
@@ -404,79 +400,12 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
       </section>
 
       <Dialog
-        open={runTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRunTarget(null);
-          }
-        }}
-      >
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Start agent run</DialogTitle>
-            <DialogDescription>Confirm settings before running this task.</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 text-sm">
-            <div className="border-edge rounded border p-2">
-              <p className="text-dim text-xs">Task</p>
-              <p className="text-light mt-1 text-sm">{runTarget?.title}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="border-edge rounded border p-2">
-                <p className="text-dim">Backend</p>
-                <p className="text-light mt-1 font-mono">{String(config?.backend ?? 'opencode')}</p>
-              </div>
-              <label className="border-edge rounded border p-2">
-                <p className="text-dim">Iterations</p>
-                <input
-                  type="number"
-                  min={1}
-                  value={runIterations}
-                  onChange={(event) => {
-                    const value = Number.parseInt(event.target.value, 10);
-                    setRunIterations(Number.isNaN(value) ? 1 : Math.max(1, value));
-                  }}
-                  className="bg-background text-light mt-1 w-full rounded px-1.5 py-1"
-                />
-              </label>
-            </div>
-            <label className="border-edge flex items-center justify-between rounded border p-2 text-xs">
-              <span className="text-mid">Auto-commit after run</span>
-              <Switch checked={runShouldCommit} onCheckedChange={setRunShouldCommit} size="sm" />
-            </label>
-          </div>
-
-          <DialogFooter>
-            <button
-              type="button"
-              className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
-              onClick={() => {
-                setRunTarget(null);
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-2 text-sm"
-              onClick={() => {
-                void startTaskRun();
-              }}
-            >
-              Start Agent
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
         open={showArchiveConfirm}
         onOpenChange={(open) => {
           setShowArchiveConfirm(open);
         }}
       >
-        <DialogContent className="bg-panel border-edge max-w-lg" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-lg">
           <DialogHeader>
             <DialogTitle>Archive completed tasks?</DialogTitle>
             <DialogDescription>
@@ -527,7 +456,7 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
           }
         }}
       >
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-md">
           <DialogHeader>
             <DialogTitle>Delete task?</DialogTitle>
             <DialogDescription>

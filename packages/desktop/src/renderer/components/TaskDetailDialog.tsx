@@ -230,9 +230,9 @@ export const TaskDetailDialog = ({ task, open, onClose, onEdit }: TaskDetailDial
         }
       }}
     >
-      <DialogContent className="bg-panel border-edge md:max-w-1/2" showCloseButton={false}>
+      <DialogContent className="bg-panel border-edge md:max-w-1/2">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-3 pr-6">
             <DialogTitle className="text-light">{task?.title ?? 'Task Detail'}</DialogTitle>
             {task ? (
               <span

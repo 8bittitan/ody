@@ -121,11 +121,7 @@ export const ConfigEditor = ({ onBack }: ConfigEditorProps) => {
         onAiEdit={() => {
           warning({ title: 'AI edit is not available for config JSON.' });
         }}
-        onOpenTerminal={() => {
-          warning({ title: 'Open in Terminal is not available in config editor.' });
-        }}
         showAiEdit={false}
-        showOpenTerminal={false}
       />
 
       <div className="bg-panel border-edge relative min-h-0 flex-1 rounded-md border p-2">
@@ -148,7 +144,7 @@ export const ConfigEditor = ({ onBack }: ConfigEditorProps) => {
       </div>
 
       <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-md">
           <DialogHeader>
             <DialogTitle>Discard unsaved changes?</DialogTitle>
             <DialogDescription>

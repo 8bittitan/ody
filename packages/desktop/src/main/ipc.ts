@@ -7,7 +7,6 @@ import { Auth } from '@internal/auth';
 import { Backend, getAvailableBackends } from '@internal/backends';
 import {
   buildBatchPlanPrompt,
-  buildEditPlanPrompt,
   buildImportPrompt,
   buildInlineEditPrompt,
   buildPlanPrompt,
@@ -28,7 +27,6 @@ import { dialog, ipcMain, nativeTheme, shell } from 'electron';
 import Store from 'electron-store';
 
 import { AgentRunner } from './agent';
-import { PtySession } from './pty';
 
 type ProjectItem = {
   name: string;
@@ -365,7 +363,6 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       shell.beep();
     },
   });
-  const ptySession = new PtySession();
   let inlineEditProc: ChildProcessWithoutNullStreams | null = null;
   let inlineEditSnapshot: { filePath: string; content: string } | null = null;
   const handleNativeThemeUpdated = () => {
@@ -380,7 +377,6 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
   nativeTheme.on('updated', handleNativeThemeUpdated);
   win.on('closed', () => {
     nativeTheme.removeListener('updated', handleNativeThemeUpdated);
-    ptySession.kill();
   });
 
   registerHandler('config:load', async () => {
@@ -612,7 +608,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       return { started: false };
     }
 
-    if (agentRunner.isRunning() || ptySession.isRunning()) {
+    if (agentRunner.isRunning()) {
       return { started: false };
     }
 
@@ -644,52 +640,8 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     return { started: true };
   });
-  registerHandler('agent:runOnce', async (opts: unknown) => {
-    if (!opts || typeof opts !== 'object') {
-      return { started: false };
-    }
-
-    if (agentRunner.isRunning() || ptySession.isRunning()) {
-      return { started: false };
-    }
-
-    const options = opts as { projectDir?: string; prompt?: string; filePath?: string };
-    const projectDir = String(options.projectDir ?? '').trim();
-
-    if (projectDir.length === 0) {
-      return { started: false };
-    }
-
-    let prompt = String(options.prompt ?? '').trim();
-    const filePath = String(options.filePath ?? '').trim();
-
-    if (prompt.length === 0 && filePath.length > 0) {
-      prompt = buildEditPlanPrompt({ filePath });
-    }
-
-    if (prompt.length === 0) {
-      return { started: false };
-    }
-
-    try {
-      const config = await resolveAgentConfig(projectDir);
-      const backend = new Backend(config.backend, config);
-      const model = Config.resolveModel('edit', config);
-      const cmd = backend.buildInteractiveCommand(prompt, model);
-
-      win.webContents.send('agent:started');
-      await ptySession.start(win, cmd, projectDir);
-      return { started: true };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      win.webContents.send('agent:verifyFailed', message);
-      win.webContents.send('agent:stopped');
-      return { started: false };
-    }
-  });
   registerHandler('agent:stop', (force: unknown) => {
     agentRunner.stop(force === true);
-    ptySession.kill();
 
     if (inlineEditProc) {
       inlineEditProc.kill(force === true ? 'SIGKILL' : 'SIGTERM');
@@ -704,22 +656,6 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     win.webContents.send('agent:stopped');
     return { stopped: true };
-  });
-  registerHandler('pty:input', (data: unknown) => {
-    ptySession.write(String(data ?? ''));
-    return { ok: true };
-  });
-  registerHandler('pty:resize', (size: unknown) => {
-    const payload =
-      size && typeof size === 'object' ? (size as { cols?: unknown; rows?: unknown }) : {};
-    const cols = Number.parseInt(String(payload.cols ?? ''), 10);
-    const rows = Number.parseInt(String(payload.rows ?? ''), 10);
-
-    if (!Number.isNaN(cols) && !Number.isNaN(rows)) {
-      ptySession.resize(cols, rows);
-    }
-
-    return { ok: true };
   });
   registerHandler('agent:planNew', async (description: unknown) => {
     const activeProjectPath = readActiveProjectPath();
@@ -828,7 +764,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       return { started: false };
     }
 
-    if (agentRunner.isRunning() || ptySession.isRunning() || inlineEditProc) {
+    if (agentRunner.isRunning() || inlineEditProc) {
       return { started: false };
     }
 
@@ -954,7 +890,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
   registerHandler('agent:importFromJira', (opts: unknown) => {
     const activeProjectPath = readActiveProjectPath();
 
-    if (!activeProjectPath || agentRunner.isRunning() || ptySession.isRunning()) {
+    if (!activeProjectPath || agentRunner.isRunning()) {
       return { started: false };
     }
 
@@ -1000,7 +936,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
   registerHandler('agent:importFromGitHub', (opts: unknown) => {
     const activeProjectPath = readActiveProjectPath();
 
-    if (!activeProjectPath || agentRunner.isRunning() || ptySession.isRunning()) {
+    if (!activeProjectPath || agentRunner.isRunning()) {
       return { started: false };
     }
 

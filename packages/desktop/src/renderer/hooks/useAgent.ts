@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useStore } from '@/store';
-import type { RunOnceOptions, RunOptions } from '@/types/ipc';
+import type { RunOptions } from '@/types/ipc';
 import { useCallback, useEffect } from 'react';
 
 export const useAgent = () => {
@@ -45,32 +45,6 @@ export const useAgent = () => {
       return result;
     },
     [clearOutput, setAmbiguousMarker, setComplete, setError, setIteration, setRunning],
-  );
-
-  const startOnce = useCallback(
-    async (opts: RunOnceOptions) => {
-      clearOutput();
-      setError(null);
-      setComplete(false);
-      setAmbiguousMarker(false);
-      let result;
-
-      try {
-        result = await api.agent.runOnce(opts);
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to start run';
-        setError(message);
-        toast.error('Failed to start run', { description: message });
-        throw cause;
-      }
-
-      if (result.started) {
-        setRunning(true);
-      }
-
-      return result;
-    },
-    [clearOutput, setAmbiguousMarker, setComplete, setError, setRunning],
   );
 
   const stop = useCallback(
@@ -148,7 +122,6 @@ export const useAgent = () => {
     error,
     hasAmbiguousMarker,
     start,
-    startOnce,
     stop,
     clearOutput,
   };

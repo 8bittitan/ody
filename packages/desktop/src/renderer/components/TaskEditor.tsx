@@ -6,17 +6,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAgent } from '@/hooks/useAgent';
 import { useEditor } from '@/hooks/useEditor';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useTasks } from '@/hooks/useTasks';
-import { useStore } from '@/store';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DiffView } from './editor/DiffView';
 import { EditorToolbar } from './editor/EditorToolbar';
 import { InlinePrompt } from './editor/InlinePrompt';
-import { MarkdownEditor, type MarkdownEditorHandle } from './editor/MarkdownEditor';
+import { RichMarkdownEditor, type RichMarkdownEditorHandle } from './editor/RichMarkdownEditor';
 
 type TaskEditorProps = {
   onBack: () => void;
@@ -24,9 +22,7 @@ type TaskEditorProps = {
 
 export const TaskEditor = ({ onBack }: TaskEditorProps) => {
   const { selectedTaskPath, setSelectedTaskPath } = useTasks();
-  const activeProjectPath = useStore((state) => state.activeProjectPath);
-  const { success, error, info, warning } = useNotifications();
-  const { startOnce } = useAgent();
+  const { success, error, warning } = useNotifications();
   const {
     fileName,
     content,
@@ -52,7 +48,7 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
     rejectInlineEdit,
     acceptInlineEdit,
   } = useEditor(selectedTaskPath);
-  const editorRef = useRef<MarkdownEditorHandle>(null);
+  const editorRef = useRef<RichMarkdownEditorHandle>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
@@ -166,30 +162,6 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
             warning({ title: result.reason });
           }
         }}
-        onOpenTerminal={() => {
-          if (!activeProjectPath || !selectedTaskPath) {
-            warning({ title: 'Select an active project and task first' });
-            return;
-          }
-
-          void (async () => {
-            const result = await startOnce({
-              projectDir: activeProjectPath,
-              filePath: selectedTaskPath,
-            });
-
-            if (!result.started) {
-              warning({ title: 'Interactive terminal is already running' });
-              return;
-            }
-
-            window.dispatchEvent(new CustomEvent('ody:view-run'));
-            info({
-              title: 'Terminal session started',
-              description: 'Switched to Run view for live PTY output.',
-            });
-          })();
-        }}
       />
 
       <div className="bg-panel border-edge relative min-h-0 flex-1 rounded-md border p-2">
@@ -238,7 +210,7 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
           </div>
         ) : (
           <>
-            <MarkdownEditor
+            <RichMarkdownEditor
               ref={editorRef}
               value={content}
               readOnly={isInlineRunning}
@@ -279,7 +251,7 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
       ) : null}
 
       <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-md">
           <DialogHeader>
             <DialogTitle>Discard unsaved changes?</DialogTitle>
             <DialogDescription>

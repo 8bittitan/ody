@@ -16,12 +16,6 @@ export type RunOptions = {
   iterations?: number;
 };
 
-export type RunOnceOptions = {
-  projectDir: string;
-  prompt?: string;
-  filePath?: string;
-};
-
 export type TaskSummary = {
   filePath: string;
   title: string;
@@ -101,7 +95,6 @@ export type IpcChannels = {
   'tasks:byLabel': (label: string) => TaskSummary[];
   'tasks:states': (filePaths?: string[]) => TaskState[];
   'agent:run': (opts: RunOptions) => { started: boolean };
-  'agent:runOnce': (opts: RunOnceOptions) => { started: boolean };
   'agent:stop': (force?: boolean) => { stopped: boolean };
   'agent:planNew': (description: string) => { started: boolean };
   'agent:planBatch': (filePath: string) => { started: boolean };
@@ -129,8 +122,6 @@ export type IpcChannels = {
   'agent:importFromJira': (opts: { input: string }) => { started: boolean };
   'agent:importFromGitHub': (opts: { input: string }) => { started: boolean };
   'agent:importDryRun': (opts: { source: ImportSource; input: string }) => { prompt: string };
-  'pty:input': (data: string) => { ok: true };
-  'pty:resize': (size: { cols: number; rows: number }) => { ok: true };
   'auth:list': () => { jira: Record<string, unknown>; github: Record<string, unknown> };
   'auth:setJira': (profile: string, credentials: Record<string, unknown>) => { ok: true };
   'auth:setGitHub': (profile: string, credentials: Record<string, unknown>) => { ok: true };
@@ -196,7 +187,6 @@ export type OdyApi = {
   };
   agent: {
     run: Asyncify<IpcChannels['agent:run']>;
-    runOnce: Asyncify<IpcChannels['agent:runOnce']>;
     stop: Asyncify<IpcChannels['agent:stop']>;
     planNew: Asyncify<IpcChannels['agent:planNew']>;
     planBatch: Asyncify<IpcChannels['agent:planBatch']>;
@@ -224,10 +214,6 @@ export type OdyApi = {
   import: {
     fetchJira: Asyncify<IpcChannels['import:fetchJira']>;
     fetchGitHub: Asyncify<IpcChannels['import:fetchGitHub']>;
-  };
-  pty: {
-    input: Asyncify<IpcChannels['pty:input']>;
-    resize: Asyncify<IpcChannels['pty:resize']>;
   };
   auth: {
     list: Asyncify<IpcChannels['auth:list']>;

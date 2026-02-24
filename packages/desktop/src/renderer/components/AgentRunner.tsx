@@ -286,7 +286,7 @@ export const AgentRunner = () => {
           setShowRunConfirm(open);
         }}
       >
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-md">
           <DialogHeader>
             <DialogTitle>Start agent run</DialogTitle>
             <DialogDescription>Review settings before launching this run.</DialogDescription>
@@ -345,7 +345,7 @@ export const AgentRunner = () => {
           setShowStopConfirm(open);
         }}
       >
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-md">
           <DialogHeader>
             <DialogTitle>Stop current run?</DialogTitle>
             <DialogDescription>

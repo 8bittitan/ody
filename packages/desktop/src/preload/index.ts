@@ -37,7 +37,6 @@ const ody: OdyApi = {
   },
   agent: {
     run: (opts) => ipcRenderer.invoke('agent:run', opts),
-    runOnce: (opts) => ipcRenderer.invoke('agent:runOnce', opts),
     stop: (force) => ipcRenderer.invoke('agent:stop', force),
     planNew: (description) => ipcRenderer.invoke('agent:planNew', description),
     planBatch: (filePath) => ipcRenderer.invoke('agent:planBatch', filePath),
@@ -74,10 +73,6 @@ const ody: OdyApi = {
   import: {
     fetchJira: (opts) => ipcRenderer.invoke('import:fetchJira', opts),
     fetchGitHub: (opts) => ipcRenderer.invoke('import:fetchGitHub', opts),
-  },
-  pty: {
-    input: (data) => ipcRenderer.invoke('pty:input', data),
-    resize: (size) => ipcRenderer.invoke('pty:resize', size),
   },
   auth: {
     list: () => ipcRenderer.invoke('auth:list'),

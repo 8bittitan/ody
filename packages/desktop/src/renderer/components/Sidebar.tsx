@@ -1,17 +1,30 @@
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
   Archive,
   CheckSquare,
+  ChevronDown,
   ChevronsLeft,
   ChevronsRight,
+  Copy,
+  FolderOpen,
   Import,
   KeyRound,
   PlayCircle,
   Plus,
   Settings2,
+  Trash2,
   WandSparkles,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
 type Project = {
   path: string;
@@ -76,41 +89,62 @@ export const Sidebar = ({
   collapsed,
   onToggle,
 }: SidebarProps) => {
-  const [contextMenu, setContextMenu] = useState<{
-    projectPath: string;
-    x: number;
-    y: number;
-  } | null>(null);
+  const activeProject = projects.find((p) => p.path === activeProjectPath);
 
-  useEffect(() => {
-    if (!contextMenu) {
-      return;
-    }
-
-    const closeMenu = () => {
-      setContextMenu(null);
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeMenu();
-      }
-    };
-
-    window.addEventListener('click', closeMenu);
-    window.addEventListener('blur', closeMenu);
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      window.removeEventListener('click', closeMenu);
-      window.removeEventListener('blur', closeMenu);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [contextMenu]);
-
-  const contextProject = contextMenu
-    ? projects.find((project) => project.path === contextMenu.projectPath)
-    : null;
+  const dropdownContent = (
+    <DropdownMenuContent className="min-w-[12rem]">
+      <DropdownMenuLabel>Projects</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {isLoadingProjects && <div className="text-dim px-2 py-1.5 text-xs">Loading projects...</div>}
+      {!isLoadingProjects && projects.length === 0 && (
+        <div className="text-dim px-2 py-1.5 text-xs">No projects added.</div>
+      )}
+      {projects.length > 0 && (
+        <DropdownMenuRadioGroup
+          value={activeProjectPath ?? ''}
+          onValueChange={(value) => {
+            onProjectSelect(value as string);
+          }}
+        >
+          {projects.map((project) => (
+            <DropdownMenuRadioItem key={project.path} value={project.path}>
+              <span className="truncate">{project.name}</span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      )}
+      {projects.length > 0 && (
+        <>
+          <DropdownMenuSeparator />
+          {projects.map((project) => (
+            <DropdownMenuItem
+              key={`copy-${project.path}`}
+              onClick={() => onCopyProjectPath(project.path)}
+            >
+              <Copy className="size-3.5" />
+              <span className="truncate">Copy path: {project.name}</span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          {projects.map((project) => (
+            <DropdownMenuItem
+              key={`remove-${project.path}`}
+              variant="destructive"
+              onClick={() => onRemoveProject(project.path)}
+            >
+              <Trash2 className="size-3.5" />
+              <span className="truncate">Remove: {project.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={onAddProject}>
+        <Plus className="size-3.5" />
+        Add Project
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
 
   return (
     <aside
@@ -122,100 +156,50 @@ export const Sidebar = ({
       <section className="border-edge border-b p-3">
         {collapsed ? (
           <div className="flex flex-col items-center gap-1">
-            <Tooltip content="Add project">
-              <button
-                type="button"
-                onClick={onAddProject}
-                className="text-primary hover:text-accent-hover flex size-8 items-center justify-center rounded"
-                aria-label="Add project"
-              >
-                <Plus className="size-3.5" />
-              </button>
-            </Tooltip>
-            {isLoadingProjects && <div className="bg-dim mx-auto h-1 w-4 animate-pulse rounded" />}
-            {projects.map((project) => {
-              const isActive = project.path === activeProjectPath;
-              const initial = project.name.charAt(0).toUpperCase();
-
-              return (
-                <Tooltip key={project.path} content={project.name}>
-                  <button
-                    type="button"
-                    onClick={() => onProjectSelect(project.path)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      setContextMenu({
-                        projectPath: project.path,
-                        x: event.clientX,
-                        y: event.clientY,
-                      });
-                    }}
-                    className={[
-                      'flex size-8 items-center justify-center rounded-md border text-xs font-medium transition-colors',
-                      isActive
-                        ? 'border-primary/35 bg-accent-bg text-primary'
-                        : 'text-light border-transparent hover:border-edge hover:bg-accent-bg',
-                    ].join(' ')}
-                    aria-label={project.name}
-                  >
-                    {initial}
-                  </button>
-                </Tooltip>
-              );
-            })}
+            <DropdownMenu>
+              <Tooltip content={activeProject ? activeProject.name : 'Select project'}>
+                <DropdownMenuTrigger
+                  className={[
+                    'flex size-8 items-center justify-center rounded-md border text-xs font-medium transition-colors',
+                    activeProject
+                      ? 'border-primary/35 bg-accent-bg text-primary'
+                      : 'text-light border-transparent hover:border-edge hover:bg-accent-bg',
+                  ].join(' ')}
+                  aria-label={activeProject ? activeProject.name : 'Select project'}
+                >
+                  {isLoadingProjects ? (
+                    <div className="bg-dim h-1 w-3 animate-pulse rounded" />
+                  ) : activeProject ? (
+                    activeProject.name.charAt(0).toUpperCase()
+                  ) : (
+                    <FolderOpen className="size-3.5" />
+                  )}
+                </DropdownMenuTrigger>
+              </Tooltip>
+              {dropdownContent}
+            </DropdownMenu>
           </div>
         ) : (
-          <>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-dim text-xs font-semibold tracking-[0.14em] uppercase">
-                Projects
-              </h2>
-              <button
-                type="button"
-                onClick={onAddProject}
-                className="text-primary hover:text-accent-hover rounded px-1.5 py-0.5 text-xs"
-              >
-                + Add
-              </button>
-            </div>
-
-            <div className="space-y-1">
-              {isLoadingProjects && (
-                <p className="text-dim px-2 py-1 text-xs">Loading projects...</p>
-              )}
-              {!isLoadingProjects && projects.length === 0 && (
-                <p className="text-dim px-2 py-1 text-xs">No projects added.</p>
-              )}
-              {projects.map((project) => {
-                const isActive = project.path === activeProjectPath;
-
-                return (
-                  <button
-                    key={project.path}
-                    type="button"
-                    onClick={() => onProjectSelect(project.path)}
-                    onContextMenu={(event) => {
-                      event.preventDefault();
-                      setContextMenu({
-                        projectPath: project.path,
-                        x: event.clientX,
-                        y: event.clientY,
-                      });
-                    }}
-                    className={[
-                      'text-light hover:bg-accent-bg flex w-full items-center truncate rounded-md border px-2 py-1.5 text-left text-xs transition-colors',
-                      isActive
-                        ? 'border-primary/35 bg-accent-bg text-primary'
-                        : 'border-transparent hover:border-edge',
-                    ].join(' ')}
-                    title={project.path}
-                  >
-                    <span className="truncate">{project.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={[
+                'text-light hover:bg-accent-bg flex w-full items-center justify-between rounded-md border px-2 py-1.5 text-left text-xs transition-colors',
+                activeProject
+                  ? 'border-primary/35 bg-accent-bg text-primary'
+                  : 'border-transparent hover:border-edge',
+              ].join(' ')}
+            >
+              <span className="truncate">
+                {isLoadingProjects
+                  ? 'Loading...'
+                  : activeProject
+                    ? activeProject.name
+                    : 'Select project'}
+              </span>
+              <ChevronDown className="text-dim ml-1 size-3 shrink-0" />
+            </DropdownMenuTrigger>
+            {dropdownContent}
+          </DropdownMenu>
         )}
       </section>
 
@@ -318,44 +302,6 @@ export const Sidebar = ({
           </button>
         </Tooltip>
       </section>
-
-      {contextMenu && contextProject && (
-        <div
-          className="bg-panel border-edge fixed z-50 min-w-36 rounded-md border p-1 shadow-lg"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <button
-            type="button"
-            className="hover:bg-accent-bg block w-full rounded px-2 py-1 text-left text-xs"
-            onClick={() => {
-              onProjectSelect(contextProject.path);
-              setContextMenu(null);
-            }}
-          >
-            Open
-          </button>
-          <button
-            type="button"
-            className="hover:bg-accent-bg block w-full rounded px-2 py-1 text-left text-xs"
-            onClick={() => {
-              onCopyProjectPath(contextProject.path);
-              setContextMenu(null);
-            }}
-          >
-            Copy Path
-          </button>
-          <button
-            type="button"
-            className="text-red hover:bg-red/10 block w-full rounded px-2 py-1 text-left text-xs"
-            onClick={() => {
-              onRemoveProject(contextProject.path);
-              setContextMenu(null);
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      )}
     </aside>
   );
 };

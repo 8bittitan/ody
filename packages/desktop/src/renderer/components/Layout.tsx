@@ -570,7 +570,7 @@ export const Layout = () => {
           }
         }}
       >
-        <DialogContent className="bg-panel border-edge max-w-md" showCloseButton={false}>
+        <DialogContent className="bg-panel border-edge max-w-md">
           <DialogHeader>
             <DialogTitle>Switch projects while agent is running?</DialogTitle>
             <DialogDescription>
