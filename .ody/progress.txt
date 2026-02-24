@@ -148,3 +148,15 @@
   - Added comprehensive ProseMirror/Milkdown styles to globals.css (headings, lists, code blocks, links, blockquotes, hr, tables)
   - Imported @milkdown/kit/prose/view/style/prosemirror.css base styles
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (no new errors; only pre-existing DOM lib errors)
+
+2026-02-24 | rewrite-rich-markdown-editor-with-milkdown-react | Completed
+  - Rewrote RichMarkdownEditor.tsx from vanilla Milkdown API to official @milkdown/react bindings
+  - Split monolithic component into InnerEditor (uses useEditor/useInstance hooks) + outer RichMarkdownEditor (wraps in MilkdownProvider)
+  - InnerEditor uses useEditor((root) => Editor.make()...) for lifecycle management — removed manual useEffect async IIFE, editor.destroy(), editorRef/editorReadyRef tracking
+  - Replaced manual containerRef div with <Milkdown /> mount point component
+  - useInstance() provides [loading, getEditor] for imperative access — replaced editorRef.current checks
+  - Removed dynamic import of @milkdown/kit/core — now uses static imports since useEditor handles async creation
+  - Preserved all existing functionality: frontmatter handling, Cmd+K inline prompt, history reporting, readOnly sync, external value sync, undo/redo/focus/getSelectionRange imperative methods
+  - Preserved public API (RichMarkdownEditorProps, RichMarkdownEditorHandle, displayName) — no consumer changes needed
+  - Preserved milkdown-editor CSS class on wrapping container div for existing globals.css styles
+  - All validation passing: lint (0 warnings/errors), fmt, typecheck (no new errors; only pre-existing DOM lib errors)

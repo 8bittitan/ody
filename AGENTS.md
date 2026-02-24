@@ -179,6 +179,10 @@ Focus on Bun + TypeScript CLI tooling.
 - `bun fmt` to normalize formatting.
 - `bun test path/to/file.test.ts` for a single test file (if tests exist).
 
+## Rules
+
+- NEVER update multiple packages within the `packages/` directory unless explicitly asked to do so.
+
 ## MCPs
 
 When you need to search docs, use `context7` tools.

@@ -1,11 +1,11 @@
-import type { Editor } from '@milkdown/kit/core';
-import { defaultValueCtx, editorViewCtx, rootCtx } from '@milkdown/kit/core';
+import { Editor, defaultValueCtx, editorViewCtx, rootCtx } from '@milkdown/kit/core';
 import type { Ctx } from '@milkdown/kit/ctx';
 import { history, redoCommand, undoCommand } from '@milkdown/kit/plugin/history';
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener';
 import { commonmark } from '@milkdown/kit/preset/commonmark';
 import { undoDepth, redoDepth } from '@milkdown/kit/prose/history';
 import { callCommand, getMarkdown, replaceAll } from '@milkdown/kit/utils';
+import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 type SelectionRange = {
@@ -79,19 +79,210 @@ function mapSelectionToMarkdown(ctx: Ctx, frontmatterLength: number): SelectionR
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// InnerEditor — uses @milkdown/react hooks inside MilkdownProvider
+// ---------------------------------------------------------------------------
+
+type InnerEditorProps = {
+  body: string;
+  readOnly: boolean;
+  frontmatterRef: React.RefObject<string>;
+  onChangeRef: React.RefObject<(v: string) => void>;
+  onInlinePromptRef: React.RefObject<((sel: SelectionRange | null) => void) | undefined>;
+  onHistoryChangeRef: React.RefObject<
+    ((state: { canUndo: boolean; canRedo: boolean }) => void) | undefined
+  >;
+};
+
+const InnerEditor = forwardRef<RichMarkdownEditorHandle, InnerEditorProps>(
+  ({ body, readOnly, frontmatterRef, onChangeRef, onInlinePromptRef, onHistoryChangeRef }, ref) => {
+    const initialBodyRef = useRef(body);
+    const lastEmittedBodyRef = useRef(body);
+    const propsWiredRef = useRef(false);
+
+    // -----------------------------------------------------------------------
+    // Create the editor via useEditor
+    // -----------------------------------------------------------------------
+
+    useEditor((root) => {
+      return Editor.make()
+        .config((ctx) => {
+          ctx.set(rootCtx, root);
+          ctx.set(defaultValueCtx, initialBodyRef.current);
+        })
+        .config((ctx) => {
+          const lm = ctx.get(listenerCtx);
+          lm.markdownUpdated((_ctx, md, prevMd) => {
+            if (md !== prevMd) {
+              lastEmittedBodyRef.current = md;
+              const full = joinFrontmatter(frontmatterRef.current, md);
+              onChangeRef.current(full);
+            }
+          });
+          lm.updated((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            onHistoryChangeRef.current?.({
+              canUndo: undoDepth(view.state) > 0,
+              canRedo: redoDepth(view.state) > 0,
+            });
+          });
+        })
+        .use(commonmark)
+        .use(listener)
+        .use(history);
+    }, []);
+
+    const [loading, getEditor] = useInstance();
+
+    // -----------------------------------------------------------------------
+    // Report undo/redo availability
+    // -----------------------------------------------------------------------
+
+    const reportHistory = useCallback(
+      (editor: NonNullable<ReturnType<typeof getEditor>>) => {
+        try {
+          editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            onHistoryChangeRef.current?.({
+              canUndo: undoDepth(view.state) > 0,
+              canRedo: redoDepth(view.state) > 0,
+            });
+          });
+        } catch {
+          // Editor may not be ready yet
+        }
+      },
+      [onHistoryChangeRef],
+    );
+
+    // -----------------------------------------------------------------------
+    // Wire Cmd+K keyboard handler after editor ready
+    // -----------------------------------------------------------------------
+
+    useEffect(() => {
+      if (loading) return;
+      const editor = getEditor();
+      if (!editor || propsWiredRef.current) return;
+
+      propsWiredRef.current = true;
+
+      // Wire Cmd+K / Ctrl+K for inline prompt
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const originalHandleKeyDown = view.props.handleKeyDown;
+        view.setProps({
+          handleKeyDown: (innerView, event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+              event.preventDefault();
+              const sel = mapSelectionToMarkdown(ctx, frontmatterRef.current.length);
+              onInlinePromptRef.current?.(sel);
+              return true;
+            }
+            return originalHandleKeyDown?.(innerView, event) ?? false;
+          },
+        });
+      });
+
+      onHistoryChangeRef.current?.({ canUndo: false, canRedo: false });
+    }, [loading, getEditor, frontmatterRef, onInlinePromptRef, onHistoryChangeRef]);
+
+    // -----------------------------------------------------------------------
+    // Imperative handle
+    // -----------------------------------------------------------------------
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        undo: () => {
+          if (loading) return;
+          const editor = getEditor();
+          if (!editor) return;
+          editor.action(callCommand(undoCommand.key));
+          reportHistory(editor);
+        },
+        redo: () => {
+          if (loading) return;
+          const editor = getEditor();
+          if (!editor) return;
+          editor.action(callCommand(redoCommand.key));
+          reportHistory(editor);
+        },
+        focus: () => {
+          if (loading) return;
+          const editor = getEditor();
+          if (!editor) return;
+          editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            view.focus();
+          });
+        },
+        getSelectionRange: () => {
+          if (loading) return null;
+          const editor = getEditor();
+          if (!editor) return null;
+
+          let range: SelectionRange | null = null;
+          editor.action((ctx) => {
+            range = mapSelectionToMarkdown(ctx, frontmatterRef.current.length);
+          });
+          return range;
+        },
+      }),
+      [loading, getEditor, reportHistory, frontmatterRef],
+    );
+
+    // -----------------------------------------------------------------------
+    // Sync external value changes
+    // -----------------------------------------------------------------------
+
+    useEffect(() => {
+      if (loading) return;
+      const editor = getEditor();
+      if (!editor) return;
+
+      // Skip if this body came from our own edit (prevents feedback loop)
+      if (body === lastEmittedBodyRef.current) return;
+
+      // External change — sync to editor and update ref
+      lastEmittedBodyRef.current = body;
+      editor.action(replaceAll(body));
+    }, [body, loading, getEditor]);
+
+    // -----------------------------------------------------------------------
+    // Sync readOnly
+    // -----------------------------------------------------------------------
+
+    useEffect(() => {
+      if (loading) return;
+      const editor = getEditor();
+      if (!editor) return;
+
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        view.setProps({ editable: () => !readOnly });
+      });
+    }, [readOnly, loading, getEditor]);
+
+    // -----------------------------------------------------------------------
+    // Render the Milkdown mount point
+    // -----------------------------------------------------------------------
+
+    return <Milkdown />;
+  },
+);
+
+InnerEditor.displayName = 'InnerEditor';
+
+// ---------------------------------------------------------------------------
+// RichMarkdownEditor — public component
 // ---------------------------------------------------------------------------
 
 export const RichMarkdownEditor = forwardRef<RichMarkdownEditorHandle, RichMarkdownEditorProps>(
   ({ value, onChange, readOnly = false, onInlinePrompt, onHistoryChange }, ref) => {
-    const containerRef = useRef<HTMLDivElement | null>(null);
-    const editorRef = useRef<Editor | null>(null);
-    const editorReadyRef = useRef(false);
-    const frontmatterRef = useRef('');
     const [frontmatter, setFrontmatter] = useState('');
     const [showFrontmatter, setShowFrontmatter] = useState(false);
 
-    // Stable callback refs
+    // Stable refs for mutable callbacks
+    const frontmatterRef = useRef('');
     const onChangeRef = useRef(onChange);
     const onInlinePromptRef = useRef(onInlinePrompt);
     const onHistoryChangeRef = useRef(onHistoryChange);
@@ -100,230 +291,32 @@ export const RichMarkdownEditor = forwardRef<RichMarkdownEditorHandle, RichMarkd
     onInlinePromptRef.current = onInlinePrompt;
     onHistoryChangeRef.current = onHistoryChange;
 
-    const initialValueRef = useRef(value);
+    // Derive body from value
+    const { frontmatter: fm, body } = splitFrontmatter(value);
 
-    // -----------------------------------------------------------------------
-    // Report undo/redo availability
-    // -----------------------------------------------------------------------
-
-    const reportHistory = useCallback((editor: Editor) => {
-      try {
-        editor.action((ctx) => {
-          const view = ctx.get(editorViewCtx);
-          onHistoryChangeRef.current?.({
-            canUndo: undoDepth(view.state) > 0,
-            canRedo: redoDepth(view.state) > 0,
-          });
-        });
-      } catch {
-        // Editor may not be ready yet
-      }
-    }, []);
-
-    // -----------------------------------------------------------------------
-    // Imperative handle
-    // -----------------------------------------------------------------------
-
-    useImperativeHandle(ref, () => ({
-      undo: () => {
-        const editor = editorRef.current;
-        if (!editor || !editorReadyRef.current) return;
-        editor.action(callCommand(undoCommand.key));
-        reportHistory(editor);
-      },
-      redo: () => {
-        const editor = editorRef.current;
-        if (!editor || !editorReadyRef.current) return;
-        editor.action(callCommand(redoCommand.key));
-        reportHistory(editor);
-      },
-      focus: () => {
-        const editor = editorRef.current;
-        if (!editor || !editorReadyRef.current) return;
-        editor.action((ctx) => {
-          const view = ctx.get(editorViewCtx);
-          view.focus();
-        });
-      },
-      getSelectionRange: () => {
-        const editor = editorRef.current;
-        if (!editor || !editorReadyRef.current) return null;
-
-        let range: SelectionRange | null = null;
-        editor.action((ctx) => {
-          range = mapSelectionToMarkdown(ctx, frontmatterRef.current.length);
-        });
-        return range;
-      },
-    }));
-
-    // -----------------------------------------------------------------------
-    // Initialize Milkdown editor (vanilla API, like CodeMirror approach)
-    // -----------------------------------------------------------------------
-
-    useEffect(() => {
-      if (!containerRef.current) return;
-
-      const { frontmatter: fm, body } = splitFrontmatter(initialValueRef.current);
+    // Keep frontmatter ref and state in sync
+    if (fm !== frontmatterRef.current) {
       frontmatterRef.current = fm;
       setFrontmatter(fm);
-
-      let destroyed = false;
-      const container = containerRef.current;
-
-      void (async () => {
-        const { Editor: MilkdownEditor } = await import('@milkdown/kit/core');
-
-        if (destroyed) return;
-
-        const editor = await MilkdownEditor.make()
-          .config((ctx) => {
-            ctx.set(rootCtx, container);
-            ctx.set(defaultValueCtx, body);
-          })
-          .config((ctx) => {
-            const lm = ctx.get(listenerCtx);
-            lm.markdownUpdated((_ctx, md, prevMd) => {
-              if (md !== prevMd) {
-                const full = joinFrontmatter(frontmatterRef.current, md);
-                onChangeRef.current(full);
-              }
-            });
-          })
-          .use(commonmark)
-          .use(listener)
-          .use(history)
-          .create();
-
-        if (destroyed) {
-          void editor.destroy();
-          return;
-        }
-
-        editorRef.current = editor;
-        editorReadyRef.current = true;
-
-        // Wire Cmd+K / Ctrl+K for inline prompt
-        editor.action((ctx) => {
-          const view = ctx.get(editorViewCtx);
-          const originalHandleKeyDown = view.props.handleKeyDown;
-          view.setProps({
-            handleKeyDown: (innerView, event) => {
-              if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-                event.preventDefault();
-                const sel = mapSelectionToMarkdown(ctx, frontmatterRef.current.length);
-                onInlinePromptRef.current?.(sel);
-                return true;
-              }
-              return originalHandleKeyDown?.(innerView, event) ?? false;
-            },
-          });
-        });
-
-        // Set initial readOnly
-        if (readOnly) {
-          editor.action((ctx) => {
-            const view = ctx.get(editorViewCtx);
-            view.setProps({ editable: () => false });
-          });
-        }
-
-        // Subscribe to transactions for history change reporting
-        editor.action((ctx) => {
-          const view = ctx.get(editorViewCtx);
-          const originalDispatchTransaction = view.props.dispatchTransaction;
-          view.setProps({
-            dispatchTransaction: function dispatchTx(tr) {
-              if (originalDispatchTransaction) {
-                originalDispatchTransaction.call(view, tr);
-              } else {
-                view.updateState(view.state.apply(tr));
-              }
-              if (tr.docChanged) {
-                onHistoryChangeRef.current?.({
-                  canUndo: undoDepth(view.state) > 0,
-                  canRedo: redoDepth(view.state) > 0,
-                });
-              }
-            },
-          });
-        });
-
-        onHistoryChangeRef.current?.({ canUndo: false, canRedo: false });
-      })();
-
-      return () => {
-        destroyed = true;
-        editorReadyRef.current = false;
-        const editor = editorRef.current;
-        if (editor) {
-          void editor.destroy();
-          editorRef.current = null;
-        }
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    // -----------------------------------------------------------------------
-    // Sync external value changes
-    // -----------------------------------------------------------------------
-
-    useEffect(() => {
-      const editor = editorRef.current;
-      if (!editor || !editorReadyRef.current) return;
-
-      let currentBody: string;
-      try {
-        currentBody = editor.action(getMarkdown());
-      } catch {
-        return;
-      }
-      const currentFull = joinFrontmatter(frontmatterRef.current, currentBody);
-
-      if (value === currentFull) return;
-
-      const { frontmatter: fm, body } = splitFrontmatter(value);
-      frontmatterRef.current = fm;
-      setFrontmatter(fm);
-
-      editor.action(replaceAll(body));
-    }, [value]);
-
-    // -----------------------------------------------------------------------
-    // Sync readOnly
-    // -----------------------------------------------------------------------
-
-    useEffect(() => {
-      const editor = editorRef.current;
-      if (!editor || !editorReadyRef.current) return;
-
-      editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        view.setProps({ editable: () => !readOnly });
-      });
-    }, [readOnly]);
+    }
 
     // -----------------------------------------------------------------------
     // Frontmatter edit handler
     // -----------------------------------------------------------------------
 
-    const handleFrontmatterChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newFm = event.target.value;
-      frontmatterRef.current = newFm;
-      setFrontmatter(newFm);
+    const handleFrontmatterChange = useCallback(
+      (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newFm = event.target.value;
+        frontmatterRef.current = newFm;
+        setFrontmatter(newFm);
 
-      const editor = editorRef.current;
-      if (!editor || !editorReadyRef.current) return;
-
-      let currentBody: string;
-      try {
-        currentBody = editor.action(getMarkdown());
-      } catch {
-        return;
-      }
-      const full = joinFrontmatter(newFm, currentBody);
-      onChangeRef.current(full);
-    }, []);
+        // Reconstruct full content with current body from the value prop
+        const { body: currentBody } = splitFrontmatter(value);
+        const full = joinFrontmatter(newFm, currentBody);
+        onChangeRef.current(full);
+      },
+      [value],
+    );
 
     // -----------------------------------------------------------------------
     // Render
@@ -364,10 +357,19 @@ export const RichMarkdownEditor = forwardRef<RichMarkdownEditorHandle, RichMarkd
         ) : null}
 
         {/* Rich markdown editor container */}
-        <div
-          ref={containerRef}
-          className="milkdown-editor min-h-0 flex-1 overflow-auto px-4 py-3"
-        />
+        <MilkdownProvider>
+          <div className="milkdown-editor min-h-0 flex-1 overflow-auto px-4 py-3">
+            <InnerEditor
+              ref={ref}
+              body={body}
+              readOnly={readOnly}
+              frontmatterRef={frontmatterRef}
+              onChangeRef={onChangeRef}
+              onInlinePromptRef={onInlinePromptRef}
+              onHistoryChangeRef={onHistoryChangeRef}
+            />
+          </div>
+        </MilkdownProvider>
       </div>
     );
   },
