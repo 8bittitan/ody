@@ -16,13 +16,13 @@
   - All pending tasks render as SelectItem entries with task.filePath values
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
 
-2026-02-24 | move-generation-output-to-right-column | Completed
-  - Removed PlanList component from plan page right column and deleted PlanList.tsx
-  - Lifted stream output state (streamOutput, isGenerating, IPC subscriptions) from PlanCreator.tsx into Layout.tsx
-  - Created new GenerationOutput component at renderer/components/GenerationOutput.tsx for the right column
-  - GenerationOutput uses full-height flex layout (h-full, flex-1) instead of previous max-h-56 constraint
-  - Updated PlanCreator.tsx to accept stream control props from parent; removed generation output JSX and ANSI rendering
-  - Updated Layout.tsx to render GenerationOutput in place of PlanList, wiring lifted state between both components
+2026-02-24 | wrap-generation-output-in-scroll-area | Completed
+  - Replaced native overflow-auto scrolling on <pre> in GenerationOutput.tsx with ScrollArea component hierarchy
+  - Imported ScrollArea, ScrollAreaViewport, ScrollAreaContent, ScrollAreaScrollbar, ScrollAreaThumb from @/components/ui/scroll-area
+  - Wrapped both conditional <pre> branches (ANSI output and placeholder) inside ScrollArea > ScrollAreaViewport > ScrollAreaContent
+  - ScrollArea root uses min-h-0 flex-1 to fill remaining vertical space in the flex-col section (matching TaskBoard pattern)
+  - Removed flex-1 and overflow-auto from <pre> elements, added min-h-full for short content fill
+  - Added vertical ScrollAreaScrollbar with ScrollAreaThumb for styled scrollbar appearance
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (all packages exit 0)
 
 2026-02-24 | fix-editor-cursor-reset-on-keystroke | Completed
