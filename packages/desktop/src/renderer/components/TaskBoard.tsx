@@ -29,6 +29,7 @@ import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TaskCard } from './TaskCard';
 import { TaskDetailDialog } from './TaskDetailDialog';
+import { Button } from './ui/button';
 
 type TaskBoardProps = {
   onOpenPlan: () => void;
@@ -259,15 +260,10 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOpenPlan}
-            className="text-mid hover:text-light hover:bg-panel border-edge rounded-md border px-2.5 py-1.5 text-xs"
-          >
-            New Plan
-          </button>
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
+            className="dark:text-amber dark:hover:bg-amber-bg dark:border-amber/30 dark:bg-background"
             onClick={() => {
               if (completedTasks.length === 0) {
                 warning({ title: 'No completed tasks to archive' });
@@ -276,17 +272,12 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
 
               setShowArchiveConfirm(true);
             }}
-            className="text-amber hover:bg-amber-bg border-amber/30 rounded-md border px-2.5 py-1.5 text-xs"
           >
             Archive Completed
-          </button>
-          <button
-            type="button"
-            onClick={onOpenArchive}
-            className="text-mid hover:text-light hover:bg-panel border-edge rounded-md border px-2.5 py-1.5 text-xs"
-          >
+          </Button>
+          <Button variant="outline" size="sm" onClick={onOpenArchive}>
             View Archive
-          </button>
+          </Button>
         </div>
       </section>
 

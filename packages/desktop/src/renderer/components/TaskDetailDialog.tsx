@@ -17,6 +17,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useTasks } from '../hooks/useTasks';
 import { LoadingSpinner } from './LoadingSpinner';
+import { Button } from './ui/button';
 
 type TaskDetailDialogProps = {
   task: TaskSummary | null;
@@ -306,24 +307,19 @@ export const TaskDetailDialog = ({ task, open, onClose, onEdit }: TaskDetailDial
         ) : null}
 
         <DialogFooter>
-          <button
-            type="button"
-            className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
-            onClick={onClose}
-          >
+          <Button variant="outline" onClick={onClose}>
             Close
-          </button>
+          </Button>
           {task ? (
-            <button
-              type="button"
-              className="text-primary border-primary/30 hover:bg-accent-bg rounded-md border px-3 py-2 text-sm"
+            <Button
+              variant="primary-outline"
               onClick={() => {
                 onEdit(task.filePath);
                 onClose();
               }}
             >
               Edit
-            </button>
+            </Button>
           ) : null}
         </DialogFooter>
       </DialogContent>

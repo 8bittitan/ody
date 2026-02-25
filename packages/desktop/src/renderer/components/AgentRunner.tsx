@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { Collapsible } from '@/components/ui/collapsible';
 import {
   Dialog,
@@ -176,24 +177,18 @@ export const AgentRunner = () => {
           </label>
 
           <div className="flex items-end gap-2">
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-2 text-sm"
-              onClick={openRunConfirm}
-              disabled={isRunning}
-            >
+            <Button onClick={openRunConfirm} disabled={isRunning}>
               Start
-            </button>
-            <button
-              type="button"
-              className="text-red border-red/35 hover:bg-red-bg rounded-md border px-3 py-2 text-sm"
+            </Button>
+            <Button
+              variant="destructive"
               onClick={() => {
                 setShowStopConfirm(true);
               }}
               disabled={!isRunning}
             >
               Stop
-            </button>
+            </Button>
           </div>
         </div>
 

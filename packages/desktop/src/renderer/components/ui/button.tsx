@@ -1,7 +1,14 @@
 import { cn } from '@/lib/utils';
 import * as React from 'react';
 
-type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+type ButtonVariant =
+  | 'default'
+  | 'destructive'
+  | 'outline'
+  | 'secondary'
+  | 'ghost'
+  | 'link'
+  | 'primary-outline';
 type ButtonSize = 'default' | 'xs' | 'sm' | 'lg' | 'icon' | 'icon-xs' | 'icon-sm' | 'icon-lg';
 
 const BUTTON_BASE_CLASS =
@@ -10,18 +17,19 @@ const BUTTON_BASE_CLASS =
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   default: 'bg-primary text-primary-foreground hover:bg-primary/90',
   destructive:
-    'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+    'bg-background/30 border border-destructive/35 text-destructive hover:bg-destructive/10 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
   outline:
-    'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
+    'border bg-background shadow-xs hover:bg-accent dark:bg-input/10 dark:border-input dark:hover:bg-input/50',
   secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
   ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
   link: 'text-primary underline-offset-4 hover:underline',
+  'primary-outline': 'text-primary border border-primary/30 hover:bg-accent-bg',
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
   default: 'h-9 px-4 py-2 has-[>svg]:px-3',
   xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-  sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
+  sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 text-xs',
   lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
   icon: 'size-9',
   'icon-xs': "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
@@ -50,6 +58,7 @@ function Button({
   variant = 'default',
   size = 'default',
   asChild = false,
+  type = 'button',
   ...props
 }: ButtonProps) {
   const classes = buttonVariants({ variant, size, className });
@@ -68,6 +77,7 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={classes}
+      type={type}
       {...props}
     />
   );

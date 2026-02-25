@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -6,11 +7,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useApp } from '@/hooks/useApp';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
 import type { MenuAction } from '@/types/ipc';
 import { CircleHelp, FolderPlus, Settings } from 'lucide-react';
@@ -68,6 +71,7 @@ export const Layout = () => {
   const { loadConfig, config } = useConfig();
   const { loadTasks, setSelectedTaskPath } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
+  const { isFullscreen } = useApp();
   const backendName = typeof config?.backend === 'string' ? config.backend : 'opencode';
 
   const [planStreamOutput, setPlanStreamOutput] = useState('');
@@ -313,7 +317,7 @@ export const Layout = () => {
           className="bg-panel border-edge relative flex h-11 shrink-0 items-center justify-between border-b px-4"
           style={{ WebkitAppRegion: 'drag' } as CSSProperties}
         >
-          <div className="flex items-center gap-3">
+          <div className={cn('flex items-center gap-3', !isFullscreen && 'ml-16')}>
             <div className="text-xs tracking-[0.16em] uppercase">
               <span className="text-primary">ODY</span>
               <span className="text-dim">://Desktop</span>
@@ -324,24 +328,21 @@ export const Layout = () => {
             className="flex items-center gap-1"
             style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
           >
-            <button
-              type="button"
-              className="text-mid hover:text-primary hover:bg-accent-bg rounded-md border border-transparent p-1.5 transition-colors"
+            <Button
+              size="icon-sm"
+              variant="ghost"
               aria-label="Open settings"
+              className="text-dim"
               onClick={() => {
                 setShowSettingsModal(true);
                 accent({ title: 'Settings opened' });
               }}
             >
               <Settings className="size-4" />
-            </button>
-            <button
-              type="button"
-              className="text-mid hover:text-primary hover:bg-accent-bg rounded-md border border-transparent p-1.5 transition-colors"
-              aria-label="Open help"
-            >
+            </Button>
+            <Button size="icon-sm" variant="ghost" aria-label="Open help" className="text-dim">
               <CircleHelp className="size-4" />
-            </button>
+            </Button>
           </div>
           <div className="from-primary/70 via-primary/20 to-primary/70 absolute inset-x-0 bottom-0 h-px bg-linear-to-r" />
         </header>
@@ -412,9 +413,9 @@ export const Layout = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="text-mid hover:text-light hover:bg-panel border-edge rounded-md border px-2.5 py-1.5 text-xs transition-colors"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => {
                             void loadTasks().catch(() => {
                               return;
@@ -422,16 +423,15 @@ export const Layout = () => {
                           }}
                         >
                           Refresh
-                        </button>
-                        <button
-                          type="button"
-                          className="bg-primary text-primary-foreground hover:bg-accent-hover border-primary/60 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
+                        </Button>
+                        <Button
+                          size="sm"
                           onClick={() => {
                             setActiveView('plan');
                           }}
                         >
                           New Task
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

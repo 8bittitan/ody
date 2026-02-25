@@ -155,6 +155,7 @@ export type IpcEvents = {
   'projects:switched': [path: string | null];
   'theme:changed': [{ source: ThemeSource; resolved: ThemeResolved }];
   'app:menuAction': [action: MenuAction];
+  'app:fullscreen-status': [enabled: boolean];
 };
 
 export type InvokeChannel = keyof IpcChannels;
@@ -250,6 +251,7 @@ export type OdyApi = {
     setSoundEnabled: Asyncify<IpcChannels['notifications:sound:set']>;
   };
   app: {
+    onFullscreen: (listener: Listener<IpcEvents['app:fullscreen-status']>) => () => void;
     onMenuAction: (listener: Listener<IpcEvents['app:menuAction']>) => () => void;
     removeAllListeners: () => void;
   };

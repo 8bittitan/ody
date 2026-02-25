@@ -4,6 +4,11 @@ import { api } from '@/lib/api';
 import type { MutableRefObject } from 'react';
 import { useState } from 'react';
 
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+
 type PlanCreatorProps = {
   isGenerating: boolean;
   isGeneratingRef: MutableRefObject<boolean>;
@@ -89,52 +94,53 @@ export const PlanCreator = ({
   return (
     <section className="bg-panel/92 border-edge h-full rounded-lg border p-4 backdrop-blur-sm">
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'single' | 'batch')}>
-        <TabsList className="bg-background border-edge grid w-full grid-cols-2 border">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="single">Single</TabsTrigger>
           <TabsTrigger value="batch">Batch</TabsTrigger>
         </TabsList>
 
         <TabsContent value="single" className="mt-3 space-y-3">
-          <label className="block">
-            <span className="text-dim mb-1 block text-xs">Task description</span>
-            <textarea
+          <div className="grid gap-2">
+            <Label htmlFor="plan-prompt">Task description</Label>
+            <Textarea
+              id="plan-prompt"
               value={description}
               onChange={(event) => {
                 setDescription(event.target.value);
               }}
               placeholder="Describe the task you want to create"
-              className="bg-background border-edge text-light placeholder:text-dim min-h-32 w-full rounded border p-2 text-sm"
+              className="min-h-32"
             />
-          </label>
+          </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="text-mid hover:text-light border-edge hover:bg-background rounded-md border px-3 py-1.5 text-xs"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => {
                 void handlePreviewPrompt();
               }}
               disabled={isPromptLoading || isGenerating}
             >
               {isPromptLoading ? 'Loading prompt...' : 'Preview Prompt'}
-            </button>
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-1.5 text-xs"
+            </Button>
+            <Button
+              size="sm"
               onClick={() => {
                 void handleGenerateSingle();
               }}
               disabled={isGenerating}
             >
               {isGenerating ? 'Generating...' : 'Generate'}
-            </button>
+            </Button>
           </div>
         </TabsContent>
 
         <TabsContent value="batch" className="mt-3 space-y-3">
-          <label className="block">
-            <span className="text-dim mb-1 block text-xs">Planning document path</span>
-            <input
+          <div className="grid gap-2">
+            <Label htmlFor="doc-path">Planning document path</Label>
+            <Input
+              id="doc-path"
               value={planFilePath}
               onChange={(event) => {
                 setPlanFilePath(event.target.value);
@@ -142,7 +148,7 @@ export const PlanCreator = ({
               placeholder="/absolute/path/to/plan.md"
               className="bg-background border-edge text-light placeholder:text-dim h-9 w-full rounded border px-2 text-sm"
             />
-          </label>
+          </div>
 
           <label className="border-edge bg-background/40 hover:bg-background/70 block cursor-pointer rounded border border-dashed p-3 text-center text-xs">
             <span className="text-mid">Choose markdown file</span>
@@ -160,16 +166,15 @@ export const PlanCreator = ({
             />
           </label>
 
-          <button
-            type="button"
-            className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-1.5 text-xs"
+          <Button
+            size="sm"
             onClick={() => {
               void handleGenerateBatch();
             }}
             disabled={isGenerating}
           >
             {isGenerating ? 'Generating...' : 'Generate Tasks'}
-          </button>
+          </Button>
         </TabsContent>
       </Tabs>
 

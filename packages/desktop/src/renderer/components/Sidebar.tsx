@@ -92,7 +92,7 @@ export const Sidebar = ({
   const activeProject = projects.find((p) => p.path === activeProjectPath);
 
   const dropdownContent = (
-    <DropdownMenuContent className="min-w-[12rem]">
+    <DropdownMenuContent className="min-w-48">
       <DropdownMenuLabel>Projects</DropdownMenuLabel>
       <DropdownMenuSeparator />
       {isLoadingProjects && <div className="text-dim px-2 py-1.5 text-xs">Loading projects...</div>}

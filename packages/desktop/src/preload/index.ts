@@ -113,6 +113,7 @@ const ody: OdyApi = {
     setSoundEnabled: (enabled) => ipcRenderer.invoke('notifications:sound:set', enabled),
   },
   app: {
+    onFullscreen: (listener) => addListener('app:fullscreen-status', listener),
     onMenuAction: (listener) => addListener('app:menuAction', listener),
     removeAllListeners: () => {
       ipcRenderer.removeAllListeners('app:menuAction');

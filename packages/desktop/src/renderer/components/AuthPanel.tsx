@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
-import { KeyRound } from 'lucide-react';
+import { KeyRound, PlusIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
@@ -333,7 +333,7 @@ export const AuthPanel = () => {
               <TabsTrigger value="github">GitHub</TabsTrigger>
             </TabsList>
             <Button size="sm" onClick={() => openAddDialog(tab)}>
-              + Add Profile
+              <PlusIcon /> Add Profile
             </Button>
           </div>
 
@@ -379,8 +379,7 @@ export const AuthPanel = () => {
                         </Button>
                         <Button
                           size="xs"
-                          variant="outline"
-                          className="text-red"
+                          variant="destructive"
                           onClick={() => {
                             setPendingDelete({
                               open: true,

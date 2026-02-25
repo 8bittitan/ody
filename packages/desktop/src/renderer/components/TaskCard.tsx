@@ -1,5 +1,6 @@
+import { Button } from '@/components/ui/button';
 import type { TaskSummary } from '@/types/ipc';
-import { CheckCircle2, Pencil, Play, Square, Trash2 } from 'lucide-react';
+import { CheckCircle2, Pencil, Play, StopCircle, Trash2 } from 'lucide-react';
 
 type TaskCardProps = {
   task: TaskSummary;
@@ -89,57 +90,58 @@ export const TaskCard = ({
             {outputPreview || 'Waiting for agent output...'}
           </pre>
           {onStop ? (
-            <button
-              type="button"
-              className="text-amber border-amber/35 hover:bg-amber-bg mt-2 inline-flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-medium"
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-amber dark:border-amber/35 hover:bg-amber-bg mt-2"
               onClick={(event) => {
                 event.stopPropagation();
                 onStop?.();
               }}
               disabled={!isRunning}
             >
-              <Square className="size-2.5" />
+              <StopCircle className="size-4" />
               Stop
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}
 
       {!isCompleted ? (
         <div className="mt-3 flex gap-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-          <button
-            type="button"
+          <Button
+            variant="primary-outline"
+            size="sm"
             onClick={(event) => {
               event.stopPropagation();
               onRun(task);
             }}
-            className="text-primary border-primary/30 hover:bg-accent-bg inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
           >
             <Play className="size-3" />
             Run
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={(event) => {
               event.stopPropagation();
               onEdit(task);
             }}
-            className="text-mid border-edge hover:text-light hover:bg-background inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
           >
             <Pencil className="size-3" />
             Edit
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={(event) => {
               event.stopPropagation();
               onDelete(task);
             }}
-            className="text-red border-red/30 hover:bg-red-bg inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px]"
           >
             <Trash2 className="size-3" />
-            Del
-          </button>
+            Delete
+          </Button>
         </div>
       ) : null}
 

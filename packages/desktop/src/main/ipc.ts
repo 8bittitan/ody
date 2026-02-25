@@ -379,6 +379,14 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     nativeTheme.removeListener('updated', handleNativeThemeUpdated);
   });
 
+  win.on('enter-full-screen', () => {
+    win.webContents.send('app:fullscreen-status', true);
+  });
+
+  win.on('leave-full-screen', () => {
+    win.webContents.send('app:fullscreen-status', false);
+  });
+
   registerHandler('config:load', async () => {
     const activeProjectPath = readActiveProjectPath();
     const globalConfigPath = getGlobalConfigPath();

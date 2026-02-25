@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import { Button } from './ui/button';
 
 type ExpandedSection = {
   date: string;
@@ -48,15 +49,15 @@ export const ArchiveViewer = () => {
     <section className="bg-panel/92 border-edge h-full rounded-lg border p-4 backdrop-blur-sm">
       <header className="mb-3 flex items-center justify-between">
         <h2 className="text-light text-sm font-medium">Archives</h2>
-        <button
-          type="button"
-          className="text-mid hover:text-light border-edge hover:bg-background rounded-md border px-2 py-1 text-xs"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => {
             void loadArchives();
           }}
         >
           Refresh
-        </button>
+        </Button>
       </header>
 
       <div className="space-y-2 overflow-auto">
@@ -101,51 +102,39 @@ export const ArchiveViewer = () => {
 
                 <div className="mt-1.5 flex gap-1.5">
                   {archive.tasks ? (
-                    <button
-                      type="button"
-                      className={`rounded px-1.5 py-0.5 text-[11px] ${
-                        isExpanded(archive.date, 'tasks')
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'text-mid hover:text-light bg-panel hover:bg-panel/80'
-                      }`}
+                    <Button
+                      variant={isExpanded(archive.date, 'tasks') ? 'default' : 'secondary'}
+                      size="xs"
                       onClick={() => {
                         toggleSection(archive.date, 'tasks');
                       }}
                     >
                       Tasks
-                    </button>
+                    </Button>
                   ) : null}
 
                   {archive.progress ? (
-                    <button
-                      type="button"
-                      className={`rounded px-1.5 py-0.5 text-[11px] ${
-                        isExpanded(archive.date, 'progress')
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'text-mid hover:text-light bg-panel hover:bg-panel/80'
-                      }`}
+                    <Button
+                      variant={isExpanded(archive.date, 'progress') ? 'default' : 'secondary'}
+                      size="xs"
                       onClick={() => {
                         toggleSection(archive.date, 'progress');
                       }}
                     >
                       Progress
-                    </button>
+                    </Button>
                   ) : null}
 
                   {archive.legacy ? (
-                    <button
-                      type="button"
-                      className={`rounded px-1.5 py-0.5 text-[11px] ${
-                        isExpanded(archive.date, 'legacy')
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'text-mid hover:text-light bg-panel hover:bg-panel/80'
-                      }`}
+                    <Button
+                      variant={isExpanded(archive.date, 'legacy') ? 'default' : 'secondary'}
+                      size="xs"
                       onClick={() => {
                         toggleSection(archive.date, 'legacy');
                       }}
                     >
                       View
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
 
