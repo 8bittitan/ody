@@ -1,96 +1,109 @@
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { toast } from '@/lib/toast';
-import { useStore } from '@/store';
+import type { ConfigLoadResult } from '@/types/ipc';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { useProjects } from './useProjects';
+
 export const useConfig = () => {
-  const config = useStore((state) => state.config);
-  const localConfigPath = useStore((state) => state.localConfigPath);
-  const layers = useStore((state) => state.layers);
-  const validation = useStore((state) => state.validation);
-  const isLoading = useStore((state) => state.isLoadingConfig);
-  const setConfigData = useStore((state) => state.setConfigData);
-  const setConfigLoading = useStore((state) => state.setConfigLoading);
-  const setValidation = useStore((state) => state.setValidation);
-  const resetGuiOverridesState = useStore((state) => state.resetGuiOverridesState);
+  const queryClient = useQueryClient();
+  const { activeProjectPath } = useProjects();
 
-  const loadConfig = useCallback(async () => {
-    setConfigLoading(true);
+  const configQuery = useQuery({
+    queryKey: queryKeys.config.data(activeProjectPath),
+    queryFn: () => api.config.load(),
+    enabled: !!activeProjectPath,
+  });
 
-    try {
-      const result = await api.config.load();
-      setConfigData({
-        config: result.merged,
-        localConfigPath: result.localConfigPath,
-        layers: result.layers,
-      });
-      return result;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Unable to load configuration';
-      toast.error('Failed to load configuration', { description: message });
-      throw cause;
-    } finally {
-      setConfigLoading(false);
-    }
-  }, [setConfigData, setConfigLoading]);
-
-  const saveConfig = useCallback(
-    async (scope: 'gui' | 'local', nextConfig: Record<string, unknown>) => {
-      try {
-        const result = await api.config.save(scope, nextConfig);
-        await loadConfig();
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to save configuration';
-        toast.error('Failed to save configuration', { description: message });
-        throw cause;
-      }
+  const saveMutation = useMutation({
+    mutationFn: async ({
+      scope,
+      nextConfig,
+    }: {
+      scope: 'gui' | 'local';
+      nextConfig: Record<string, unknown>;
+    }) => {
+      return api.config.save(scope, nextConfig);
     },
-    [loadConfig],
-  );
-
-  const saveGlobal = useCallback(
-    async (nextConfig: Record<string, unknown>) => {
-      try {
-        const result = await api.config.saveGlobal(nextConfig);
-        await loadConfig();
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to save global config';
-        toast.error('Failed to save global configuration', { description: message });
-        throw cause;
-      }
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
     },
-    [loadConfig],
-  );
-
-  const validateConfig = useCallback(
-    async (nextConfig: Record<string, unknown>) => {
-      try {
-        const result = await api.config.validate(nextConfig);
-        setValidation(result);
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to validate config';
-        toast.error('Failed to validate configuration', { description: message });
-        throw cause;
-      }
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to save configuration';
+      toast.error('Failed to save configuration', { description: message });
     },
-    [setValidation],
-  );
+  });
 
-  const resetGuiOverrides = useCallback(async () => {
-    try {
-      const result = await api.config.resetGuiOverrides();
-      resetGuiOverridesState();
-      await loadConfig();
-      return result;
-    } catch (cause) {
+  const saveGlobalMutation = useMutation({
+    mutationFn: async (nextConfig: Record<string, unknown>) => {
+      return api.config.saveGlobal(nextConfig);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
+    },
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to save global config';
+      toast.error('Failed to save global configuration', { description: message });
+    },
+  });
+
+  const validateMutation = useMutation({
+    mutationFn: async (nextConfig: Record<string, unknown>) => {
+      return api.config.validate(nextConfig);
+    },
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to validate config';
+      toast.error('Failed to validate configuration', { description: message });
+    },
+  });
+
+  const resetGuiMutation = useMutation({
+    mutationFn: async () => {
+      return api.config.resetGuiOverrides();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
+    },
+    onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to reset GUI overrides';
       toast.error('Failed to reset GUI overrides', { description: message });
-      throw cause;
-    }
-  }, [loadConfig, resetGuiOverridesState]);
+    },
+  });
+
+  const data: ConfigLoadResult | undefined = configQuery.data;
+  const config = data?.merged ?? null;
+  const localConfigPath = data?.localConfigPath ?? null;
+  const layers = data?.layers ?? { gui: null, local: null, global: null };
+  const validation = validateMutation.data ?? null;
+  const isLoading = configQuery.isLoading;
+
+  const loadConfig = useCallback(async () => {
+    const result = await queryClient.fetchQuery({
+      queryKey: queryKeys.config.data(activeProjectPath),
+      queryFn: () => api.config.load(),
+      staleTime: 0,
+    });
+
+    return result;
+  }, [queryClient, activeProjectPath]);
+
+  const saveConfig = async (scope: 'gui' | 'local', nextConfig: Record<string, unknown>) => {
+    return saveMutation.mutateAsync({ scope, nextConfig });
+  };
+
+  const saveGlobal = async (nextConfig: Record<string, unknown>) => {
+    return saveGlobalMutation.mutateAsync(nextConfig);
+  };
+
+  const validateConfig = async (nextConfig: Record<string, unknown>) => {
+    return validateMutation.mutateAsync(nextConfig);
+  };
+
+  const resetGuiOverrides = async () => {
+    return resetGuiMutation.mutateAsync();
+  };
 
   return {
     config,

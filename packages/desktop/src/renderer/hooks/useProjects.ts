@@ -1,73 +1,108 @@
 import { api } from '@/lib/api';
-import { useStore } from '@/store';
-import { useCallback, useEffect } from 'react';
+import { queryKeys } from '@/lib/queryKeys';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
+export type ProjectItem = {
+  name: string;
+  path: string;
+};
 
 export const useProjects = () => {
-  const projects = useStore((state) => state.projects);
-  const activeProjectPath = useStore((state) => state.activeProjectPath);
-  const isLoading = useStore((state) => state.isLoadingProjects);
-  const setProjects = useStore((state) => state.setProjects);
-  const setActiveProject = useStore((state) => state.setActiveProject);
-  const setProjectsLoading = useStore((state) => state.setProjectsLoading);
-  const addProjectState = useStore((state) => state.addProject);
-  const removeProjectState = useStore((state) => state.removeProject);
+  const queryClient = useQueryClient();
 
-  const loadProjects = useCallback(async () => {
-    setProjectsLoading(true);
+  const projectsQuery = useQuery({
+    queryKey: queryKeys.projects.list,
+    queryFn: () => api.projects.list(),
+  });
 
-    try {
-      const [projectList, active] = await Promise.all([api.projects.list(), api.projects.active()]);
-      setProjects(projectList);
-      setActiveProject(active.path);
-    } finally {
-      setProjectsLoading(false);
-    }
-  }, [setActiveProject, setProjects, setProjectsLoading]);
+  const activeQuery = useQuery({
+    queryKey: queryKeys.projects.active,
+    queryFn: () => api.projects.active(),
+  });
 
-  const addProject = useCallback(async () => {
-    const result = await api.projects.add();
+  const addMutation = useMutation({
+    mutationFn: () => api.projects.add(),
+    onSuccess: (result) => {
+      if (result.added) {
+        queryClient.setQueryData<ProjectItem[]>(queryKeys.projects.list, (prev) => {
+          if (!prev) {
+            return [result.added!];
+          }
 
-    if (result.added) {
-      addProjectState(result.added);
-      setActiveProject(result.added.path);
-    }
+          if (prev.some((p) => p.path === result.added!.path)) {
+            return prev;
+          }
 
-    return result.added;
-  }, [addProjectState, setActiveProject]);
+          return [...prev, result.added!];
+        });
+        queryClient.setQueryData(queryKeys.projects.active, { path: result.added.path });
+      }
+    },
+  });
 
-  const removeProject = useCallback(
-    async (path: string) => {
+  const removeMutation = useMutation({
+    mutationFn: async (path: string) => {
       await api.projects.remove(path);
-      removeProjectState(path);
+      return path;
+    },
+    onSuccess: (removedPath) => {
+      queryClient.setQueryData<ProjectItem[]>(queryKeys.projects.list, (prev) =>
+        prev ? prev.filter((p) => p.path !== removedPath) : [],
+      );
 
-      if (path === activeProjectPath) {
-        const active = await api.projects.active();
-        setActiveProject(active.path);
+      const currentActive = queryClient.getQueryData<{ path: string | null }>(
+        queryKeys.projects.active,
+      );
+
+      if (currentActive?.path === removedPath) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.projects.active });
       }
     },
-    [activeProjectPath, removeProjectState, setActiveProject],
-  );
+  });
 
-  const switchProject = useCallback(
-    async (path: string) => {
+  const switchMutation = useMutation({
+    mutationFn: async (path: string) => {
       const result = await api.projects.switch(path);
-      if (!result.ok) {
-        return false;
-      }
-
-      setActiveProject(path);
-      return true;
+      return { path, ok: result.ok };
     },
-    [setActiveProject],
-  );
+    onSuccess: ({ path, ok }) => {
+      if (ok) {
+        queryClient.setQueryData(queryKeys.projects.active, { path });
+      }
+    },
+  });
 
   useEffect(() => {
-    void loadProjects();
-
     return api.projects.onSwitched((path) => {
-      setActiveProject(path);
+      queryClient.setQueryData(queryKeys.projects.active, { path });
     });
-  }, [loadProjects, setActiveProject]);
+  }, [queryClient]);
+
+  const projects: ProjectItem[] = projectsQuery.data ?? [];
+  const activeProjectPath = activeQuery.data?.path ?? null;
+  const isLoading = projectsQuery.isLoading || activeQuery.isLoading;
+
+  const addProject = async () => {
+    const result = await addMutation.mutateAsync();
+    return result.added;
+  };
+
+  const removeProject = async (path: string) => {
+    await removeMutation.mutateAsync(path);
+  };
+
+  const switchProject = async (path: string) => {
+    const result = await switchMutation.mutateAsync(path);
+    return result.ok;
+  };
+
+  const loadProjects = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.list }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.active }),
+    ]);
+  };
 
   return {
     projects,

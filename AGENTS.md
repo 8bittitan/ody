@@ -130,6 +130,7 @@ Guidance for agentic coding in this repository.
 ## CI pipeline
 
 CI runs on PRs to `main` and pushes to `main` (`.github/workflows/ci.yml`):
+
 - **lint**: `bun lint`
 - **test**: `bun run test`
 - **type-check**: `bun typecheck`
@@ -137,6 +138,7 @@ CI runs on PRs to `main` and pushes to `main` (`.github/workflows/ci.yml`):
 ## Quick checks
 
 Run before pushing:
+
 - `bun lint` — validate lint.
 - `bun fmt` — normalize formatting.
 - `bun typecheck` — check types across all packages.

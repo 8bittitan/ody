@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/scroll-area';
 import { stripAnsi } from '@/lib/ansi';
 import { api } from '@/lib/api';
-import { useStore } from '@/store';
 import type { TaskSummary } from '@/types/ipc';
 import { ClipboardList, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -24,6 +23,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAgent } from '../hooks/useAgent';
 import { useConfig } from '../hooks/useConfig';
 import { useNotifications } from '../hooks/useNotifications';
+import { useProjects } from '../hooks/useProjects';
 import { useTasks } from '../hooks/useTasks';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -53,7 +53,7 @@ const COLUMN_META = {
 } as const;
 
 export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoardProps) => {
-  const activeProjectPath = useStore((state) => state.activeProjectPath);
+  const { activeProjectPath } = useProjects();
   const { tasks, filteredTasks, loadTasks, setFilters, labelFilter, isLoading } = useTasks();
   const { config } = useConfig();
   const { start, stop, isRunning, output, iteration, maxIterations } = useAgent();
@@ -63,16 +63,6 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
   const [detailTarget, setDetailTarget] = useState<TaskSummary | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [viewError, setViewError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!activeProjectPath) {
-      return;
-    }
-
-    void loadTasks().catch((cause) => {
-      setViewError(cause instanceof Error ? cause.message : 'Unable to load tasks');
-    });
-  }, [activeProjectPath, loadTasks]);
 
   useEffect(() => {
     if (!isLoading) {

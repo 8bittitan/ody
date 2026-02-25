@@ -1,89 +1,108 @@
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { toast } from '@/lib/toast';
-import { useStore } from '@/store';
-import { useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useAuth = () => {
-  const authStore = useStore((state) => state.authStore);
-  const isLoading = useStore((state) => state.isLoadingAuth);
-  const setAuthStore = useStore((state) => state.setAuthStore);
-  const setAuthLoading = useStore((state) => state.setAuthLoading);
+  const queryClient = useQueryClient();
 
-  const loadAuth = useCallback(async () => {
-    setAuthLoading(true);
+  const authQuery = useQuery({
+    queryKey: queryKeys.auth.list,
+    queryFn: () => api.auth.list(),
+  });
 
-    try {
-      const result = await api.auth.list();
-      setAuthStore(result);
-      return result;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Unable to load credentials';
-      toast.error('Failed to load credentials', { description: message });
-      throw cause;
-    } finally {
-      setAuthLoading(false);
-    }
-  }, [setAuthLoading, setAuthStore]);
-
-  const saveJira = useCallback(
-    async (profile: string, credentials: Record<string, unknown>) => {
-      try {
-        const result = await api.auth.setJira(profile, credentials);
-        await loadAuth();
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to save Jira profile';
-        toast.error('Failed to save Jira credentials', { description: message });
-        throw cause;
-      }
+  const saveJiraMutation = useMutation({
+    mutationFn: async ({
+      profile,
+      credentials,
+    }: {
+      profile: string;
+      credentials: Record<string, unknown>;
+    }) => {
+      return api.auth.setJira(profile, credentials);
     },
-    [loadAuth],
-  );
-
-  const saveGitHub = useCallback(
-    async (profile: string, credentials: Record<string, unknown>) => {
-      try {
-        const result = await api.auth.setGitHub(profile, credentials);
-        await loadAuth();
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to save GitHub profile';
-        toast.error('Failed to save GitHub credentials', { description: message });
-        throw cause;
-      }
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
     },
-    [loadAuth],
-  );
-
-  const removeJira = useCallback(
-    async (profile: string) => {
-      try {
-        const result = await api.auth.removeJira(profile);
-        await loadAuth();
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to remove Jira profile';
-        toast.error('Failed to remove Jira credentials', { description: message });
-        throw cause;
-      }
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to save Jira profile';
+      toast.error('Failed to save Jira credentials', { description: message });
     },
-    [loadAuth],
-  );
+  });
 
-  const removeGitHub = useCallback(
-    async (profile: string) => {
-      try {
-        const result = await api.auth.removeGitHub(profile);
-        await loadAuth();
-        return result;
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to remove GitHub profile';
-        toast.error('Failed to remove GitHub credentials', { description: message });
-        throw cause;
-      }
+  const saveGitHubMutation = useMutation({
+    mutationFn: async ({
+      profile,
+      credentials,
+    }: {
+      profile: string;
+      credentials: Record<string, unknown>;
+    }) => {
+      return api.auth.setGitHub(profile, credentials);
     },
-    [loadAuth],
-  );
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+    },
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to save GitHub profile';
+      toast.error('Failed to save GitHub credentials', { description: message });
+    },
+  });
+
+  const removeJiraMutation = useMutation({
+    mutationFn: async (profile: string) => {
+      return api.auth.removeJira(profile);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+    },
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to remove Jira profile';
+      toast.error('Failed to remove Jira credentials', { description: message });
+    },
+  });
+
+  const removeGitHubMutation = useMutation({
+    mutationFn: async (profile: string) => {
+      return api.auth.removeGitHub(profile);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+    },
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : 'Unable to remove GitHub profile';
+      toast.error('Failed to remove GitHub credentials', { description: message });
+    },
+  });
+
+  const authStore = authQuery.data ?? null;
+  const isLoading = authQuery.isLoading;
+
+  const loadAuth = async () => {
+    const result = await queryClient.fetchQuery({
+      queryKey: queryKeys.auth.list,
+      queryFn: () => api.auth.list(),
+      staleTime: 0,
+    });
+
+    return result;
+  };
+
+  const saveJira = async (profile: string, credentials: Record<string, unknown>) => {
+    return saveJiraMutation.mutateAsync({ profile, credentials });
+  };
+
+  const saveGitHub = async (profile: string, credentials: Record<string, unknown>) => {
+    return saveGitHubMutation.mutateAsync({ profile, credentials });
+  };
+
+  const removeJira = async (profile: string) => {
+    return removeJiraMutation.mutateAsync(profile);
+  };
+
+  const removeGitHub = async (profile: string) => {
+    return removeGitHubMutation.mutateAsync(profile);
+  };
 
   return {
     authStore,

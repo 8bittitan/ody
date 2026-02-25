@@ -1,41 +1,49 @@
 import { api } from '@/lib/api';
-import { toast } from '@/lib/toast';
+import { queryKeys } from '@/lib/queryKeys';
 import { useStore } from '@/store';
-import type { TaskStatus } from '@/types/ipc';
+import type { TaskState, TaskStatus, TaskSummary } from '@/types/ipc';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 
+import { useProjects } from './useProjects';
+
+const EMPTY_TASKS: TaskSummary[] = [];
+const EMPTY_STATES: TaskState[] = [];
+
 export const useTasks = () => {
-  const tasks = useStore((state) => state.tasks);
-  const taskStates = useStore((state) => state.taskStates);
+  const queryClient = useQueryClient();
+  const { activeProjectPath } = useProjects();
+
   const labelFilter = useStore((state) => state.labelFilter);
   const statusFilter = useStore((state) => state.statusFilter);
   const selectedTaskPath = useStore((state) => state.selectedTaskPath);
-  const isLoading = useStore((state) => state.isLoadingTasks);
-  const setTasks = useStore((state) => state.setTasks);
-  const setTaskStates = useStore((state) => state.setTaskStates);
   const setLabelFilter = useStore((state) => state.setLabelFilter);
   const setStatusFilter = useStore((state) => state.setStatusFilter);
   const setSelectedTaskPath = useStore((state) => state.setSelectedTaskPath);
-  const setTasksLoading = useStore((state) => state.setTasksLoading);
 
-  const loadTasks = useCallback(async () => {
-    setTasksLoading(true);
+  const tasksQuery = useQuery({
+    queryKey: queryKeys.tasks.list(activeProjectPath),
+    queryFn: () => api.tasks.list(),
+    enabled: !!activeProjectPath,
+  });
 
-    try {
-      const [taskList, states] = await Promise.all([api.tasks.list(), api.tasks.states()]);
-      setTasks(taskList);
-      setTaskStates(states);
-      return taskList;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Unable to load tasks';
-      toast.error('Failed to load tasks', { description: message });
-      throw cause;
-    } finally {
-      setTasksLoading(false);
-    }
-  }, [setTaskStates, setTasks, setTasksLoading]);
+  const statesQuery = useQuery({
+    queryKey: queryKeys.tasks.states(activeProjectPath),
+    queryFn: () => api.tasks.states(),
+    enabled: !!activeProjectPath,
+  });
 
-  const refreshTasks = useCallback(async () => loadTasks(), [loadTasks]);
+  const tasks = tasksQuery.data ?? EMPTY_TASKS;
+  const taskStates = statesQuery.data ?? EMPTY_STATES;
+  const isLoading = tasksQuery.isLoading || statesQuery.isLoading;
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesLabel = labelFilter === null || task.labels.includes(labelFilter);
+      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      return matchesLabel && matchesStatus;
+    });
+  }, [labelFilter, statusFilter, tasks]);
 
   const setFilters = useCallback(
     (filters: { label?: string | null; status?: TaskStatus | 'all' }) => {
@@ -50,13 +58,20 @@ export const useTasks = () => {
     [setLabelFilter, setStatusFilter],
   );
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesLabel = labelFilter === null || task.labels.includes(labelFilter);
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-      return matchesLabel && matchesStatus;
-    });
-  }, [labelFilter, statusFilter, tasks]);
+  const loadTasks = useCallback(async () => {
+    const [tasks] = await Promise.all([
+      queryClient.fetchQuery({
+        queryKey: queryKeys.tasks.list(activeProjectPath),
+        queryFn: () => api.tasks.list(),
+        staleTime: 0,
+      }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.tasks.states(activeProjectPath) }),
+    ]);
+
+    return tasks ?? [];
+  }, [queryClient, activeProjectPath]);
+
+  const refreshTasks = useCallback(async () => loadTasks(), [loadTasks]);
 
   const readTask = useCallback((filePath: string) => api.tasks.read(filePath), []);
 

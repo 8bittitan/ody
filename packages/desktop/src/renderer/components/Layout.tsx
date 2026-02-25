@@ -164,14 +164,10 @@ export const Layout = () => {
       }
     })();
 
-    void loadTasks().catch(() => {
-      return;
-    });
-
     return () => {
       isMounted = false;
     };
-  }, [activeProjectPath, loadConfig, loadTasks, resetAgentState]);
+  }, [activeProjectPath, loadConfig, resetAgentState]);
 
   const handleAddProject = useCallback(async () => {
     const project = await addProject();

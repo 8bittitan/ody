@@ -160,3 +160,18 @@
   - Preserved public API (RichMarkdownEditorProps, RichMarkdownEditorHandle, displayName) — no consumer changes needed
   - Preserved milkdown-editor CSS class on wrapping container div for existing globals.css styles
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (no new errors; only pre-existing DOM lib errors)
+
+2026-02-25 | replace-zustand-with-tanstack-query | Completed
+  - Installed @tanstack/react-query in packages/desktop devDependencies
+  - Created QueryClient (src/renderer/lib/queryClient.ts) with IPC-appropriate defaults (staleTime: 30s, retry: 1, no refetchOnWindowFocus)
+  - Created centralized query key factory (src/renderer/lib/queryKeys.ts) for projects, config, tasks, and auth domains
+  - Wrapped renderer App in QueryClientProvider
+  - Rewrote useProjects hook: useQuery for list/active, useMutation for add/remove/switch, IPC onSwitched listener updates cache directly
+  - Rewrote useConfig hook: useQuery for config.load(), useMutation for save/saveGlobal/validate/resetGuiOverrides with cache invalidation
+  - Rewrote useTasks hook: useQuery for tasks.list() and tasks.states(), filters/selection read from Zustand ViewSlice
+  - Rewrote useAuth hook: useQuery for auth.list(), useMutation for saveJira/saveGitHub/removeJira/removeGitHub with invalidation
+  - Created ViewSlice (src/renderer/store/slices/viewSlice.ts) absorbing labelFilter, statusFilter, selectedTaskPath, configEditorPath from removed slices
+  - Updated store/index.ts to compose only AgentSlice & UISlice & ViewSlice & AppSlice
+  - Updated AgentRunner and TaskBoard to source activeProjectPath from useProjects() instead of useStore
+  - Deleted four Zustand slice files: projectSlice.ts, configSlice.ts, taskSlice.ts, authSlice.ts
+  - All validation passing: bun lint (0 errors/warnings), bun fmt, bun typecheck (all packages pass)

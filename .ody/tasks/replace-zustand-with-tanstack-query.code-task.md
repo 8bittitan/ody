@@ -1,8 +1,8 @@
 ---
-status: skip
+status: completed
 created: 2026-02-23
-started: null
-completed: null
+started: 2026-02-25
+completed: 2026-02-25
 ---
 # Task: Hybrid migration — @tanstack/react-query for server state, Zustand for client state
 

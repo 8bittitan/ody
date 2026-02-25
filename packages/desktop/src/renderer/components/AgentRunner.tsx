@@ -19,8 +19,8 @@ import { Switch } from '@/components/ui/switch';
 import { useAgent } from '@/hooks/useAgent';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
-import { useStore } from '@/store';
 import type { TaskSummary } from '@/types/ipc';
 import { useMemo, useState } from 'react';
 
@@ -34,7 +34,7 @@ const getTaskFileName = (taskPath: string) => {
 };
 
 export const AgentRunner = () => {
-  const activeProjectPath = useStore((state) => state.activeProjectPath);
+  const { activeProjectPath } = useProjects();
   const { tasks } = useTasks();
   const { config } = useConfig();
   const { accent, warning, error } = useNotifications();

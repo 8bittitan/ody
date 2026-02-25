@@ -1,27 +1,15 @@
 import { create } from 'zustand';
 
 import { createAgentSlice, type AgentSlice } from './slices/agentSlice';
-import { AppSlice, createAppSlice } from './slices/appSlice';
-import { createAuthSlice, type AuthSlice } from './slices/authSlice';
-import { createConfigSlice, type ConfigSlice } from './slices/configSlice';
-import { createProjectSlice, type ProjectSlice } from './slices/projectSlice';
-import { createTaskSlice, type TaskSlice } from './slices/taskSlice';
+import { createAppSlice, type AppSlice } from './slices/appSlice';
 import { createUISlice, type UISlice } from './slices/uiSlice';
+import { createViewSlice, type ViewSlice } from './slices/viewSlice';
 
-export type AppStore = ProjectSlice &
-  ConfigSlice &
-  TaskSlice &
-  AgentSlice &
-  AuthSlice &
-  UISlice &
-  AppSlice;
+export type AppStore = AgentSlice & UISlice & ViewSlice & AppSlice;
 
 export const useStore = create<AppStore>()((...args) => ({
-  ...createProjectSlice(...args),
-  ...createConfigSlice(...args),
-  ...createTaskSlice(...args),
   ...createAgentSlice(...args),
-  ...createAuthSlice(...args),
   ...createUISlice(...args),
+  ...createViewSlice(...args),
   ...createAppSlice(...args),
 }));

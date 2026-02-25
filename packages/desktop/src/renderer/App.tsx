@@ -1,13 +1,16 @@
+import { QueryClientProvider } from '@tanstack/react-query';
+
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { Toaster } from './components/ui/sonner';
 import { useTheme } from './hooks/useTheme';
+import { queryClient } from './lib/queryClient';
 
 export const App = () => {
   useTheme();
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <ErrorBoundary title="Application crashed">
         <Layout />
       </ErrorBoundary>
@@ -18,6 +21,6 @@ export const App = () => {
           duration: 2500,
         }}
       />
-    </>
+    </QueryClientProvider>
   );
 };

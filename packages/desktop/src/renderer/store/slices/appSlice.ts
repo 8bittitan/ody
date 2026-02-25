@@ -1,6 +1,6 @@
-import { StateCreator } from 'zustand';
+import type { StateCreator } from 'zustand';
 
-import { AppStore } from '../index';
+import type { AppStore } from '../index';
 
 export type AppSlice = {
   isFullscreen: boolean;

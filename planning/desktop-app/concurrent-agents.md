@@ -44,11 +44,11 @@ Static value. No config property.
 
 ## Mode Selection
 
-| Scenario | Mode | Method |
-|---|---|---|
-| User selects a specific task | Sequential | `runLoop` (existing, unchanged) |
-| User runs all pending tasks (no specific selection) | Parallel | `runParallel` (new) |
-| User filters by label (multiple results) | Parallel | `runParallel` with filtered list |
+| Scenario                                            | Mode       | Method                           |
+| --------------------------------------------------- | ---------- | -------------------------------- |
+| User selects a specific task                        | Sequential | `runLoop` (existing, unchanged)  |
+| User runs all pending tasks (no specific selection) | Parallel   | `runParallel` (new)              |
+| User filters by label (multiple results)            | Parallel   | `runParallel` with filtered list |
 
 The IPC handler decides based on `taskFiles.length`:
 
@@ -242,37 +242,39 @@ const unbindTaskSpawned = api.agent.onTaskSpawned((remainingCount) => {
 **Modify status text** (~line 258) to show parallel progress:
 
 ```tsx
-{isRunning
-  ? isParallel
-    ? `Running in parallel (max 3) -- ${parallelRemaining} tasks remaining`
-    : `Iteration ${iteration} of ${maxIterations || '...'} -- Running...`
-  : `Ready. ${taskFilesForRun.length} task${taskFilesForRun.length === 1 ? '' : 's'} selected.`}
+{
+  isRunning
+    ? isParallel
+      ? `Running in parallel (max 3) -- ${parallelRemaining} tasks remaining`
+      : `Iteration ${iteration} of ${maxIterations || '...'} -- Running...`
+    : `Ready. ${taskFilesForRun.length} task${taskFilesForRun.length === 1 ? '' : 's'} selected.`;
+}
 ```
 
 **Hide "Iteration limit" input** when multiple tasks are selected (iterations don't apply in parallel mode — each task gets one agent spawn).
 
 ## Files NOT Changed
 
-| File | Reason |
-|---|---|
-| `internal/backends/` | Stateless command builders — no process state |
-| `internal/builders/` | `LOOP_PROMPT` + `LABEL FILTER` already works as needed |
-| `internal/config/` | No config changes (static constant) |
-| `internal/tasks/` | Read-only usage; `getTaskStates` supports concurrent reads |
-| `packages/cli/` | CLI stays sequential for now |
-| `AgentOutput.tsx` | Prefixed output renders naturally in the existing `<pre>` block |
+| File                 | Reason                                                          |
+| -------------------- | --------------------------------------------------------------- |
+| `internal/backends/` | Stateless command builders — no process state                   |
+| `internal/builders/` | `LOOP_PROMPT` + `LABEL FILTER` already works as needed          |
+| `internal/config/`   | No config changes (static constant)                             |
+| `internal/tasks/`    | Read-only usage; `getTaskStates` supports concurrent reads      |
+| `packages/cli/`      | CLI stays sequential for now                                    |
+| `AgentOutput.tsx`    | Prefixed output renders naturally in the existing `<pre>` block |
 
 ## Behaviors
 
-| Scenario | Behavior |
-|---|---|
-| User selects a specific task | `runLoop` — single-task mode, unchanged |
-| User runs all pending tasks | `runParallel` — up to 3 agents, file-watch staggered |
-| Agent claims a task | Writes `in_progress` -> `fs.watch` fires -> orchestrator re-reads pending list -> spawns next agent with updated filter |
-| Agent finishes | Process exits -> orchestrator re-reads pending -> spawns replacement if tasks remain |
-| User clicks Stop (graceful) | `aborted = true` -> no new spawns; running agents finish current task |
-| User clicks Stop (force) | `SIGKILL` all processes immediately |
-| All tasks completed | `agent:complete` event -> UI shows done state |
+| Scenario                     | Behavior                                                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| User selects a specific task | `runLoop` — single-task mode, unchanged                                                                                 |
+| User runs all pending tasks  | `runParallel` — up to 3 agents, file-watch staggered                                                                    |
+| Agent claims a task          | Writes `in_progress` -> `fs.watch` fires -> orchestrator re-reads pending list -> spawns next agent with updated filter |
+| Agent finishes               | Process exits -> orchestrator re-reads pending -> spawns replacement if tasks remain                                    |
+| User clicks Stop (graceful)  | `aborted = true` -> no new spawns; running agents finish current task                                                   |
+| User clicks Stop (force)     | `SIGKILL` all processes immediately                                                                                     |
+| All tasks completed          | `agent:complete` event -> UI shows done state                                                                           |
 
 ## Edge Cases
 
