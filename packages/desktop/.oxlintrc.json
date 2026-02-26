@@ -2,9 +2,7 @@
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../.oxlintrc.json"],
   "plugins": ["unicorn", "typescript", "oxc", "react", "react-perf"],
-  "ignorePatterns": [
-    "**/routeTree.gen.ts"
-  ],
+  "ignorePatterns": ["**/routeTree.gen.ts"],
   "jsPlugins": [
     {
       "name": "react-hooks-js",
