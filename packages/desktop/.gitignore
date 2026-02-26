@@ -1,0 +1,4 @@
+.tanstack
+.vite
+out/
+src/renderer/routeTree.gen.ts

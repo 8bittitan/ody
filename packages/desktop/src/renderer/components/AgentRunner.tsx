@@ -51,7 +51,7 @@ export const AgentRunner = () => {
   } = useAgent();
 
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
-  const [selectedTaskPath, setSelectedTaskPath] = useState<string>('');
+  const [selectedTaskFile, setSelectedTaskFile] = useState<string>('');
   const [runIterations, setRunIterations] = useState(
     typeof config?.maxIterations === 'number' ? config.maxIterations : 1,
   );
@@ -85,17 +85,17 @@ export const AgentRunner = () => {
   }, [pendingTasks, selectedLabel]);
 
   const selectedTask = useMemo(
-    () => pendingTasks.find((task) => task.filePath === selectedTaskPath) ?? null,
-    [pendingTasks, selectedTaskPath],
+    () => pendingTasks.find((task) => task.filePath === selectedTaskFile) ?? null,
+    [pendingTasks, selectedTaskFile],
   );
 
   const taskFilesForRun = useMemo(() => {
-    if (selectedTaskPath.length > 0) {
-      return [selectedTaskPath];
+    if (selectedTaskFile.length > 0) {
+      return [selectedTaskFile];
     }
 
     return filteredTasks.map((task) => task.filePath);
-  }, [filteredTasks, selectedTaskPath]);
+  }, [filteredTasks, selectedTaskFile]);
 
   const openRunConfirm = () => {
     if (!activeProjectPath) {
@@ -236,9 +236,9 @@ export const AgentRunner = () => {
         <label className="mt-3 block">
           <span className="text-dim mb-1 block text-xs">Specific task (optional)</span>
           <Select
-            value={selectedTaskPath}
+            value={selectedTaskFile}
             onValueChange={(value) => {
-              setSelectedTaskPath(String(value));
+              setSelectedTaskFile(String(value));
             }}
           >
             <SelectTrigger size="sm" className="w-full">

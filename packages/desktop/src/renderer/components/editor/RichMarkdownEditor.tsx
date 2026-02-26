@@ -6,7 +6,15 @@ import { commonmark } from '@milkdown/kit/preset/commonmark';
 import { undoDepth, redoDepth } from '@milkdown/kit/prose/history';
 import { callCommand, getMarkdown, replaceAll } from '@milkdown/kit/utils';
 import { Milkdown, MilkdownProvider, useEditor, useInstance } from '@milkdown/react';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
 type SelectionRange = {
   from: number;
@@ -278,7 +286,8 @@ InnerEditor.displayName = 'InnerEditor';
 
 export const RichMarkdownEditor = forwardRef<RichMarkdownEditorHandle, RichMarkdownEditorProps>(
   ({ value, onChange, readOnly = false, onInlinePrompt, onHistoryChange }, ref) => {
-    const [frontmatter, setFrontmatter] = useState('');
+    const { frontmatter: derivedFm, body } = splitFrontmatter(value);
+    const [frontmatter, setFrontmatter] = useState(derivedFm);
     const [showFrontmatter, setShowFrontmatter] = useState(false);
 
     // Stable refs for mutable callbacks
@@ -287,17 +296,14 @@ export const RichMarkdownEditor = forwardRef<RichMarkdownEditorHandle, RichMarkd
     const onInlinePromptRef = useRef(onInlinePrompt);
     const onHistoryChangeRef = useRef(onHistoryChange);
 
-    onChangeRef.current = onChange;
-    onInlinePromptRef.current = onInlinePrompt;
-    onHistoryChangeRef.current = onHistoryChange;
+    useLayoutEffect(() => {
+      onChangeRef.current = onChange;
+      onInlinePromptRef.current = onInlinePrompt;
+      onHistoryChangeRef.current = onHistoryChange;
+    });
 
-    // Derive body from value
-    const { frontmatter: fm, body } = splitFrontmatter(value);
-
-    // Keep frontmatter ref and state in sync
-    if (fm !== frontmatterRef.current) {
-      frontmatterRef.current = fm;
-      setFrontmatter(fm);
+    if (derivedFm !== frontmatter) {
+      setFrontmatter(derivedFm);
     }
 
     // -----------------------------------------------------------------------

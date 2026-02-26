@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip } from '@/components/ui/tooltip';
+import { Link } from '@tanstack/react-router';
 import {
   Archive,
   CheckSquare,
@@ -49,8 +50,6 @@ type SidebarProps = {
   onAddProject: () => void;
   onRemoveProject: (projectPath: string) => void;
   onCopyProjectPath: (projectPath: string) => void;
-  activeView: ViewId;
-  onViewSelect: (viewId: ViewId) => void;
   backendName: string;
   agentState: 'idle' | 'running';
   isLoadingProjects: boolean;
@@ -81,8 +80,6 @@ export const Sidebar = ({
   onAddProject,
   onRemoveProject,
   onCopyProjectPath,
-  activeView,
-  onViewSelect,
   backendName,
   agentState,
   isLoadingProjects,
@@ -209,43 +206,37 @@ export const Sidebar = ({
         )}
         <nav className="space-y-1">
           {VIEW_ITEMS.map(({ id, label, Icon }) => {
-            const isActive = id === activeView;
-
             if (collapsed) {
               return (
                 <Tooltip key={id} content={label}>
-                  <button
-                    type="button"
-                    onClick={() => onViewSelect(id)}
-                    className={[
-                      'text-mid hover:text-light flex w-full items-center justify-center rounded-md border p-2 transition-colors',
-                      isActive
-                        ? 'border-primary/35 bg-accent-bg text-primary'
-                        : 'border-transparent hover:border-edge hover:bg-accent-bg/50',
-                    ].join(' ')}
+                  <Link
+                    to={`/${id}`}
+                    className="text-mid hover:text-light flex w-full items-center justify-center rounded-md border p-2 transition-colors"
+                    activeProps={{ className: 'border-primary/35 bg-accent-bg text-primary' }}
+                    inactiveProps={{
+                      className: 'border-transparent hover:border-edge hover:bg-accent-bg/50',
+                    }}
                     aria-label={label}
                   >
                     <Icon className="size-3.5" />
-                  </button>
+                  </Link>
                 </Tooltip>
               );
             }
 
             return (
-              <button
+              <Link
                 key={id}
-                type="button"
-                onClick={() => onViewSelect(id)}
-                className={[
-                  'text-mid hover:text-light flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm transition-colors',
-                  isActive
-                    ? 'border-primary/35 bg-accent-bg text-primary'
-                    : 'border-transparent hover:border-edge hover:bg-accent-bg/50',
-                ].join(' ')}
+                to={`/${id}`}
+                className="text-mid hover:text-light flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm transition-colors"
+                activeProps={{ className: 'border-primary/35 bg-accent-bg text-primary' }}
+                inactiveProps={{
+                  className: 'border-transparent hover:border-edge hover:bg-accent-bg/50',
+                }}
               >
                 <Icon className="size-3.5" />
                 <span>{label}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>

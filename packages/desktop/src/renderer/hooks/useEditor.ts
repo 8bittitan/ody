@@ -73,7 +73,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
       return;
     }
 
-    void loadTask(selectedTaskPath);
+    loadTask(selectedTaskPath);
   }, [loadTask, selectedTaskPath]);
 
   const save = useCallback(async () => {

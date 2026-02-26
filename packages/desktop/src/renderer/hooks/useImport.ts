@@ -70,7 +70,7 @@ export const useImport = ({
 
       isGeneratingRef.current = false;
       setIsGenerating(false);
-      void onComplete();
+      onComplete();
     };
 
     const onAgentComplete = api.agent.onComplete(() => {

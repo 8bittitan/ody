@@ -7,5 +7,5 @@
   "experimentalSortImports": {
     "internalPattern": ["~/*", "@internal/*"]
   },
-  "ignorePatterns": [".ody/*"]
+  "ignorePatterns": [".ody/*", "**/routeTree.gen.ts"]
 }

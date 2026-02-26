@@ -16,9 +16,9 @@ import {
 } from '@/components/ui/scroll-area';
 import { stripAnsi } from '@/lib/ansi';
 import { api } from '@/lib/api';
-import type { TaskSummary } from '@/types/ipc';
+import type { TaskStatus, TaskSummary } from '@/types/ipc';
 import { ClipboardList, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useAgent } from '../hooks/useAgent';
 import { useConfig } from '../hooks/useConfig';
@@ -35,6 +35,9 @@ type TaskBoardProps = {
   onOpenPlan: () => void;
   onOpenArchive: () => void;
   onOpenEditor: (taskPath: string) => void;
+  labelFilter?: string;
+  statusFilter?: TaskStatus | 'all';
+  onFiltersChange?: (filters: { label?: string | null; status?: TaskStatus | 'all' }) => void;
 };
 
 const COLUMN_META = {
@@ -52,23 +55,57 @@ const COLUMN_META = {
   },
 } as const;
 
-export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoardProps) => {
+export const TaskBoard = ({
+  onOpenPlan,
+  onOpenArchive,
+  onOpenEditor,
+  labelFilter,
+  statusFilter,
+  onFiltersChange,
+}: TaskBoardProps) => {
   const { activeProjectPath } = useProjects();
-  const { tasks, filteredTasks, loadTasks, setFilters, labelFilter, isLoading } = useTasks();
+  const { tasks, loadTasks, isLoading } = useTasks();
   const { config } = useConfig();
   const { start, stop, isRunning, output, iteration, maxIterations } = useAgent();
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
+  const [localLabelFilter, setLocalLabelFilter] = useState<string | null>(null);
+  const [localStatusFilter, setLocalStatusFilter] = useState<TaskStatus | 'all'>('all');
   const [deleteTarget, setDeleteTarget] = useState<TaskSummary | null>(null);
   const [detailTarget, setDetailTarget] = useState<TaskSummary | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [viewError, setViewError] = useState<string | null>(null);
+  const effectiveLabelFilter = labelFilter ?? localLabelFilter;
+  const effectiveStatusFilter = statusFilter ?? localStatusFilter;
 
-  useEffect(() => {
-    if (!isLoading) {
-      setViewError(null);
+  if (!isLoading && viewError !== null) {
+    setViewError(null);
+  }
+
+  const updateFilters = (filters: { label?: string | null; status?: TaskStatus | 'all' }) => {
+    if (onFiltersChange) {
+      onFiltersChange(filters);
+      return;
     }
-  }, [isLoading, tasks.length]);
+
+    if (filters.label !== undefined) {
+      setLocalLabelFilter(filters.label);
+    }
+
+    if (filters.status !== undefined) {
+      setLocalStatusFilter(filters.status);
+    }
+  };
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesLabel =
+        effectiveLabelFilter === null || task.labels.includes(effectiveLabelFilter);
+      const matchesStatus =
+        effectiveStatusFilter === 'all' || task.status === effectiveStatusFilter;
+      return matchesLabel && matchesStatus;
+    });
+  }, [tasks, effectiveLabelFilter, effectiveStatusFilter]);
 
   const filteredBySearch = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -274,18 +311,18 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
       <Collapsible
         defaultOpen={false}
         label="Filter by label"
-        badge={labelFilter}
+        badge={effectiveLabelFilter}
         className="min-w-0"
       >
         <section className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={() => {
-              setFilters({ label: null });
+              updateFilters({ label: null });
             }}
             className={[
               'rounded-md border px-2 py-1 text-xs',
-              labelFilter === null
+              effectiveLabelFilter === null
                 ? 'border-primary/35 bg-accent-bg text-primary'
                 : 'border-edge text-mid hover:text-light',
             ].join(' ')}
@@ -297,16 +334,43 @@ export const TaskBoard = ({ onOpenPlan, onOpenArchive, onOpenEditor }: TaskBoard
               key={label}
               type="button"
               onClick={() => {
-                setFilters({ label: labelFilter === label ? null : label });
+                updateFilters({ label: effectiveLabelFilter === label ? null : label });
               }}
               className={[
                 'rounded-md border px-2 py-1 text-xs',
-                labelFilter === label
+                effectiveLabelFilter === label
                   ? 'border-primary/35 bg-accent-bg text-primary'
                   : 'border-edge text-mid hover:text-light',
               ].join(' ')}
             >
               {label}
+            </button>
+          ))}
+        </section>
+      </Collapsible>
+
+      <Collapsible
+        defaultOpen={false}
+        label="Filter by status"
+        badge={effectiveStatusFilter === 'all' ? null : effectiveStatusFilter}
+        className="min-w-0"
+      >
+        <section className="flex flex-wrap items-center gap-1.5">
+          {(['all', 'pending', 'in_progress', 'completed'] as const).map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => {
+                updateFilters({ status });
+              }}
+              className={[
+                'rounded-md border px-2 py-1 text-xs',
+                effectiveStatusFilter === status
+                  ? 'border-primary/35 bg-accent-bg text-primary'
+                  : 'border-edge text-mid hover:text-light',
+              ].join(' ')}
+            >
+              {status === 'all' ? 'All statuses' : COLUMN_META[status].label}
             </button>
           ))}
         </section>

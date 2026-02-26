@@ -1,9 +1,8 @@
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
-import { useStore } from '@/store';
-import type { TaskState, TaskStatus, TaskSummary } from '@/types/ipc';
+import type { TaskState, TaskSummary } from '@/types/ipc';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
 import { useProjects } from './useProjects';
 
@@ -13,13 +12,6 @@ const EMPTY_STATES: TaskState[] = [];
 export const useTasks = () => {
   const queryClient = useQueryClient();
   const { activeProjectPath } = useProjects();
-
-  const labelFilter = useStore((state) => state.labelFilter);
-  const statusFilter = useStore((state) => state.statusFilter);
-  const selectedTaskPath = useStore((state) => state.selectedTaskPath);
-  const setLabelFilter = useStore((state) => state.setLabelFilter);
-  const setStatusFilter = useStore((state) => state.setStatusFilter);
-  const setSelectedTaskPath = useStore((state) => state.setSelectedTaskPath);
 
   const tasksQuery = useQuery({
     queryKey: queryKeys.tasks.list(activeProjectPath),
@@ -36,27 +28,6 @@ export const useTasks = () => {
   const tasks = tasksQuery.data ?? EMPTY_TASKS;
   const taskStates = statesQuery.data ?? EMPTY_STATES;
   const isLoading = tasksQuery.isLoading || statesQuery.isLoading;
-
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesLabel = labelFilter === null || task.labels.includes(labelFilter);
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-      return matchesLabel && matchesStatus;
-    });
-  }, [labelFilter, statusFilter, tasks]);
-
-  const setFilters = useCallback(
-    (filters: { label?: string | null; status?: TaskStatus | 'all' }) => {
-      if (filters.label !== undefined) {
-        setLabelFilter(filters.label);
-      }
-
-      if (filters.status !== undefined) {
-        setStatusFilter(filters.status);
-      }
-    },
-    [setLabelFilter, setStatusFilter],
-  );
 
   const loadTasks = useCallback(async () => {
     const [tasks] = await Promise.all([
@@ -78,13 +49,7 @@ export const useTasks = () => {
   return {
     tasks,
     taskStates,
-    filteredTasks,
-    labelFilter,
-    statusFilter,
-    selectedTaskPath,
     isLoading,
-    setFilters,
-    setSelectedTaskPath,
     loadTasks,
     refreshTasks,
     readTask,

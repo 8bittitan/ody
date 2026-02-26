@@ -22,7 +22,7 @@ export const useAuth = () => {
       return api.auth.setJira(profile, credentials);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to save Jira profile';
@@ -41,7 +41,7 @@ export const useAuth = () => {
       return api.auth.setGitHub(profile, credentials);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to save GitHub profile';
@@ -54,7 +54,7 @@ export const useAuth = () => {
       return api.auth.removeJira(profile);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to remove Jira profile';
@@ -67,7 +67,7 @@ export const useAuth = () => {
       return api.auth.removeGitHub(profile);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to remove GitHub profile';

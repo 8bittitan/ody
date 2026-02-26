@@ -5,7 +5,7 @@
   "shouldCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
   "model": {
-    "run": "anthropic/claude-opus-4-6",
+    "run": "openai/gpt-5.3-codex",
     "plan": "anthropic/claude-opus-4-6",
     "edit": "anthropic/claude-sonnet-4-6"
   }

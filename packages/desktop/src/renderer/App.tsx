@@ -1,10 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from '@tanstack/react-router';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Layout } from './components/Layout';
 import { Toaster } from './components/ui/sonner';
 import { useTheme } from './hooks/useTheme';
 import { queryClient } from './lib/queryClient';
+import { router } from './router';
 
 export const App = () => {
   useTheme();
@@ -12,7 +13,7 @@ export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary title="Application crashed">
-        <Layout />
+        <RouterProvider router={router} />
       </ErrorBoundary>
       <Toaster
         position="top-right"

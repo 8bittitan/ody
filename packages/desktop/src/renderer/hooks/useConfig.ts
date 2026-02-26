@@ -28,7 +28,7 @@ export const useConfig = () => {
       return api.config.save(scope, nextConfig);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to save configuration';
@@ -41,7 +41,7 @@ export const useConfig = () => {
       return api.config.saveGlobal(nextConfig);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to save global config';
@@ -64,7 +64,7 @@ export const useConfig = () => {
       return api.config.resetGuiOverrides();
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.config.all });
     },
     onError: (cause) => {
       const message = cause instanceof Error ? cause.message : 'Unable to reset GUI overrides';

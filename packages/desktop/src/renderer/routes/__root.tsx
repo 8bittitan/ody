@@ -1,3 +1,6 @@
+import { InitWizard } from '@/components/InitWizard';
+import { SettingsModal } from '@/components/SettingsModal';
+import { Sidebar, type ViewId } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,27 +15,13 @@ import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
-import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
 import type { MenuAction } from '@/types/ipc';
+import { Outlet, createRootRoute, useNavigate, useRouterState } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import { CircleHelp, FolderPlus, Settings } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-
-import { AgentRunner } from './AgentRunner';
-import { ArchiveViewer } from './ArchiveViewer';
-import { AuthPanel } from './AuthPanel';
-import { ConfigEditor } from './ConfigEditor';
-import { ConfigPanel } from './ConfigPanel';
-import { ErrorBoundary } from './ErrorBoundary';
-import { GenerationOutput } from './GenerationOutput';
-import { InitWizard } from './InitWizard';
-import { PlanCreator } from './PlanCreator';
-import { SettingsModal } from './SettingsModal';
-import { Sidebar, type ViewId } from './Sidebar';
-import { TaskBoard } from './TaskBoard';
-import { TaskEditor } from './TaskEditor';
-import { TaskImport } from './TaskImport';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 const VIEW_META: Record<ViewId, { title: string; subtitle: string }> = {
   tasks: { title: 'Task Board', subtitle: 'Review and prioritize your queued work.' },
@@ -55,8 +44,19 @@ const getProjectName = (projectPath: string) => {
   return parts.at(-1) ?? projectPath;
 };
 
-export const Layout = () => {
-  const [activeView, setActiveView] = useState<ViewId>('tasks');
+const getActiveViewFromPathname = (pathname: string): ViewId => {
+  const view = pathname.slice(1) || 'tasks';
+  if (view in VIEW_META) {
+    return view as ViewId;
+  }
+
+  return 'tasks';
+};
+
+const RootLayout = () => {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeView = useMemo(() => getActiveViewFromPathname(pathname), [pathname]);
   const [pendingSwitchPath, setPendingSwitchPath] = useState<string | null>(null);
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
   const [showInitWizard, setShowInitWizard] = useState(false);
@@ -64,71 +64,15 @@ export const Layout = () => {
   const { projects, activeProjectPath, isLoading, addProject, removeProject, switchProject } =
     useProjects();
   const isRunning = useStore((state) => state.isRunning);
-  const setConfigEditorPath = useStore((state) => state.setConfigEditorPath);
   const resetAgentState = useStore((state) => state.resetAgentState);
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStore((state) => state.toggleSidebar);
   const { loadConfig, config } = useConfig();
-  const { loadTasks, setSelectedTaskPath } = useTasks();
+  const { loadTasks } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
   const { isFullscreen } = useApp();
-  const backendName = typeof config?.backend === 'string' ? config.backend : 'opencode';
+  const backendName = typeof config?.backend === 'string' ? config.backend : '';
 
-  const [planStreamOutput, setPlanStreamOutput] = useState('');
-  const [isPlanGenerating, setIsPlanGenerating] = useState(false);
-  const isPlanGeneratingRef = useRef(false);
-
-  const resetPlanStream = useCallback(() => {
-    setPlanStreamOutput('');
-  }, []);
-
-  useEffect(() => {
-    const onOutput = api.agent.onOutput((chunk) => {
-      if (!isPlanGeneratingRef.current) {
-        return;
-      }
-
-      setPlanStreamOutput((prev) => `${prev}${chunk}`);
-    });
-
-    const finish = () => {
-      if (!isPlanGeneratingRef.current) {
-        return;
-      }
-
-      isPlanGeneratingRef.current = false;
-      setIsPlanGenerating(false);
-      void loadTasks().catch(() => {
-        return;
-      });
-    };
-
-    const onComplete = api.agent.onComplete(() => {
-      finish();
-      success({ title: 'Plan generation finished' });
-    });
-
-    const onStopped = api.agent.onStopped(() => {
-      finish();
-    });
-
-    const onVerifyFailed = api.agent.onVerifyFailed((message) => {
-      if (!isPlanGeneratingRef.current) {
-        return;
-      }
-
-      isPlanGeneratingRef.current = false;
-      setIsPlanGenerating(false);
-      error({ title: 'Plan generation failed', description: message });
-    });
-
-    return () => {
-      onOutput();
-      onComplete();
-      onStopped();
-      onVerifyFailed();
-    };
-  }, [error, loadTasks, success]);
   const activeProject = useMemo(() => {
     if (!activeProjectPath) {
       return null;
@@ -137,9 +81,12 @@ export const Layout = () => {
     return projects.find((project) => project.path === activeProjectPath) ?? null;
   }, [activeProjectPath, projects]);
 
+  if (!activeProjectPath && showInitWizard) {
+    setShowInitWizard(false);
+  }
+
   useEffect(() => {
     if (!activeProjectPath) {
-      setShowInitWizard(false);
       return;
     }
 
@@ -147,7 +94,7 @@ export const Layout = () => {
 
     resetAgentState();
 
-    void (async () => {
+    (async () => {
       try {
         const result = await loadConfig();
         if (!isMounted) {
@@ -253,22 +200,22 @@ export const Layout = () => {
         }
 
         if (menuAction === 'view:tasks') {
-          setActiveView('tasks');
+          navigate({ to: '/tasks' });
           return;
         }
 
         if (menuAction === 'view:run') {
-          setActiveView('run');
+          navigate({ to: '/run' });
           return;
         }
 
         if (menuAction === 'view:plan') {
-          setActiveView('plan');
+          navigate({ to: '/plan' });
           return;
         }
 
         if (menuAction === 'view:config') {
-          setActiveView('config');
+          navigate({ to: '/config' });
           return;
         }
 
@@ -277,18 +224,29 @@ export const Layout = () => {
         }
       };
 
-      void handleAction(action);
+      handleAction(action);
     });
-  }, [handleAddProject]);
+  }, [handleAddProject, navigate]);
 
   useEffect(() => {
     const onViewRun: EventListener = () => {
-      setActiveView('run');
+      navigate({ to: '/run' });
     };
 
     window.addEventListener('ody:view-run', onViewRun);
     return () => {
       window.removeEventListener('ody:view-run', onViewRun);
+    };
+  }, [navigate]);
+
+  useEffect(() => {
+    const onOpenInitWizard: EventListener = () => {
+      setShowInitWizard(true);
+    };
+
+    window.addEventListener('ody:open-init-wizard', onOpenInitWizard);
+    return () => {
+      window.removeEventListener('ody:open-init-wizard', onOpenInitWizard);
     };
   }, []);
 
@@ -349,19 +307,17 @@ export const Layout = () => {
               projects={projects}
               activeProjectPath={activeProjectPath}
               onProjectSelect={(path) => {
-                void handleProjectSelect(path);
+                handleProjectSelect(path);
               }}
               onAddProject={() => {
-                void handleAddProject();
+                handleAddProject();
               }}
               onRemoveProject={(path) => {
-                void handleRemoveProject(path);
+                handleRemoveProject(path);
               }}
               onCopyProjectPath={(path) => {
-                void handleCopyProjectPath(path);
+                handleCopyProjectPath(path);
               }}
-              activeView={activeView}
-              onViewSelect={setActiveView}
               backendName={backendName}
               agentState={isRunning ? 'running' : 'idle'}
               isLoadingProjects={isLoading}
@@ -383,7 +339,7 @@ export const Layout = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        void handleAddProject();
+                        handleAddProject();
                       }}
                       className="bg-primary text-primary-foreground hover:bg-accent-hover mt-5 rounded-md px-4 py-2 text-sm"
                     >
@@ -413,7 +369,7 @@ export const Layout = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            void loadTasks().catch(() => {
+                            loadTasks().catch(() => {
                               return;
                             });
                           }}
@@ -423,7 +379,7 @@ export const Layout = () => {
                         <Button
                           size="sm"
                           onClick={() => {
-                            setActiveView('plan');
+                            navigate({ to: '/plan' });
                           }}
                         >
                           New Task
@@ -433,102 +389,7 @@ export const Layout = () => {
                   </div>
 
                   <div className="min-h-0 flex-1 px-6 py-4">
-                    {activeView === 'tasks' ? (
-                      <ErrorBoundary title="Task view error">
-                        <TaskBoard
-                          onOpenPlan={() => {
-                            setActiveView('plan');
-                          }}
-                          onOpenArchive={() => {
-                            setActiveView('archive');
-                          }}
-                          onOpenEditor={(taskPath) => {
-                            setSelectedTaskPath(taskPath);
-                            setActiveView('editor');
-                          }}
-                        />
-                      </ErrorBoundary>
-                    ) : activeView === 'run' ? (
-                      <ErrorBoundary title="Run view error">
-                        <AgentRunner />
-                      </ErrorBoundary>
-                    ) : activeView === 'config' ? (
-                      <ErrorBoundary title="Config view error">
-                        <ConfigPanel
-                          onOpenInitWizard={() => {
-                            setShowInitWizard(true);
-                          }}
-                          onEditJson={(configPath) => {
-                            setConfigEditorPath(configPath);
-                            setActiveView('config-editor');
-                          }}
-                        />
-                      </ErrorBoundary>
-                    ) : activeView === 'config-editor' ? (
-                      <ErrorBoundary title="Config editor view error">
-                        <ConfigEditor
-                          onBack={() => {
-                            setConfigEditorPath(null);
-                            setActiveView('config');
-                          }}
-                        />
-                      </ErrorBoundary>
-                    ) : activeView === 'plan' ? (
-                      <ErrorBoundary title="Plan view error">
-                        <div className="grid h-full gap-3 lg:grid-cols-[1.25fr_0.75fr]">
-                          <PlanCreator
-                            isGenerating={isPlanGenerating}
-                            isGeneratingRef={isPlanGeneratingRef}
-                            setIsGenerating={setIsPlanGenerating}
-                            setStreamOutput={setPlanStreamOutput}
-                            resetStream={resetPlanStream}
-                          />
-                          <GenerationOutput
-                            streamOutput={planStreamOutput}
-                            isGenerating={isPlanGenerating}
-                            onOpenTaskBoard={() => {
-                              setActiveView('tasks');
-                            }}
-                          />
-                        </div>
-                      </ErrorBoundary>
-                    ) : activeView === 'auth' ? (
-                      <ErrorBoundary title="Auth view error">
-                        <AuthPanel />
-                      </ErrorBoundary>
-                    ) : activeView === 'import' ? (
-                      <ErrorBoundary title="Import view error">
-                        <TaskImport
-                          config={config}
-                          onOpenAuth={() => {
-                            setActiveView('auth');
-                          }}
-                          onOpenTaskBoard={() => {
-                            setActiveView('tasks');
-                          }}
-                        />
-                      </ErrorBoundary>
-                    ) : activeView === 'archive' ? (
-                      <ErrorBoundary title="Archive view error">
-                        <ArchiveViewer />
-                      </ErrorBoundary>
-                    ) : activeView === 'editor' ? (
-                      <ErrorBoundary title="Editor view error">
-                        <TaskEditor
-                          onBack={() => {
-                            setSelectedTaskPath(null);
-                            setActiveView('tasks');
-                          }}
-                        />
-                      </ErrorBoundary>
-                    ) : (
-                      <section className="bg-panel/92 border-edge h-full rounded-lg border p-4 backdrop-blur-sm">
-                        <h2 className="text-light text-sm font-medium">View</h2>
-                        <p className="text-mid mt-2 text-sm">
-                          Active view is switched from the sidebar without route navigation.
-                        </p>
-                      </section>
-                    )}
+                    <Outlet />
                   </div>
                 </div>
               )}
@@ -585,7 +446,7 @@ export const Layout = () => {
               type="button"
               className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-2 text-sm"
               onClick={() => {
-                void handleConfirmSwitch();
+                handleConfirmSwitch();
               }}
             >
               Switch project
@@ -598,8 +459,8 @@ export const Layout = () => {
         open={showInitWizard}
         onOpenChange={setShowInitWizard}
         onInitialized={() => {
-          void loadConfig();
-          void loadTasks();
+          loadConfig();
+          loadTasks();
         }}
       />
 
@@ -609,9 +470,15 @@ export const Layout = () => {
         activeProjectPath={activeProjectPath}
         onBrowseProject={handleBrowseProject}
         onOpenConfigView={() => {
-          setActiveView('config');
+          navigate({ to: '/config' });
         }}
       />
+
+      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
     </div>
   );
 };
+
+export const Route = createRootRoute({
+  component: RootLayout,
+});

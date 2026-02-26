@@ -35,7 +35,7 @@ export const useConfigEditor = (configEditorPath: string | null) => {
       return;
     }
 
-    void loadConfig(configEditorPath);
+    loadConfig(configEditorPath);
   }, [configEditorPath, loadConfig]);
 
   const save = useCallback(async () => {

@@ -9,22 +9,21 @@ import {
 import { useConfig } from '@/hooks/useConfig';
 import { useConfigEditor } from '@/hooks/useConfigEditor';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useStore } from '@/store';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { EditorToolbar } from './editor/EditorToolbar';
 import { MarkdownEditor, type MarkdownEditorHandle } from './editor/MarkdownEditor';
 
 type ConfigEditorProps = {
+  configPath: string | null;
   onBack: () => void;
 };
 
-export const ConfigEditor = ({ onBack }: ConfigEditorProps) => {
-  const configEditorPath = useStore((state) => state.configEditorPath);
+export const ConfigEditor = ({ configPath, onBack }: ConfigEditorProps) => {
   const { loadConfig } = useConfig();
   const { success, error, warning } = useNotifications();
   const { fileName, content, isDirty, isLoading, isSaving, setContent, save } =
-    useConfigEditor(configEditorPath);
+    useConfigEditor(configPath);
   const editorRef = useRef<MarkdownEditorHandle>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -84,7 +83,7 @@ export const ConfigEditor = ({ onBack }: ConfigEditorProps) => {
     leaveEditor();
   };
 
-  if (!configEditorPath) {
+  if (!configPath) {
     return (
       <section className="bg-panel/92 border-edge h-full rounded-lg border p-4 backdrop-blur-sm">
         <h2 className="text-light text-sm font-medium">Config Editor</h2>

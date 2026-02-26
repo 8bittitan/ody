@@ -28,12 +28,12 @@ type ViewId =
 
 ### Zustand slices
 
-| Slice | Affected? |
-|-------|-----------|
+| Slice                                                                               | Affected?                               |
+| ----------------------------------------------------------------------------------- | --------------------------------------- |
 | `ViewSlice` — `labelFilter`, `statusFilter`, `selectedTaskPath`, `configEditorPath` | **Removed** (migrates to search params) |
-| `AgentSlice` — agent run state | Unaffected |
-| `UISlice` — `sidebarCollapsed` | Unaffected |
-| `AppSlice` — `isFullscreen` | Unaffected |
+| `AgentSlice` — agent run state                                                      | Unaffected                              |
+| `UISlice` — `sidebarCollapsed`                                                      | Unaffected                              |
+| `AppSlice` — `isFullscreen`                                                         | Unaffected                              |
 
 ---
 
@@ -86,7 +86,7 @@ bun add -d @tanstack/router-plugin @tanstack/router-devtools
 In `vite.renderer.config.ts`:
 
 ```ts
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 
 export default defineConfig({
   plugins: [
@@ -98,7 +98,7 @@ export default defineConfig({
     react({ babel: { plugins: ['babel-plugin-react-compiler'] } }),
   ],
   // ...existing config
-})
+});
 ```
 
 ### 3. Create the router instance
@@ -106,20 +106,20 @@ export default defineConfig({
 New file `src/renderer/router.ts`:
 
 ```ts
-import { createHashHistory, createRouter } from '@tanstack/react-router'
-import { routeTree } from './routeTree.gen'
+import { createHashHistory, createRouter } from '@tanstack/react-router';
+import { routeTree } from './routeTree.gen';
 
-const hashHistory = createHashHistory()
+const hashHistory = createHashHistory();
 
 export const router = createRouter({
   routeTree,
   history: hashHistory,
   defaultPreload: 'intent',
-})
+});
 
 declare module '@tanstack/react-router' {
   interface Register {
-    router: typeof router
+    router: typeof router;
   }
 }
 ```
@@ -129,16 +129,16 @@ declare module '@tanstack/react-router' {
 Extracts the outer shell from `Layout.tsx` — title bar, sidebar, `<Outlet />`, footer, modals:
 
 ```tsx
-import { createRootRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router'
-import { Sidebar } from '@/components/Sidebar'
+import { createRootRoute, Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
+import { Sidebar } from '@/components/Sidebar';
 
 export const Route = createRootRoute({
   component: RootLayout,
-})
+});
 
 function RootLayout() {
-  const navigate = useNavigate()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   // Derive activeView from pathname for sidebar highlight
   // e.g. '/tasks' -> 'tasks', '/config-editor' -> 'config-editor'
@@ -165,7 +165,7 @@ function RootLayout() {
       <InitWizard />
       <SettingsModal />
     </div>
-  )
+  );
 }
 ```
 
@@ -175,46 +175,48 @@ function RootLayout() {
 
 ```tsx
 // routes/index.tsx
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
-  beforeLoad: () => { throw redirect({ to: '/tasks' }) },
-})
+  beforeLoad: () => {
+    throw redirect({ to: '/tasks' });
+  },
+});
 ```
 
 **Simple routes** (run, plan, import, config, auth, archive):
 
 ```tsx
 // routes/run.tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { AgentRunner } from '@/components/AgentRunner'
+import { createFileRoute } from '@tanstack/react-router';
+import { AgentRunner } from '@/components/AgentRunner';
 
 export const Route = createFileRoute('/run')({
   component: AgentRunner,
-})
+});
 ```
 
 **Tasks route with filter search params:**
 
 ```tsx
 // routes/tasks.tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { z } from 'zod/v4'
-import { TaskBoard } from '@/components/TaskBoard'
+import { createFileRoute } from '@tanstack/react-router';
+import { z } from 'zod/v4';
+import { TaskBoard } from '@/components/TaskBoard';
 
 const tasksSearchSchema = z.object({
   label: z.string().optional(),
   status: z.string().optional(),
-})
+});
 
 export const Route = createFileRoute('/tasks')({
   validateSearch: tasksSearchSchema,
   component: TasksWrapper,
-})
+});
 
 function TasksWrapper() {
-  const { label, status } = Route.useSearch()
-  const navigate = useNavigate()
+  const { label, status } = Route.useSearch();
+  const navigate = useNavigate();
 
   return (
     <TaskBoard
@@ -224,7 +226,7 @@ function TasksWrapper() {
       onOpenArchive={() => navigate({ to: '/archive' })}
       onOpenEditor={(taskPath) => navigate({ to: '/editor', search: { taskPath } })}
     />
-  )
+  );
 }
 ```
 
@@ -232,28 +234,23 @@ function TasksWrapper() {
 
 ```tsx
 // routes/editor.tsx
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { z } from 'zod/v4'
-import { TaskEditor } from '@/components/TaskEditor'
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { z } from 'zod/v4';
+import { TaskEditor } from '@/components/TaskEditor';
 
 const editorSearchSchema = z.object({
   taskPath: z.string(),
-})
+});
 
 export const Route = createFileRoute('/editor')({
   validateSearch: editorSearchSchema,
   component: EditorWrapper,
-})
+});
 
 function EditorWrapper() {
-  const { taskPath } = Route.useSearch()
-  const navigate = useNavigate()
-  return (
-    <TaskEditor
-      taskPath={taskPath}
-      onBack={() => navigate({ to: '/tasks' })}
-    />
-  )
+  const { taskPath } = Route.useSearch();
+  const navigate = useNavigate();
+  return <TaskEditor taskPath={taskPath} onBack={() => navigate({ to: '/tasks' })} />;
 }
 ```
 
@@ -261,28 +258,23 @@ function EditorWrapper() {
 
 ```tsx
 // routes/config-editor.tsx
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { z } from 'zod/v4'
-import { ConfigEditor } from '@/components/ConfigEditor'
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { z } from 'zod/v4';
+import { ConfigEditor } from '@/components/ConfigEditor';
 
 const configEditorSearchSchema = z.object({
   path: z.string(),
-})
+});
 
 export const Route = createFileRoute('/config-editor')({
   validateSearch: configEditorSearchSchema,
   component: ConfigEditorWrapper,
-})
+});
 
 function ConfigEditorWrapper() {
-  const { path } = Route.useSearch()
-  const navigate = useNavigate()
-  return (
-    <ConfigEditor
-      configPath={path}
-      onBack={() => navigate({ to: '/config' })}
-    />
-  )
+  const { path } = Route.useSearch();
+  const navigate = useNavigate();
+  return <ConfigEditor configPath={path} onBack={() => navigate({ to: '/config' })} />;
 }
 ```
 
@@ -291,37 +283,37 @@ function ConfigEditorWrapper() {
 Replace `<Layout />` with `<RouterProvider>`:
 
 ```tsx
-import { RouterProvider } from '@tanstack/react-router'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { router } from './router'
+import { RouterProvider } from '@tanstack/react-router';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { router } from './router';
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>
-  )
+  );
 }
 ```
 
 ### 7. Migrate navigation triggers
 
-| Current | Migration |
-|---------|-----------|
-| `setActiveView('tasks')` in callbacks | `navigate({ to: '/tasks' })` |
-| `setActiveView('editor')` + `setSelectedTaskPath(p)` | `navigate({ to: '/editor', search: { taskPath: p } })` |
+| Current                                                     | Migration                                                 |
+| ----------------------------------------------------------- | --------------------------------------------------------- |
+| `setActiveView('tasks')` in callbacks                       | `navigate({ to: '/tasks' })`                              |
+| `setActiveView('editor')` + `setSelectedTaskPath(p)`        | `navigate({ to: '/editor', search: { taskPath: p } })`    |
 | `setActiveView('config-editor')` + `setConfigEditorPath(p)` | `navigate({ to: '/config-editor', search: { path: p } })` |
-| Sidebar `onViewSelect(id)` | `<Link to="/${id}" />` or `navigate({ to: ... })` |
-| Electron IPC `app:menuAction` listener | Keep in `__root.tsx`, call `router.navigate(...)` |
-| `onBack` callbacks | `navigate({ to: '/tasks' })` or `router.history.back()` |
-| Filter changes in TaskBoard | `navigate({ search: (prev) => ({ ...prev, label }) })` |
+| Sidebar `onViewSelect(id)`                                  | `<Link to="/${id}" />` or `navigate({ to: ... })`         |
+| Electron IPC `app:menuAction` listener                      | Keep in `__root.tsx`, call `router.navigate(...)`         |
+| `onBack` callbacks                                          | `navigate({ to: '/tasks' })` or `router.history.back()`   |
+| Filter changes in TaskBoard                                 | `navigate({ search: (prev) => ({ ...prev, label }) })`    |
 
 ### 8. Update Sidebar to use `<Link>`
 
 Replace callback-based highlighting with TanStack Router's `<Link>`:
 
 ```tsx
-import { Link } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router';
 
 // In sidebar nav items:
 <Link
@@ -331,7 +323,7 @@ import { Link } from '@tanstack/react-router'
 >
   <item.Icon />
   {item.label}
-</Link>
+</Link>;
 ```
 
 Or use `useMatchRoute()` for more complex matching logic.
@@ -347,7 +339,7 @@ Or use `useMatchRoute()` for more complex matching logic.
 In `__root.tsx`:
 
 ```tsx
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
+import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 
 function RootLayout() {
   return (
@@ -355,7 +347,7 @@ function RootLayout() {
       {/* ...layout... */}
       {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
     </>
-  )
+  );
 }
 ```
 
@@ -363,29 +355,29 @@ function RootLayout() {
 
 ## File Impact Summary
 
-| File | Action |
-|------|--------|
-| `package.json` | Add 4 dependencies |
-| `vite.renderer.config.ts` | Add TanStack Router Vite plugin |
-| `src/renderer/router.ts` | **New** — router instance with hash history |
-| `src/renderer/routes/__root.tsx` | **New** — root layout (extracted from Layout.tsx) |
-| `src/renderer/routes/index.tsx` | **New** — redirect `/` to `/tasks` |
-| `src/renderer/routes/tasks.tsx` | **New** — tasks route with filter search params |
-| `src/renderer/routes/run.tsx` | **New** — run route |
-| `src/renderer/routes/plan.tsx` | **New** — plan route |
-| `src/renderer/routes/import.tsx` | **New** — import route |
-| `src/renderer/routes/config.tsx` | **New** — config route |
-| `src/renderer/routes/config-editor.tsx` | **New** — config editor route with path search param |
-| `src/renderer/routes/auth.tsx` | **New** — auth route |
-| `src/renderer/routes/archive.tsx` | **New** — archive route |
-| `src/renderer/routes/editor.tsx` | **New** — task editor route with taskPath search param |
-| `src/renderer/routeTree.gen.ts` | **Generated** — by Vite plugin (commit or gitignore) |
-| `src/renderer/App.tsx` | **Modified** — wrap with `RouterProvider` instead of `Layout` |
-| `src/renderer/components/Layout.tsx` | **Deleted** — logic moves to `__root.tsx` |
-| `src/renderer/components/Sidebar.tsx` | **Modified** — use `<Link>` with `activeProps` |
-| `src/renderer/store/slices/viewSlice.ts` | **Deleted** — state moves to search params |
-| `src/renderer/store/index.ts` | **Modified** — remove `ViewSlice` from combined store |
-| Various view components | **Minor** — replace `onBack`/`onOpen*` callback props with `useNavigate()` calls |
+| File                                     | Action                                                                           |
+| ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `package.json`                           | Add 4 dependencies                                                               |
+| `vite.renderer.config.ts`                | Add TanStack Router Vite plugin                                                  |
+| `src/renderer/router.ts`                 | **New** — router instance with hash history                                      |
+| `src/renderer/routes/__root.tsx`         | **New** — root layout (extracted from Layout.tsx)                                |
+| `src/renderer/routes/index.tsx`          | **New** — redirect `/` to `/tasks`                                               |
+| `src/renderer/routes/tasks.tsx`          | **New** — tasks route with filter search params                                  |
+| `src/renderer/routes/run.tsx`            | **New** — run route                                                              |
+| `src/renderer/routes/plan.tsx`           | **New** — plan route                                                             |
+| `src/renderer/routes/import.tsx`         | **New** — import route                                                           |
+| `src/renderer/routes/config.tsx`         | **New** — config route                                                           |
+| `src/renderer/routes/config-editor.tsx`  | **New** — config editor route with path search param                             |
+| `src/renderer/routes/auth.tsx`           | **New** — auth route                                                             |
+| `src/renderer/routes/archive.tsx`        | **New** — archive route                                                          |
+| `src/renderer/routes/editor.tsx`         | **New** — task editor route with taskPath search param                           |
+| `src/renderer/routeTree.gen.ts`          | **Generated** — by Vite plugin (commit or gitignore)                             |
+| `src/renderer/App.tsx`                   | **Modified** — wrap with `RouterProvider` instead of `Layout`                    |
+| `src/renderer/components/Layout.tsx`     | **Deleted** — logic moves to `__root.tsx`                                        |
+| `src/renderer/components/Sidebar.tsx`    | **Modified** — use `<Link>` with `activeProps`                                   |
+| `src/renderer/store/slices/viewSlice.ts` | **Deleted** — state moves to search params                                       |
+| `src/renderer/store/index.ts`            | **Modified** — remove `ViewSlice` from combined store                            |
+| Various view components                  | **Minor** — replace `onBack`/`onOpen*` callback props with `useNavigate()` calls |
 
 ---
 

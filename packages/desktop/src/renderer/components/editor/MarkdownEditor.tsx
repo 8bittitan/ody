@@ -4,7 +4,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { Compartment, EditorState, RangeSetBuilder } from '@codemirror/state';
 import { Decoration, EditorView, keymap } from '@codemirror/view';
 import { basicSetup } from 'codemirror';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef } from 'react';
 
 import { odyEditorTheme, odySyntax } from './theme';
 
@@ -56,9 +56,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
     const onHistoryChangeRef = useRef(onHistoryChange);
 
     // Keep refs in sync with latest props on every render.
-    onChangeRef.current = onChange;
-    onInlinePromptRef.current = onInlinePrompt;
-    onHistoryChangeRef.current = onHistoryChange;
+    useLayoutEffect(() => {
+      onChangeRef.current = onChange;
+      onInlinePromptRef.current = onInlinePrompt;
+      onHistoryChangeRef.current = onHistoryChange;
+    });
 
     // Capture the initial value for the editor doc so we don't depend on
     // the `value` prop inside the initialization effect.
@@ -181,8 +183,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorPro
         view.destroy();
         viewRef.current = null;
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [language]);
+    }, [language, readOnly, highlightedRange]);
 
     useEffect(() => {
       if (!viewRef.current) {

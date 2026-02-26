@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/dialog';
 import { useEditor } from '@/hooks/useEditor';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useTasks } from '@/hooks/useTasks';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DiffView } from './editor/DiffView';
@@ -17,11 +16,11 @@ import { InlinePrompt } from './editor/InlinePrompt';
 import { RichMarkdownEditor, type RichMarkdownEditorHandle } from './editor/RichMarkdownEditor';
 
 type TaskEditorProps = {
+  taskPath: string | null;
   onBack: () => void;
 };
 
-export const TaskEditor = ({ onBack }: TaskEditorProps) => {
-  const { selectedTaskPath, setSelectedTaskPath } = useTasks();
+export const TaskEditor = ({ taskPath, onBack }: TaskEditorProps) => {
   const { success, error, warning } = useNotifications();
   const {
     fileName,
@@ -47,16 +46,15 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
     cancelInlineEdit,
     rejectInlineEdit,
     acceptInlineEdit,
-  } = useEditor(selectedTaskPath);
+  } = useEditor(taskPath);
   const editorRef = useRef<RichMarkdownEditorHandle>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   const leaveEditor = useCallback(() => {
-    setSelectedTaskPath(null);
     onBack();
-  }, [onBack, setSelectedTaskPath]);
+  }, [onBack]);
 
   const saveChanges = useCallback(async () => {
     const ok = await save();
@@ -120,7 +118,7 @@ export const TaskEditor = ({ onBack }: TaskEditorProps) => {
     leaveEditor();
   };
 
-  if (!selectedTaskPath) {
+  if (!taskPath) {
     return (
       <section className="bg-panel/92 border-edge h-full rounded-lg border p-4 backdrop-blur-sm">
         <h2 className="text-light text-sm font-medium">Task Editor</h2>

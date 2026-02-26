@@ -175,3 +175,76 @@
   - Updated AgentRunner and TaskBoard to source activeProjectPath from useProjects() instead of useStore
   - Deleted four Zustand slice files: projectSlice.ts, configSlice.ts, taskSlice.ts, authSlice.ts
   - All validation passing: bun lint (0 errors/warnings), bun fmt, bun typecheck (all packages pass)
+
+2026-02-25 | install-tanstack-router-dependencies | Completed
+  - Added `@tanstack/react-router` and `@tanstack/react-router-with-query` to `packages/desktop/package.json` dependencies
+  - Added `@tanstack/router-plugin` and `@tanstack/router-devtools` to `packages/desktop/package.json` devDependencies
+  - Ran `bun add` commands from workspace root and updated `bun.lock`
+  - Verified `packages/desktop/node_modules/@tanstack/react-router` exists
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | add-tanstack-router-vite-plugin | Completed
+  - Configured `TanStackRouterVite` as the first plugin in `packages/desktop/vite.renderer.config.ts` with routes and generated tree paths
+  - Created `packages/desktop/src/renderer/routes/.gitkeep` to establish the routes directory for file-based route generation
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-router-instance-with-hash-history | Completed
+  - Added `packages/desktop/src/renderer/router.ts` with a module-level hash-history TanStack router singleton and Register augmentation
+  - Added temporary `packages/desktop/src/renderer/routeTree.gen.ts` placeholder export so typecheck passes before route generation
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-root-route-layout | Completed
+  - Added `packages/desktop/src/renderer/routes/__root.tsx` with root shell layout, modal/dialog handling, router-based navigation triggers, and `<Outlet />` child rendering
+  - Kept global project/config/task loading behavior and sidebar toggle shortcut; moved menu and custom events to `navigate()` route transitions
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | update-app-entry-with-router-provider | Completed
+  - Replaced `<Layout />` with `<RouterProvider router={router} />` in `packages/desktop/src/renderer/App.tsx`
+  - Added `RouterProvider` and `router` imports, and removed obsolete `Layout` import
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-simple-view-routes | Completed
+  - Added six route files in `packages/desktop/src/renderer/routes/`: `run.tsx`, `plan.tsx`, `import.tsx`, `config.tsx`, `auth.tsx`, and `archive.tsx`, each rendering the expected view component inside `ErrorBoundary`
+  - Moved plan streaming lifecycle into `routes/plan.tsx` with `api.agent` output/complete/stopped/verify-failed listeners, task refresh on completion, and `GenerationOutput` task-board navigation via router
+  - Wired route-based navigation callbacks for import/config views, including config JSON editing route navigation and a root-level `ody:open-init-wizard` event listener in `routes/__root.tsx` to preserve modal behavior
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-tasks-route-with-search-params | Completed
+  - Added `routes/tasks.tsx` with validated `label`/`status` search params and router-based navigation callbacks for plan, archive, and editor
+  - Updated `TaskBoard.tsx` to support route-driven label/status filters with URL-sync callbacks while keeping store-based fallback for legacy usage
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-editor-route-with-search-params | Completed
+  - Added `routes/editor.tsx` with required `taskPath` search validation and route-level back navigation to `/tasks`
+  - Updated `TaskEditor.tsx` to take `taskPath` as a prop and removed direct `selectedTaskPath` store reads
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-config-editor-route-with-search-params | Completed
+  - Added `routes/config-editor.tsx` with required `path` search validation and route-level back navigation to `/config`
+  - Updated `ConfigEditor.tsx` to consume `configPath` from props instead of Zustand `configEditorPath`
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | migrate-navigation-triggers | Completed
+  - Confirmed router-based navigation in `routes/__root.tsx` menu/custom-event handlers and route callback props for tasks/editor/config/import/plan flows
+  - Removed remaining legacy `setActiveView` / ViewSlice setter references outside `store/slices/viewSlice.ts` by migrating `useTasks` and local fallback state usage in affected components
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | migrate-sidebar-to-router-links | Completed
+  - Updated `Sidebar.tsx` navigation items to use TanStack Router `<Link>` with `activeProps`/`inactiveProps` in expanded and collapsed modes
+  - Removed `activeView` and `onViewSelect` props from `Sidebar`, and stopped passing them from `routes/__root.tsx` and legacy `components/Layout.tsx`
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | create-index-redirect-route | Completed
+  - Added `packages/desktop/src/renderer/routes/index.tsx` with `beforeLoad` redirect from `/` to `/tasks` using TanStack Router `redirect`
+  - Matched existing route typing workaround by using `(createFileRoute as any)` to satisfy current generated-route type constraints
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | remove-zustand-view-slice | Completed
+  - Removed Zustand `ViewSlice` from `packages/desktop/src/renderer/store/index.ts` and simplified `AppStore` to `AgentSlice & UISlice & AppSlice`
+  - Deleted `packages/desktop/src/renderer/store/slices/viewSlice.ts` after confirming no remaining `ViewSlice`/`createViewSlice`/setter references in `src/renderer`
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-02-25 | delete-layout-and-finalize-cleanup | Completed
+  - Deleted obsolete `packages/desktop/src/renderer/components/Layout.tsx` and confirmed no remaining `Layout`, `viewSlice`, or `setActiveView` references in `src/renderer`
+  - Confirmed `VIEW_META` now only exists in `routes/__root.tsx` and `App.tsx` continues to render `RouterProvider`
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`

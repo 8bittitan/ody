@@ -56,7 +56,7 @@ export const useProjects = () => {
       );
 
       if (currentActive?.path === removedPath) {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.projects.active });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projects.active });
       }
     },
   });
