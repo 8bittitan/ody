@@ -47,13 +47,13 @@ const createWindow = () => {
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    void mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
     registerIpcHandlers(mainWindow);
     buildAppMenu(mainWindow);
     return;
   }
 
-  void mainWindow.loadFile(join(__dirname, `./index.html`));
+  mainWindow.loadFile(join(__dirname, `../renderer/main_window/index.html`));
   registerIpcHandlers(mainWindow);
   buildAppMenu(mainWindow);
 };
