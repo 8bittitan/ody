@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "typecheck": "bunx tsc --noEmit -p tsconfig.json"
+    "start": "next start"
   },
   "dependencies": {
     "fumadocs-core": "^16.6.7",

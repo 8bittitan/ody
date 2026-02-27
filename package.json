@@ -6,16 +6,16 @@
     "internal/*"
   ],
   "scripts": {
-    "build": "bun run --filter '*' build",
+    "build": "bun run --if-present --workspaces --parallel build",
     "build:cli": "bun run --filter '@ody/cli' build",
     "build:docs": "bun sync:schema && bun run --filter '@ody/docs' build",
     "dev:docs": "bun run --filter '@ody/docs' dev",
-    "dev:desktop": "bun run --filter '@ody/desktop' start",
+    "dev:desktop": "bun run --no-exit-on-error --filter '@ody/desktop' start",
     "lint": "oxlint .",
     "lint:fix": "oxlint --fix .",
     "fmt": "oxfmt --write .",
-    "test": "bun run --filter '*' test",
-    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --if-present --workspaces --parallel test",
+    "typecheck": "bun run --if-present --workspaces --parallel typecheck",
     "sync:schema": "bun run --filter '@ody/cli' gen:schema && cp ./packages/cli/dist/configuration_schema.json ./packages/docs/public"
   },
   "devDependencies": {
