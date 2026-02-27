@@ -1,6 +1,7 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { type ChildProcessByStdio, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
+import Stream from 'node:stream';
 
 import { Backend } from '@internal/backends';
 import { buildRunPrompt } from '@internal/builders';
@@ -88,7 +89,7 @@ function resolveTaskPath(taskFile: string, projectDir: string, tasksDirPath: str
 }
 
 export class AgentRunner {
-  private proc: ChildProcessWithoutNullStreams | null = null;
+  private proc: ChildProcessByStdio<null, Stream.Readable, Stream.Readable> | null = null;
   private aborted = false;
   private forceStop = false;
 
