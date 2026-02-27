@@ -67,7 +67,7 @@ export function Terminal() {
 
   return (
     <div
-      className="bg-white/55 dark:bg-black/5 border border-black/5 dark:border-white/5"
+      className="border border-black/5 bg-white/55 dark:border-white/5 dark:bg-black/5"
       style={{
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
@@ -128,7 +128,7 @@ export function Terminal() {
         </span>
       </div>
       {/* Content */}
-      <div className="min-h-65 pt-5 px-5.5 pb-6.5 text-sm leading-loose">
+      <div className="min-h-65 px-5.5 pt-5 pb-6.5 text-sm leading-loose">
         {COMMANDS.slice(0, visibleLines).map((cmd, i) => (
           <div key={i} style={{ animation: 'fadeInUp 0.3s ease-out' }}>
             <div>

@@ -1,8 +1,8 @@
 import { log } from '@clack/prompts';
+import { Config } from '@internal/config';
 import { defineCommand, runMain } from 'citty';
 
 import pkg from '../package.json';
-import { Config } from './lib/config';
 
 const ody = defineCommand({
   meta: {

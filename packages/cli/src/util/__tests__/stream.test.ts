@@ -1,5 +1,6 @@
-import { log } from '@clack/prompts';
 import { describe, expect, mock, spyOn, test } from 'bun:test';
+
+import { log } from '@clack/prompts';
 
 import { Stream } from '../stream';
 

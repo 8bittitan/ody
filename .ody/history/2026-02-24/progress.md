@@ -1,0 +1,44 @@
+# Progress Log
+
+Generated: 2026-02-24T06:48:45.252Z
+
+---
+
+2026-02-21: Completed opencode init model-selection task with `opencode models` autocomplete and fallback prompt.
+2026-02-22: Completed workspace update task by adding `internal/*` to root workspaces, creating `internal/`, and validating install/build/lint/fmt/typecheck.
+2026-02-22: Completed @internal/config extraction with Node-compatible config loading, constants/sequencer moves, and passing lint/fmt/typecheck.
+2026-02-22: Completed @internal/auth extraction with Node fs-based credential storage, secure chmod writes, and passing lint/fmt/typecheck.
+2026-02-22: Completed @internal/backends extraction with backend harness migration and Node-compatible binary detection replacing Bun.which.
+2026-02-22: Completed desktop scaffold task with Electron Forge + Vite + React package setup, minimal main/preload/renderer entries, and passing lint/fmt/typecheck.
+2026-02-22: Completed @internal/tasks extraction with Node fs-based task scanning/reads, preserved task utilities/types exports, and passing lint/fmt/typecheck.
+2026-02-22: Completed @internal/integrations extraction with Jira/GitHub/http modules moved to a new workspace package and passing lint/fmt/typecheck.
+2026-02-22: Completed Tailwind v4 + shadcn design-system setup for desktop renderer with Art Deco globals.css, UI primitives, font wiring, and passing lint/fmt/typecheck.
+2026-02-22: Completed @internal/builders extraction with prompt builders moved to a new workspace package, added inline edit prompt builder, and passing lint/fmt/typecheck.
+2026-02-22: Completed CLI internal-package migration by switching @ody/cli imports/dependencies to @internal/* modules, deleting duplicated extracted sources, and passing lint/fmt/typecheck.
+2026-02-22: Completed desktop IPC/preload foundation with typed `window.ody` API, full channel stubs, and passing lint/fmt/typecheck.
+2026-02-22: Completed desktop app layout shell with custom title bar, sidebar/view routing, page header/status bar patterns, and passing lint/fmt/typecheck.
+2026-02-22: Completed Zustand store foundation with typed project/config/task/agent/auth slices, renderer hooks wired to IPC APIs, global theme hook mounting, and passing lint/fmt/typecheck.
+2026-02-22: Completed desktop AgentRunner implementation with child-process run loop, streaming IPC output/events, marker verification, stop modes, dry-run command generation, and passing lint/fmt/typecheck.
+2026-02-22: Completed project management with persistent Electron store-backed project IPC handlers, sidebar add/switch/remove with right-click actions, first-launch welcome screen, and passing lint/fmt/typecheck.
+2026-02-22: Completed task board with real task IPC handlers, kanban columns/cards with run/edit/delete flows, and validation passing (lint has existing .vite warnings only).
+2026-02-22: Completed config panel/init wizard with real config IPC load/save/validate flows, backend detection wiring, first-launch wizard handling, and passing fmt/typecheck (lint has existing .vite warnings only).
+2026-02-22: Completed task editor with CodeMirror 6 markdown editing, real editor save/snapshot IPC handlers, toolbar undo/redo/save flow, and passing lint/fmt/typecheck.
+2026-02-22: Completed auth management panel with Jira/GitHub profile CRUD UI, masked token display + active profile badges, and real @internal/auth IPC handlers with passing lint/fmt/typecheck.
+2026-02-22: Completed theme system with persisted system/light/dark preference in Electron store, nativeTheme sync events, Config panel theme controls, and light/dark CSS variable palettes with passing lint/fmt/typecheck.
+2026-02-22: Completed agent run view with run controls/modals, streaming ANSI log output panel, progress notes viewer backed by real progress IPC handlers, and passing fmt/typecheck (lint has existing .vite warnings only).
+2026-02-22: Completed native menu/shortcuts with File/Edit/View/Help menus, IPC-driven view/save/project actions, and passing fmt/typecheck (lint has existing .vite warnings only).
+2026-02-22: Completed notification system with root Sonner provider/styling, toast helper wiring across key actions, and desktop sound-notification preference + run-completion beep support; lint/fmt/typecheck passing (lint has existing .vite warnings only).
+2026-02-22: Completed plan operations with single/batch plan generation flows, archive compact/list IPC + viewers, Task Board archive confirmation, and passing lint/fmt/typecheck (lint has existing .vite warnings only).
+2026-02-22: Completed PTY terminal mode with main-process node-pty session management, xterm.js renderer terminal view + IPC input/resize channels, and Task Editor "Open in Terminal" wiring; lint/fmt/typecheck passing (lint has existing .vite warnings only).
+2026-02-22: Completed editor AI integration with Cmd+K inline prompt flow, streamed main-process inline edit runner + snapshot restore, and side-by-side MergeView accept/reject review; lint/fmt/typecheck passing (lint has existing .vite warnings only).
+2026-02-22: Completed settings modal with title-bar dialog entrypoint, General/Backend/Validators tabs wired to config + sound preference IPC, backend radio cards, and validator add/remove interactions; lint/fmt/typecheck passing (lint has existing .vite warnings only).
+2026-02-22: Completed task import flow with Jira/GitHub fetch IPC handlers, prompt dry-run + agent import generation handlers, new Import panel + useImport hook with credential checks and streaming output, and passing lint/fmt/typecheck (lint has existing .vite warnings only).
+2026-02-22: Completed build/distribution setup with Forge makers/publisher updates, packaged app metadata + asar/native unpack config, generated desktop icon assets, and main-process auto-update check; lint/fmt/typecheck passing (lint has existing .vite warnings only).
+2026-02-22: Completed polish pass with reusable loading/error/empty-state components, per-view + root error boundaries, IPC failure handling with toasts, and passing lint/fmt/typecheck (lint has existing .vite warnings only).
+2026-02-23: Completed Base UI migration by replacing Radix/shadcn primitives in desktop UI components, moving toast handling to Base UI Toast manager/provider, removing shadcn-specific dependencies/components.json, and passing lint/fmt/typecheck.
+2026-02-23: Completed collapsible label filters in TaskBoard/AgentRunner with a reusable Base UI Collapsible wrapper, active-label badges on triggers, and passing lint/fmt/typecheck.
+2026-02-23: Completed task board column scroll areas using a new Base UI ScrollArea wrapper with styled vertical scrollbars, preserving card spacing and full-height column layout; lint/fmt/typecheck passing.
+2026-02-23: Completed backend PATH detection hardening by removing shell-based which/where checks, adding cross-platform in-process executable lookup (including PATHEXT support), and passing lint/fmt/typecheck.
+2026-02-23: Completed tabs active-indicator polish by strengthening default active contrast, upgrading line variant primary underline/sideline thickness for both orientations, and passing lint/fmt/typecheck.
+2026-02-24: Re-implemented desktop Config panel with layered source badges and full edit/save/reset flows, tightened Init Wizard backend detection + Claude-only permission toggle, and passing lint/fmt/typecheck.
+2026-02-24: Added Config "Edit as JSON" flow with a dedicated JSON CodeMirror editor view, local config path wiring, save-time JSON validation, and passing lint/fmt/typecheck.

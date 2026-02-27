@@ -208,19 +208,19 @@ Check for and install CLI updates from GitHub Releases.
 
 Configuration lives in `.ody/ody.json` (per-project). A global config can also be placed at `~/.ody/ody.json` or `~/.config/ody/ody.json`; local settings override global ones.
 
-| Key                 | Type                                        | Description                                                   |
-| ------------------- | ------------------------------------------- | ------------------------------------------------------------- |
-| `backend`           | `"claude"` \| `"opencode"` \| `"codex"`     | Which AI backend to use                                       |
-| `maxIterations`     | number                                      | Max loop iterations (0 = unlimited)                           |
-| `shouldCommit`      | boolean                                     | Git-commit after each task                                    |
-| `validatorCommands` | string[]                                    | Shell commands to validate agent work                         |
+| Key                 | Type                                                       | Description                                                   |
+| ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
+| `backend`           | `"claude"` \| `"opencode"` \| `"codex"`                    | Which AI backend to use                                       |
+| `maxIterations`     | number                                                     | Max loop iterations (0 = unlimited)                           |
+| `shouldCommit`      | boolean                                                    | Git-commit after each task                                    |
+| `validatorCommands` | string[]                                                   | Shell commands to validate agent work                         |
 | `model`             | string \| `{ run?: string; plan?: string; edit?: string }` | Default model or per-command model overrides                  |
-| `skipPermissions`   | boolean                                     | Skip Claude Code permission checks (default `true`)           |
-| `agent`             | string                                      | Backend agent profile/persona (default `"build"`)             |
-| `tasksDir`          | string                                      | Subdirectory under `.ody/` for task files (default `"tasks"`) |
-| `notify`            | boolean \| `"all"` \| `"individual"`        | OS notification behavior                                      |
-| `jira`              | `{ baseUrl: string; profile?: string }`     | Jira integration settings                                     |
-| `github`            | `{ profile?: string }`                      | GitHub integration settings                                   |
+| `skipPermissions`   | boolean                                                    | Skip Claude Code permission checks (default `true`)           |
+| `agent`             | string                                                     | Backend agent profile/persona (default `"build"`)             |
+| `tasksDir`          | string                                                     | Subdirectory under `.ody/` for task files (default `"tasks"`) |
+| `notify`            | boolean \| `"all"` \| `"individual"`                       | OS notification behavior                                      |
+| `jira`              | `{ baseUrl: string; profile?: string }`                    | Jira integration settings                                     |
+| `github`            | `{ profile?: string }`                                     | GitHub integration settings                                   |
 
 Prefer using `ody init` to generate or update configuration.
 

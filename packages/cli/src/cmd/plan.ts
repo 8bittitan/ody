@@ -1,12 +1,12 @@
-import { spinner, text, isCancel, outro, log, confirm } from '@clack/prompts';
-import { defineCommand } from 'citty';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-import { Backend } from '../backends/backend';
-import { buildBatchPlanPrompt, buildPlanPrompt } from '../builders/planPrompt';
-import { Config } from '../lib/config';
-import { BASE_DIR, TASKS_DIR } from '../util/constants';
+import { spinner, text, isCancel, outro, log, confirm } from '@clack/prompts';
+import { Backend } from '@internal/backends';
+import { buildBatchPlanPrompt, buildPlanPrompt } from '@internal/builders';
+import { BASE_DIR, Config, TASKS_DIR } from '@internal/config';
+import { defineCommand } from 'citty';
+
 import { Stream } from '../util/stream';
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
@@ -62,7 +62,7 @@ export const planCmd = defineCommand({
   },
   async run({ args }) {
     const config = Config.all();
-    const backend = new Backend(config.backend);
+    const backend = new Backend(config.backend, config);
     const model = Config.resolveModel('plan', config);
     const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
     const spin = spinner();

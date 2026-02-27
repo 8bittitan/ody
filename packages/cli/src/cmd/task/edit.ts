@@ -1,18 +1,17 @@
 import path from 'node:path';
 
 import { log, outro, select, isCancel } from '@clack/prompts';
-import { defineCommand } from 'citty';
-
-import { Backend } from '../../backends/backend';
-import { buildEditPlanPrompt } from '../../builders/editPlanPrompt';
-import { Config } from '../../lib/config';
+import { Backend } from '@internal/backends';
+import { buildEditPlanPrompt } from '@internal/builders';
+import { Config } from '@internal/config';
 import {
   getTaskFilesInTasksDir,
   mapWithConcurrency,
   parseFrontmatter,
   parseTitle,
   resolveTasksDir,
-} from '../../util/task';
+} from '@internal/tasks';
+import { defineCommand } from 'citty';
 
 const TASK_READ_CONCURRENCY = 8;
 
@@ -84,7 +83,7 @@ export const editCmd = defineCommand({
     }
 
     const config = Config.all();
-    const backend = new Backend(config.backend);
+    const backend = new Backend(config.backend, config);
     const model = Config.resolveModel('edit', config);
 
     log.info('Opening editor agent in interactive mode');

@@ -1,15 +1,14 @@
-import { log, outro, spinner } from '@clack/prompts';
-import { defineCommand } from 'citty';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-import { Backend } from '../../backends/backend';
-import { buildImportPrompt } from '../../builders/importPrompt';
-import { Auth } from '../../lib/auth';
-import { Config, type OdyConfig } from '../../lib/config';
-import { GitHub } from '../../lib/github';
-import { Jira } from '../../lib/jira';
-import { BASE_DIR, TASKS_DIR } from '../../util/constants';
+import { log, outro, spinner } from '@clack/prompts';
+import { Auth } from '@internal/auth';
+import { Backend } from '@internal/backends';
+import { buildImportPrompt } from '@internal/builders';
+import { BASE_DIR, Config, TASKS_DIR, type OdyConfig } from '@internal/config';
+import { GitHub, Jira } from '@internal/integrations';
+import { defineCommand } from 'citty';
+
 import { Stream } from '../../util/stream';
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
@@ -71,7 +70,7 @@ export const importCmd = defineCommand({
   },
   async run({ args }) {
     const config = Config.all();
-    const backend = new Backend(config.backend);
+    const backend = new Backend(config.backend, config);
     const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
 
     const hasJira = Boolean(args.jira);

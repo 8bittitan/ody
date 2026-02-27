@@ -1,15 +1,15 @@
-import { log, outro } from '@clack/prompts';
-import { defineCommand } from 'citty';
 import { exists } from 'node:fs/promises';
 import path from 'node:path';
 
+import { log, outro } from '@clack/prompts';
 import {
   getTaskFilesInTasksDir,
   mapWithConcurrency,
   parseFrontmatter,
   parseTitle,
   resolveTasksDir,
-} from '../../util/task';
+} from '@internal/tasks';
+import { defineCommand } from 'citty';
 
 const TASK_READ_CONCURRENCY = 8;
 

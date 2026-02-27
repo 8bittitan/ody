@@ -1,18 +1,17 @@
-import { log, outro } from '@clack/prompts';
-import { defineCommand } from 'citty';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { CompletedTask } from '../types/task';
-
-import { BASE_DIR } from '../util/constants';
+import { log, outro } from '@clack/prompts';
+import { BASE_DIR } from '@internal/config';
 import {
   getTaskFilesInTasksDir,
-  resolveTasksDir,
+  parseDescription,
   parseFrontmatter,
   parseTitle,
-  parseDescription,
-} from '../util/task';
+  resolveTasksDir,
+  type CompletedTask,
+} from '@internal/tasks';
+import { defineCommand } from 'citty';
 
 const PROGRESS_FILE = path.join(BASE_DIR, 'progress.txt');
 

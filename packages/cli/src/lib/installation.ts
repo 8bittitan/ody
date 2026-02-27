@@ -1,8 +1,8 @@
+import { INSTALL_SCRIPT_PATH, RELEASES_API } from '@internal/config';
+import { Http } from '@internal/integrations';
 import { $ } from 'bun';
 
 import pkg from '../../package.json';
-import { INSTALL_SCRIPT_PATH, RELEASES_API } from '../util/constants';
-import { Http } from './http';
 
 function stripLeadingV(version: string): string {
   return version.replace(/^v/, '');
