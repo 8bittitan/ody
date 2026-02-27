@@ -1,10 +1,11 @@
 import { useNotifications } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
-import { NotebookText } from 'lucide-react';
+import { MinusIcon, NotebookText, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import { Button } from './ui/button';
 
 type ProgressViewerProps = {
   iteration: number;
@@ -12,7 +13,7 @@ type ProgressViewerProps = {
 };
 
 export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -59,15 +60,15 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
   return (
     <section className="bg-panel/90 border-edge rounded-lg border">
       <header className="border-edge flex items-center justify-between border-b px-3 py-2">
-        <button
-          type="button"
-          className="text-light text-xs tracking-[0.12em] uppercase"
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => {
             setIsOpen((prev) => !prev);
           }}
         >
-          Progress Notes {isOpen ? '▲' : '▼'}
-        </button>
+          Progress Notes {isOpen ? <MinusIcon /> : <PlusIcon />}
+        </Button>
 
         <div className="flex items-center gap-2">
           <button

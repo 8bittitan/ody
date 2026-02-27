@@ -26,6 +26,8 @@ import { useMemo, useState } from 'react';
 
 import { AgentOutput } from './AgentOutput';
 import { ProgressViewer } from './ProgressViewer';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 const getTaskFileName = (taskPath: string) => {
   const normalized = taskPath.replaceAll('\\', '/');
@@ -162,19 +164,18 @@ export const AgentRunner = () => {
             <p className="text-light font-mono text-sm">{String(config?.backend ?? 'opencode')}</p>
           </div>
 
-          <label className="block">
-            <span className="text-dim mb-1 block text-xs">Iteration limit</span>
-            <input
+          <div className="space-y-1">
+            <Label htmlFor="run-iterations">Iteration limit</Label>
+            <Input
+              id="run-iterations"
               type="number"
-              min={1}
               value={runIterations}
-              onChange={(event) => {
-                const nextValue = Number.parseInt(event.target.value, 10);
+              onChange={(ev) => {
+                const nextValue = Number.parseInt(ev.target.value, 10);
                 setRunIterations(Number.isNaN(nextValue) ? 1 : Math.max(1, nextValue));
               }}
-              className="bg-background border-edge text-light h-8 w-full rounded border px-2 text-sm"
             />
-          </label>
+          </div>
 
           <div className="flex items-end gap-2">
             <Button onClick={openRunConfirm} disabled={isRunning}>
