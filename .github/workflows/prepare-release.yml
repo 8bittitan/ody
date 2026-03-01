@@ -11,6 +11,16 @@ on:
           - patch
           - minor
           - major
+      desktop_bump:
+        description: 'Desktop version bump type'
+        required: true
+        type: choice
+        options:
+          - none
+          - patch
+          - minor
+          - major
+        default: none
       summary:
         description: 'Release summary (optional — used in changelog)'
         required: false
@@ -41,6 +51,10 @@ jobs:
       - name: Get current version
         id: current
         run: echo "version=$(jq -r .version packages/cli/package.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Get current desktop version
+        id: current_desktop
+        run: echo "version=$(jq -r .version packages/desktop/package.json)" >> "$GITHUB_OUTPUT"
 
       - name: Generate changelog from commits
         id: changelog
@@ -99,6 +113,13 @@ jobs:
       - name: Create changeset
         run: |
           SUMMARY="${{ inputs.summary }}"
+          DESKTOP_BUMP="${{ inputs.desktop_bump }}"
+          DESKTOP_CHANGESET=""
+
+          if [ "$DESKTOP_BUMP" != "none" ]; then
+            DESKTOP_CHANGESET="'@ody/desktop': ${DESKTOP_BUMP}"
+          fi
+
           if [ -z "$SUMMARY" ]; then
             CHANGELOG="${{ steps.changelog.outputs.changelog }}"
             if [ -n "$CHANGELOG" ]; then
@@ -112,6 +133,7 @@ jobs:
           cat > .changeset/release-bump.md << EOF
           ---
           '@ody/cli': ${{ inputs.bump }}
+          ${DESKTOP_CHANGESET}
           ---
 
           ${SUMMARY}
@@ -122,18 +144,24 @@ jobs:
 
       - name: Get new version
         id: new
-        run: echo "version=$(jq -r .version packages/cli/package.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "version=$(jq -r .version packages/cli/package.json)" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ inputs.desktop_bump }}" != "none" ]; then
+            echo "desktop_version=$(jq -r .version packages/desktop/package.json)" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'release: v${{ steps.new.outputs.version }}'
-          title: 'Release v${{ steps.new.outputs.version }}'
+          title: ${{ inputs.desktop_bump != 'none' && format('Release v{0} + Desktop v{1}', steps.new.outputs.version, steps.new.outputs.desktop_version) || format('Release v{0}', steps.new.outputs.version) }}
           body: |
             ## Release v${{ steps.new.outputs.version }}
 
             Bump type: `${{ inputs.bump }}` (from v${{ steps.current.outputs.version }})
+            ${{ inputs.desktop_bump != 'none' && format('Desktop bump: `{0}` (from v{1} to v{2})', inputs.desktop_bump, steps.current_desktop.outputs.version, steps.new.outputs.desktop_version) || 'Desktop bump: `none`' }}
 
             ${{ inputs.summary || steps.changelog.outputs.changelog || 'No changelog available.' }}
 
