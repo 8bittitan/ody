@@ -15,10 +15,42 @@ permissions:
   contents: write
 
 jobs:
-  tag:
-    name: Tag Release
+  detect-changes:
+    name: Detect Release Changes
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    outputs:
+      cli_changed: ${{ steps.filter.outputs.cli }}
+      desktop_changed: ${{ steps.filter.outputs.desktop }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Detect path changes
+        id: filter
+        uses: dorny/paths-filter@v3.0.2
+        with:
+          filters: |
+            cli:
+              - 'packages/cli/**'
+              - 'internal/**'
+              - 'package.json'
+              - 'bun.lock'
+              - '.github/actions/setup-bun/**'
+            desktop:
+              - 'packages/desktop/**'
+              - 'internal/**'
+              - 'package.json'
+              - 'bun.lock'
+              - '.github/actions/setup-bun/**'
+
+  tag-cli:
+    name: Tag CLI Release
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.cli_changed == 'true'
     outputs:
       tag: ${{ steps.create-tag.outputs.tag }}
     steps:
@@ -41,11 +73,61 @@ jobs:
             git push origin "$TAG"
           fi
 
-  build:
-    name: Build (${{ matrix.artifact }})
+  tag-desktop:
+    name: Tag Desktop Release
     runs-on: ubuntu-latest
-    needs: tag
-    if: needs.tag.outputs.tag != ''
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.desktop_changed == 'true'
+    outputs:
+      tag: ${{ steps.create-tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Create and push tag
+        id: create-tag
+        run: |
+          VERSION=$(jq -r .version packages/desktop/package.json)
+          TAG="desktop-v${VERSION}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if git ls-remote --tags --exit-code origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+  build-desktop:
+    name: Build Desktop (macOS)
+    runs-on: macos-latest
+    needs: [tag-desktop]
+    if: needs.tag-desktop.outputs.tag != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Build desktop installer
+        run: bun run --filter '@ody/desktop' make
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: ody-desktop-macos
+          path: packages/desktop/out/make/**/*
+
+  build-cli:
+    name: Build CLI (${{ matrix.artifact }})
+    runs-on: ubuntu-latest
+    needs: [tag-cli]
+    if: needs.tag-cli.outputs.tag != ''
     strategy:
       matrix:
         include:
@@ -76,10 +158,10 @@ jobs:
           name: ${{ matrix.artifact }}
           path: packages/cli/dist/${{ matrix.artifact }}
 
-  release:
-    name: Create Release
+  release-cli:
+    name: Create CLI Release
     runs-on: ubuntu-latest
-    needs: [tag, build]
+    needs: [tag-cli, build-cli]
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
@@ -105,6 +187,31 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2.5.0
         with:
-          tag_name: ${{ needs.tag.outputs.tag }}
+          tag_name: ${{ needs.tag-cli.outputs.tag }}
           body: ${{ steps.changelog.outputs.body }}
           files: artifacts/*
+
+  release-desktop:
+    name: Create Desktop Release
+    runs-on: ubuntu-latest
+    needs: [tag-desktop, build-desktop]
+    if: needs.tag-desktop.outputs.tag != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Download desktop artifacts
+        uses: actions/download-artifact@v6.0.0
+        with:
+          name: ody-desktop-macos
+          path: desktop-artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.5.0
+        with:
+          tag_name: ${{ needs.tag-desktop.outputs.tag }}
+          name: Ody Desktop ${{ replace(needs.tag-desktop.outputs.tag, 'desktop-', '') }}
+          generate_release_notes: true
+          files: desktop-artifacts/**/*

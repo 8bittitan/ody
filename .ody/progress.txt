@@ -255,6 +255,30 @@
   - Confirmed `VIEW_META` now only exists in `routes/__root.tsx` and `App.tsx` continues to render `RouterProvider`
   - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
 
+2026-02-27 | add-change-detection-job-to-release-workflow | Completed
+  - Added a new `detect-changes` job in `.github/workflows/release.yml` using `dorny/paths-filter@v3.0.2` to emit `cli_changed` and `desktop_changed` outputs for release-lane gating.
+  - Validation run: `bun lint` (warnings only, no errors), `bun fmt`, `bun typecheck`.
+
+2026-02-27 | add-desktop-version-bump-to-prepare-release | Completed
+  - Added optional `desktop_bump` workflow input in `.github/workflows/prepare-release.yml`, made changeset generation include `@ody/desktop` only when selected, and updated PR title/body plus new-version outputs to report desktop version bumps.
+  - Validation run: `bun lint` (warnings only, no errors), `bun fmt`, `bun typecheck`.
+
+2026-02-27 | refactor-cli-release-jobs-with-conditional-gates | Completed
+  - Renamed release workflow CLI lane jobs from `tag`/`build`/`release` to `tag-cli`/`build-cli`/`release-cli`, gated `tag-cli` on `detect-changes` output `cli_changed`, and updated all `needs`/tag output references accordingly.
+  - Validation run: `bun lint` (warnings only, no errors), `bun fmt`, `bun typecheck`.
+
+2026-02-27 | add-desktop-tag-creation-job | Completed
+  - Added `tag-desktop` in `.github/workflows/release.yml`, gated on `detect-changes` desktop output, with `desktop-vX.Y.Z` tag creation/push, existing-tag skip behavior, and `tag` job output for downstream desktop jobs.
+  - Validation run: `bun lint` (warnings only, no errors), `bun fmt`, `bun typecheck`.
+
+2026-02-27 | add-macos-desktop-build-job | Completed
+  - Added `build-desktop` to `.github/workflows/release.yml` (macOS runner, `needs: [tag-desktop]`, non-empty tag gate), with Bun setup, desktop `make` build, and `ody-desktop-macos` artifact upload from `packages/desktop/out/make/**/*`.
+  - Validation run: `bun lint` (warnings only, no errors), `bun fmt`, `bun typecheck`.
+
+2026-02-27 | add-desktop-release-publishing-job | Completed
+  - Added `release-desktop` to `.github/workflows/release.yml` with `needs: [tag-desktop, build-desktop]`, desktop tag gate, artifact download (`ody-desktop-macos`), and `softprops/action-gh-release@v2.5.0` publishing under the desktop tag with generated release notes.
+  - Validation run: `bun lint` (warnings only, no errors), `bun fmt`, `bun typecheck`.
+
 2026-03-05 | render-markdown-in-task-detail-dialog | Completed
   - Installed react-markdown@10.1.0 and remark-gfm@4.0.1 in packages/desktop
   - Removed hand-rolled parseMarkdownSections, renderSectionBody, and MarkdownSection type from TaskDetailDialog.tsx
