@@ -9,35 +9,11 @@ import { BASE_DIR, Config, TASKS_DIR, type OdyConfig } from '@internal/config';
 import { GitHub, Jira } from '@internal/integrations';
 import { defineCommand } from 'citty';
 
+import {
+  createCompletionMarkerDetector,
+  validateAgentCompletion,
+} from '../../util/agentCompletion';
 import { Stream } from '../../util/stream';
-
-const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
-
-function createCompletionMarkerDetector() {
-  let rolling = '';
-
-  return {
-    onChunk(chunk: string) {
-      if (chunk === '') {
-        return false;
-      }
-
-      rolling += chunk;
-
-      if (rolling.includes(COMPLETE_MARKER)) {
-        return true;
-      }
-
-      const maxCarry = COMPLETE_MARKER.length - 1;
-
-      if (rolling.length > maxCarry) {
-        rolling = rolling.slice(-maxCarry);
-      }
-
-      return false;
-    },
-  };
-}
 
 export const importCmd = defineCommand({
   meta: {
@@ -181,20 +157,19 @@ async function spawnAgent(
     });
     const markerDetector = createCompletionMarkerDetector();
 
-    await Promise.allSettled([
+    await Promise.all([
       Stream.toOutput(proc.stdout, {
         shouldPrint: verbose,
-        onChunk({ chunk }) {
-          if (markerDetector.onChunk(chunk)) {
-            proc.kill();
-            return true;
-          }
+        onChunk(chunk) {
+          markerDetector.onChunk(chunk);
         },
       }),
       Stream.toOutput(proc.stderr, { shouldPrint: verbose }),
     ]);
 
-    await proc.exited;
+    const markerDetection = markerDetector.finalize();
+    const exitCode = await proc.exited;
+    validateAgentCompletion(exitCode, markerDetection, { requireMarker: true });
 
     spin.stop(`Task generated`);
   } catch (err) {

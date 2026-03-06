@@ -16,6 +16,8 @@ export type RunOptions = {
   iterations?: number;
 };
 
+export type AgentCompletionReason = 'finished' | 'no_tasks_remaining';
+
 export type TaskSummary = {
   filePath: string;
   title: string;
@@ -147,7 +149,7 @@ export type IpcEvents = {
   'agent:started': [];
   'agent:iteration': [iteration: number, maxIterations: number];
   'agent:output': [chunk: string];
-  'agent:complete': [];
+  'agent:complete': [reason?: AgentCompletionReason];
   'agent:stopped': [];
   'agent:verifyFailed': [message: string];
   'agent:ambiguousMarker': [];

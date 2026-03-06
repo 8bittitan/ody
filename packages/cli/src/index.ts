@@ -40,10 +40,15 @@ const ody = defineCommand({
   },
 });
 
-try {
-  await runMain(ody);
-} catch (err) {
-  log.error(String(err));
-} finally {
-  process.exit();
+export async function runCli(runMainImpl: typeof runMain = runMain): Promise<void> {
+  try {
+    await runMainImpl(ody);
+  } catch (err) {
+    log.error(String(err));
+    process.exitCode = 1;
+  }
+}
+
+if (import.meta.main) {
+  await runCli();
 }

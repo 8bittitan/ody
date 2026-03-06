@@ -1,7 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { access, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import { Auth } from '@internal/auth';
 import { Backend, getAvailableBackends } from '@internal/backends';
@@ -241,6 +241,117 @@ const resolveTasksDirPath = (projectPath: string) => join(projectPath, BASE_DIR,
 const resolveProgressFilePath = (projectPath: string) =>
   join(projectPath, BASE_DIR, 'progress.txt');
 const resolveHistoryDirPath = (projectPath: string) => join(projectPath, BASE_DIR, 'history');
+
+const canonicalizeExistingPath = async (filePath: string) => {
+  try {
+    return await realpath(filePath);
+  } catch {
+    return null;
+  }
+};
+
+const canonicalizePathForWrite = async (filePath: string) => {
+  const existingPath = await canonicalizeExistingPath(filePath);
+
+  if (existingPath) {
+    return existingPath;
+  }
+
+  try {
+    const parentPath = await realpath(dirname(filePath));
+    return join(parentPath, basename(filePath));
+  } catch {
+    return null;
+  }
+};
+
+const isPathInsideDirectory = (basePath: string, candidatePath: string) => {
+  const pathFromBase = relative(basePath, candidatePath);
+  return pathFromBase === '' || (!pathFromBase.startsWith('..') && !isAbsolute(pathFromBase));
+};
+
+const resolvePathWithinDirectory = async (
+  basePath: string,
+  requestedPath: string,
+  allowMissing = false,
+) => {
+  const canonicalBasePath = (await canonicalizeExistingPath(basePath)) ?? resolve(basePath);
+  const resolvedCandidatePath = resolve(canonicalBasePath, requestedPath);
+  const canonicalCandidatePath = allowMissing
+    ? await canonicalizePathForWrite(resolvedCandidatePath)
+    : await canonicalizeExistingPath(resolvedCandidatePath);
+
+  if (!canonicalCandidatePath) {
+    return null;
+  }
+
+  return isPathInsideDirectory(canonicalBasePath, canonicalCandidatePath)
+    ? canonicalCandidatePath
+    : null;
+};
+
+const resolveTaskFilePath = async (
+  projectPath: string,
+  requestedPath: string,
+  allowMissing = false,
+) => {
+  const trimmedPath = requestedPath.trim();
+
+  if (trimmedPath.length === 0) {
+    throw new Error('Task file path is required.');
+  }
+
+  const resolvedPath = await resolvePathWithinDirectory(
+    resolveTasksDirPath(projectPath),
+    trimmedPath,
+    allowMissing,
+  );
+
+  if (!resolvedPath) {
+    throw new Error(
+      `Task file path must stay within ${BASE_DIR}/${TASKS_DIR} for the active project.`,
+    );
+  }
+
+  return resolvedPath;
+};
+
+const resolveEditorFilePath = async (
+  projectPath: string,
+  requestedPath: string,
+  allowMissing = false,
+) => {
+  const taskPath = await resolvePathWithinDirectory(
+    resolveTasksDirPath(projectPath),
+    requestedPath,
+    allowMissing,
+  );
+
+  if (taskPath) {
+    return taskPath;
+  }
+
+  const configPaths = [getLocalConfigPath(projectPath), getGlobalConfigPath()];
+  const canonicalRequestedPath = allowMissing
+    ? await canonicalizePathForWrite(resolve(requestedPath))
+    : await canonicalizeExistingPath(resolve(requestedPath));
+
+  if (canonicalRequestedPath) {
+    for (const configPath of configPaths) {
+      const canonicalConfigPath = allowMissing
+        ? await canonicalizePathForWrite(configPath)
+        : await canonicalizeExistingPath(configPath);
+
+      if (canonicalConfigPath === canonicalRequestedPath) {
+        return canonicalRequestedPath;
+      }
+    }
+  }
+
+  throw new Error(
+    `Editor file path must reference a task in ${BASE_DIR}/${TASKS_DIR} or a known Ody config file.`,
+  );
+};
 
 const parseTaskCountFromArchive = (content: string) => {
   // CLI format: "Total tasks archived: N"
@@ -529,11 +640,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       };
     }
 
-    const tasksDirPath = resolveTasksDirPath(activeProjectPath);
-    const resolvedPath =
-      requestedPath.includes('/') || requestedPath.includes('\\')
-        ? requestedPath
-        : join(tasksDirPath, requestedPath);
+    const resolvedPath = await resolveTaskFilePath(activeProjectPath, requestedPath);
 
     try {
       const content = await readFile(resolvedPath, 'utf-8');
@@ -554,7 +661,6 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       return { deleted: [] };
     }
 
-    const tasksDirPath = resolveTasksDirPath(activeProjectPath);
     const deleted: string[] = [];
 
     for (const rawPath of filePaths) {
@@ -563,8 +669,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
         continue;
       }
 
-      const targetPath =
-        value.includes('/') || value.includes('\\') ? value : join(tasksDirPath, value);
+      const targetPath = await resolveTaskFilePath(activeProjectPath, value);
 
       try {
         await rm(targetPath);
@@ -648,8 +753,10 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     return { started: true };
   });
-  registerHandler('agent:stop', (force: unknown) => {
-    agentRunner.stop(force === true);
+  registerHandler('agent:stop', async (force: unknown) => {
+    const stoppedAgent = await agentRunner.stop(force === true);
+    const hadInlineEditProc = inlineEditProc !== null;
+    const hadInlineEditSnapshot = inlineEditSnapshot !== null;
 
     if (inlineEditProc) {
       inlineEditProc.kill(force === true ? 'SIGKILL' : 'SIGTERM');
@@ -662,8 +769,11 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       void writeFile(snapshot.filePath, snapshot.content, 'utf-8');
     }
 
-    win.webContents.send('agent:stopped');
-    return { stopped: true };
+    if (!stoppedAgent && !hadInlineEditProc) {
+      win.webContents.send('agent:stopped');
+    }
+
+    return { stopped: stoppedAgent || hadInlineEditProc || hadInlineEditSnapshot };
   });
   registerHandler('agent:planNew', async (description: unknown) => {
     const activeProjectPath = readActiveProjectPath();
@@ -790,12 +900,6 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       return { started: false };
     }
 
-    const tasksDirPath = resolveTasksDirPath(activeProjectPath);
-    const resolvedPath =
-      requestedPath.includes('/') || requestedPath.includes('\\')
-        ? requestedPath
-        : join(tasksDirPath, requestedPath);
-
     const rawFrom = Number(payload.selection?.from ?? Number.NaN);
     const rawTo = Number(payload.selection?.to ?? Number.NaN);
     const selection =
@@ -808,6 +912,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     void (async () => {
       try {
+        const resolvedPath = await resolveTaskFilePath(activeProjectPath, requestedPath, true);
         const config = await resolveAgentConfig(activeProjectPath);
         const backend = new Backend(config.backend, config);
         const model = Config.resolveModel('edit', config);
@@ -1056,11 +1161,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       throw new Error('No active project selected');
     }
 
-    const tasksDirPath = resolveTasksDirPath(activeProjectPath);
-    const resolvedPath =
-      requestedPath.includes('/') || requestedPath.includes('\\')
-        ? requestedPath
-        : join(tasksDirPath, requestedPath);
+    const resolvedPath = await resolveEditorFilePath(activeProjectPath, requestedPath, true);
 
     await writeFile(resolvedPath, String(content ?? ''), 'utf-8');
     return { ok: true };
@@ -1076,11 +1177,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       };
     }
 
-    const tasksDirPath = resolveTasksDirPath(activeProjectPath);
-    const resolvedPath =
-      requestedPath.includes('/') || requestedPath.includes('\\')
-        ? requestedPath
-        : join(tasksDirPath, requestedPath);
+    const resolvedPath = await resolveEditorFilePath(activeProjectPath, requestedPath);
 
     try {
       const snapshot = await readFile(resolvedPath, 'utf-8');

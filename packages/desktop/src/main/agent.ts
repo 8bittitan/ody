@@ -9,9 +9,10 @@ import { Config, TASKS_DIR, type OdyConfig } from '@internal/config';
 import { getTaskStates, getTaskStatus, type TaskState } from '@internal/tasks';
 import { Notification, type BrowserWindow } from 'electron';
 
-import type { RunOptions } from '../renderer/types/ipc';
+import type { AgentCompletionReason, RunOptions } from '../renderer/types/ipc';
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
+const GRACEFUL_STOP_TIMEOUT_MS = 5000;
 
 type MarkerDetectionResult = {
   hasStrictMatch: boolean;
@@ -92,6 +93,7 @@ export class AgentRunner {
   private proc: ChildProcessByStdio<null, Stream.Readable, Stream.Readable> | null = null;
   private aborted = false;
   private forceStop = false;
+  private procClosed: Promise<void> | null = null;
 
   constructor(
     private readonly options?: {
@@ -128,20 +130,31 @@ export class AgentRunner {
     });
     const maxIterations = Math.max(0, opts.iterations ?? config.maxIterations);
     const tasksDirPath = path.join(opts.projectDir, '.ody', config.tasksDir ?? TASKS_DIR);
+    let completionReason: AgentCompletionReason = 'finished';
 
     this.aborted = false;
     this.forceStop = false;
     win.webContents.send('agent:started');
 
+    if (await this.shouldStopForNoTasksRemaining({ opts, tasksDirPath, maxIterations })) {
+      completionReason = 'no_tasks_remaining';
+    }
+
     for (
       let iteration = 1;
-      !this.aborted && (maxIterations === 0 || iteration <= maxIterations);
+      !this.aborted &&
+      completionReason !== 'no_tasks_remaining' &&
+      (maxIterations === 0 || iteration <= maxIterations);
       iteration++
     ) {
       win.webContents.send('agent:iteration', iteration, maxIterations);
 
       const cmd = backend.buildCommand(prompt, model);
       const result = await this.spawnAndStream(win, cmd, opts.projectDir);
+
+      if (this.aborted) {
+        break;
+      }
 
       if (this.forceStop) {
         break;
@@ -158,6 +171,11 @@ export class AgentRunner {
         singleTaskFile,
       });
 
+      if (await this.shouldStopForNoTasksRemaining({ opts, tasksDirPath, maxIterations })) {
+        completionReason = 'no_tasks_remaining';
+        break;
+      }
+
       if (result.hasStrictMatch) {
         break;
       }
@@ -167,15 +185,18 @@ export class AgentRunner {
       }
     }
 
-    if (!this.forceStop) {
-      win.webContents.send('agent:complete');
-      if (notifySetting === 'all') {
-        this.sendNotification('Ody', 'Agent run complete');
-      }
+    if (this.aborted) {
+      win.webContents.send('agent:stopped');
+      return;
+    }
 
-      if (this.options?.shouldPlaySound?.()) {
-        this.options.playSound?.();
-      }
+    win.webContents.send('agent:complete', completionReason);
+    if (notifySetting === 'all') {
+      this.sendNotification('Ody', 'Agent run complete');
+    }
+
+    if (this.options?.shouldPlaySound?.()) {
+      this.options.playSound?.();
     }
   }
 
@@ -191,6 +212,7 @@ export class AgentRunner {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     this.proc = proc;
+    this.procClosed = once(proc, 'close').then(() => undefined);
 
     const markerDetector = createCompletionMarkerDetector();
 
@@ -209,9 +231,9 @@ export class AgentRunner {
     const [exitCode] = await once(proc, 'close');
 
     this.proc = null;
+    this.procClosed = null;
 
-    if (this.forceStop) {
-      win.webContents.send('agent:stopped');
+    if (this.aborted) {
       return { hasStrictMatch: false, hasAmbiguousMention: false };
     }
 
@@ -222,20 +244,31 @@ export class AgentRunner {
     return markerDetector.finalize();
   }
 
-  stop(force = false) {
+  async stop(force = false) {
     if (!this.proc) {
       this.aborted = true;
-      return;
+      return false;
     }
+
+    this.aborted = true;
 
     if (force) {
       this.forceStop = true;
       this.proc.kill('SIGKILL');
-      this.proc = null;
-      return;
+    } else {
+      this.proc.kill('SIGTERM');
+      setTimeout(() => {
+        if (!this.proc) {
+          return;
+        }
+
+        this.forceStop = true;
+        this.proc.kill('SIGKILL');
+      }, GRACEFUL_STOP_TIMEOUT_MS).unref();
     }
 
-    this.aborted = true;
+    await this.procClosed;
+    return true;
   }
 
   private async verifyTaskStates(input: {
@@ -272,6 +305,21 @@ export class AgentRunner {
         `Post-run task state verification failed: completion marker received with unresolved tasks: ${formatTaskStates(unresolvedTaskStates)}`,
       );
     }
+  }
+
+  private async shouldStopForNoTasksRemaining(input: {
+    opts: RunOptions;
+    tasksDirPath: string;
+    maxIterations: number;
+  }) {
+    const { opts, tasksDirPath, maxIterations } = input;
+
+    if (maxIterations !== 0 || (opts.taskFiles?.length ?? 0) > 0) {
+      return false;
+    }
+
+    const taskStates = await getTaskStates(undefined, tasksDirPath);
+    return findUnresolvedTaskStates(taskStates).length === 0;
   }
 
   private sendNotification(title: string, body: string) {

@@ -1,10 +1,71 @@
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { useStore } from '@/store';
-import type { RunOptions } from '@/types/ipc';
-import { useCallback, useEffect } from 'react';
+import type { AgentCompletionReason, RunOptions } from '@/types/ipc';
+import { useCallback } from 'react';
+
+let cleanupAgentListeners: (() => void) | null = null;
+
+const ensureAgentListeners = () => {
+  if (cleanupAgentListeners) {
+    return;
+  }
+
+  const unbindStarted = api.agent.onStarted(() => {
+    const state = useStore.getState();
+    state.setRunning(true);
+    state.setComplete(false);
+    state.setError(null);
+    state.setAmbiguousMarker(false);
+  });
+
+  const unbindIteration = api.agent.onIteration((nextIteration, nextMaxIterations) => {
+    useStore.getState().setIteration(nextIteration, nextMaxIterations);
+  });
+
+  const unbindOutput = api.agent.onOutput((chunk) => {
+    useStore.getState().appendOutput(chunk);
+  });
+
+  const unbindComplete = api.agent.onComplete((reason?: AgentCompletionReason) => {
+    const state = useStore.getState();
+    state.setRunning(false);
+    state.setComplete(true);
+
+    if (reason === 'no_tasks_remaining') {
+      toast.accent('No tasks left to run', {
+        description: 'The continuous run stopped because there are no unresolved tasks remaining.',
+      });
+    }
+  });
+
+  const unbindStopped = api.agent.onStopped(() => {
+    useStore.getState().setRunning(false);
+  });
+
+  const unbindVerifyFailed = api.agent.onVerifyFailed((message) => {
+    useStore.getState().setError(message);
+  });
+
+  const unbindAmbiguousMarker = api.agent.onAmbiguousMarker(() => {
+    useStore.getState().setAmbiguousMarker(true);
+  });
+
+  cleanupAgentListeners = () => {
+    unbindStarted();
+    unbindIteration();
+    unbindOutput();
+    unbindComplete();
+    unbindStopped();
+    unbindVerifyFailed();
+    unbindAmbiguousMarker();
+    cleanupAgentListeners = null;
+  };
+};
 
 export const useAgent = () => {
+  ensureAgentListeners();
+
   const isRunning = useStore((state) => state.isRunning);
   const iteration = useStore((state) => state.iteration);
   const maxIterations = useStore((state) => state.maxIterations);
@@ -14,7 +75,6 @@ export const useAgent = () => {
   const hasAmbiguousMarker = useStore((state) => state.hasAmbiguousMarker);
   const setRunning = useStore((state) => state.setRunning);
   const setIteration = useStore((state) => state.setIteration);
-  const appendOutput = useStore((state) => state.appendOutput);
   const setComplete = useStore((state) => state.setComplete);
   const setError = useStore((state) => state.setError);
   const setAmbiguousMarker = useStore((state) => state.setAmbiguousMarker);
@@ -68,50 +128,6 @@ export const useAgent = () => {
     },
     [setRunning, setError],
   );
-
-  useEffect(() => {
-    const unbindStarted = api.agent.onStarted(() => {
-      setRunning(true);
-      setComplete(false);
-      setError(null);
-      setAmbiguousMarker(false);
-    });
-
-    const unbindIteration = api.agent.onIteration((nextIteration, nextMaxIterations) => {
-      setIteration(nextIteration, nextMaxIterations);
-    });
-
-    const unbindOutput = api.agent.onOutput((chunk) => {
-      appendOutput(chunk);
-    });
-
-    const unbindComplete = api.agent.onComplete(() => {
-      setRunning(false);
-      setComplete(true);
-    });
-
-    const unbindStopped = api.agent.onStopped(() => {
-      setRunning(false);
-    });
-
-    const unbindVerifyFailed = api.agent.onVerifyFailed((message) => {
-      setError(message);
-    });
-
-    const unbindAmbiguousMarker = api.agent.onAmbiguousMarker(() => {
-      setAmbiguousMarker(true);
-    });
-
-    return () => {
-      unbindStarted();
-      unbindIteration();
-      unbindOutput();
-      unbindComplete();
-      unbindStopped();
-      unbindVerifyFailed();
-      unbindAmbiguousMarker();
-    };
-  }, [appendOutput, setAmbiguousMarker, setComplete, setError, setIteration, setRunning]);
 
   return {
     isRunning,

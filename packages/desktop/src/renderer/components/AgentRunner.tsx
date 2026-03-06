@@ -15,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { useAgent } from '@/hooks/useAgent';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -56,9 +55,6 @@ export const AgentRunner = () => {
   const [selectedTaskFile, setSelectedTaskFile] = useState<string>('');
   const [runIterations, setRunIterations] = useState(
     typeof config?.maxIterations === 'number' ? config.maxIterations : 1,
-  );
-  const [runShouldCommit, setRunShouldCommit] = useState(
-    typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false,
   );
   const [showRunConfirm, setShowRunConfirm] = useState(false);
   const [showStopConfirm, setShowStopConfirm] = useState(false);
@@ -118,6 +114,7 @@ export const AgentRunner = () => {
       return;
     }
 
+    const shouldCommit = typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false;
     const result = await start({
       projectDir: activeProjectPath,
       taskFiles: taskFilesForRun,
@@ -131,22 +128,27 @@ export const AgentRunner = () => {
 
     accent({
       title: 'Agent run started',
-      description: runShouldCommit ? 'Auto-commit is enabled in config.' : undefined,
+      description: shouldCommit ? 'Auto-commit enabled.' : undefined,
     });
     setShowRunConfirm(false);
   };
 
   const handleStop = async () => {
     const force = stopMode === 'force';
-    await stop(force);
     setShowStopConfirm(false);
 
     if (force) {
+      await stop(true);
       error({ title: 'Agent force-stopped', description: 'Partial edits may need review.' });
       return;
     }
 
-    warning({ title: 'Agent stopping gracefully' });
+    warning({
+      title: 'Stop requested',
+      description:
+        'Ody asked the current backend process to exit and will force-stop it if needed.',
+    });
+    await stop(false);
   };
 
   const runTargetLabel =
@@ -303,10 +305,14 @@ export const AgentRunner = () => {
                 <p className="text-light mt-1">{Math.max(1, runIterations)}</p>
               </div>
             </div>
-            <label className="border-edge flex items-center justify-between rounded border p-2 text-xs">
-              <span className="text-mid">Auto-commit after run</span>
-              <Switch checked={runShouldCommit} onCheckedChange={setRunShouldCommit} size="sm" />
-            </label>
+            <div className="border-edge rounded border p-2 text-xs">
+              <p className="text-dim">Auto-commit</p>
+              <p className="text-mid mt-1">
+                {typeof config?.shouldCommit === 'boolean' && config.shouldCommit
+                  ? 'Enabled by config for this project.'
+                  : 'Disabled in config.'}
+              </p>
+            </div>
             {selectedTask ? (
               <p className="text-dim text-xs">File: {getTaskFileName(selectedTask.filePath)}</p>
             ) : null}
@@ -345,7 +351,8 @@ export const AgentRunner = () => {
           <DialogHeader>
             <DialogTitle>Stop current run?</DialogTitle>
             <DialogDescription>
-              Choose how the run should be stopped and whether to allow graceful cleanup.
+              Choose whether to request a clean process exit first or kill the active backend
+              immediately.
             </DialogDescription>
           </DialogHeader>
 
@@ -361,7 +368,9 @@ export const AgentRunner = () => {
               />
               <span>
                 <span className="text-light block">Graceful stop</span>
-                <span className="text-dim text-xs">Wait for current cycle to finish.</span>
+                <span className="text-dim text-xs">
+                  Send a termination signal, then force-stop if the process does not exit.
+                </span>
               </span>
             </label>
             <label className="border-red/35 bg-red-bg flex cursor-pointer items-start gap-2 rounded border p-2">

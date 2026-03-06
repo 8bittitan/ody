@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useAgent } from '@/hooks/useAgent';
 import { useApp } from '@/hooks/useApp';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -20,7 +21,7 @@ import { useStore } from '@/store';
 import type { MenuAction } from '@/types/ipc';
 import { Outlet, createRootRoute, useNavigate, useRouterState } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/router-devtools';
-import { CircleHelp, FolderPlus, Settings } from 'lucide-react';
+import { CircleHelp, FolderPlus, Play, Settings, Square } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 const VIEW_META: Record<ViewId, { title: string; subtitle: string }> = {
@@ -59,11 +60,11 @@ const RootLayout = () => {
   const activeView = useMemo(() => getActiveViewFromPathname(pathname), [pathname]);
   const [pendingSwitchPath, setPendingSwitchPath] = useState<string | null>(null);
   const [showSwitchDialog, setShowSwitchDialog] = useState(false);
-  const [showInitWizard, setShowInitWizard] = useState(false);
+  const [isSwitchingProject, setIsSwitchingProject] = useState(false);
+  const [initWizardProjectPath, setInitWizardProjectPath] = useState<string | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { projects, activeProjectPath, isLoading, addProject, removeProject, switchProject } =
     useProjects();
-  const isRunning = useStore((state) => state.isRunning);
   const resetAgentState = useStore((state) => state.resetAgentState);
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStore((state) => state.toggleSidebar);
@@ -71,6 +72,7 @@ const RootLayout = () => {
   const { loadTasks } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
   const { isFullscreen } = useApp();
+  const { isRunning, start, stop } = useAgent();
   const backendName = typeof config?.backend === 'string' ? config.backend : '';
 
   const activeProject = useMemo(() => {
@@ -81,9 +83,8 @@ const RootLayout = () => {
     return projects.find((project) => project.path === activeProjectPath) ?? null;
   }, [activeProjectPath, projects]);
 
-  if (!activeProjectPath && showInitWizard) {
-    setShowInitWizard(false);
-  }
+  const isInitWizardOpen =
+    activeProjectPath !== null && initWizardProjectPath === activeProjectPath;
 
   useEffect(() => {
     if (!activeProjectPath) {
@@ -92,8 +93,6 @@ const RootLayout = () => {
 
     let isMounted = true;
 
-    resetAgentState();
-
     (async () => {
       try {
         const result = await loadConfig();
@@ -101,20 +100,20 @@ const RootLayout = () => {
           return;
         }
 
-        setShowInitWizard(result.merged === null);
+        setInitWizardProjectPath(result.merged === null ? activeProjectPath : null);
       } catch {
         if (!isMounted) {
           return;
         }
 
-        setShowInitWizard(false);
+        setInitWizardProjectPath(null);
       }
     })();
 
     return () => {
       isMounted = false;
     };
-  }, [activeProjectPath, loadConfig, resetAgentState]);
+  }, [activeProjectPath, loadConfig]);
 
   const handleAddProject = useCallback(async () => {
     const project = await addProject();
@@ -162,23 +161,53 @@ const RootLayout = () => {
   };
 
   const handleConfirmSwitch = async () => {
-    if (!pendingSwitchPath) {
+    if (!pendingSwitchPath || isSwitchingProject) {
+      return;
+    }
+
+    const nextProjectPath = pendingSwitchPath;
+    setIsSwitchingProject(true);
+
+    try {
+      await stop(true);
+    } catch {
+      setIsSwitchingProject(false);
+      return;
+    }
+
+    const switched = await switchProject(nextProjectPath);
+
+    if (!switched) {
+      error({ title: 'Project switch failed' });
+      setIsSwitchingProject(false);
       return;
     }
 
     setShowSwitchDialog(false);
-    await applySwitch(pendingSwitchPath);
     setPendingSwitchPath(null);
-    warning({ title: 'Agent state reset for project switch' });
+    resetAgentState();
+    info({ title: 'Project switched', description: getProjectName(nextProjectPath) });
+    warning({
+      title: 'Agent stopped before project switch',
+      description: 'The active run was force-stopped to keep the previous project from changing.',
+    });
+    setIsSwitchingProject(false);
   };
 
   const handleCancelSwitch = () => {
+    if (isSwitchingProject) {
+      return;
+    }
+
     setShowSwitchDialog(false);
     setPendingSwitchPath(null);
   };
 
   const handleRemoveProject = async (path: string) => {
     await removeProject(path);
+    if (path === activeProjectPath) {
+      setInitWizardProjectPath(null);
+    }
     success({ title: 'Project removed', description: getProjectName(path) });
   };
 
@@ -188,6 +217,45 @@ const RootLayout = () => {
       info({ title: 'Copied project path' });
     } catch {
       error({ title: 'Failed to copy path' });
+    }
+  };
+
+  const handleGlobalRunToggle = async () => {
+    if (isRunning) {
+      try {
+        await stop();
+      } catch {
+        return;
+      }
+
+      warning({ title: 'Agent stop requested' });
+      return;
+    }
+
+    if (!activeProjectPath) {
+      warning({ title: 'Select a project before running the agent' });
+      return;
+    }
+
+    const shouldCommit = typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false;
+
+    try {
+      const result = await start({
+        projectDir: activeProjectPath,
+        iterations: 0,
+      });
+
+      if (!result.started) {
+        warning({ title: 'Agent is already running' });
+        return;
+      }
+
+      accent({
+        title: 'Continuous run started',
+        description: shouldCommit ? 'Auto-commit enabled.' : undefined,
+      });
+    } catch {
+      return;
     }
   };
 
@@ -241,14 +309,16 @@ const RootLayout = () => {
 
   useEffect(() => {
     const onOpenInitWizard: EventListener = () => {
-      setShowInitWizard(true);
+      if (activeProjectPath) {
+        setInitWizardProjectPath(activeProjectPath);
+      }
     };
 
     window.addEventListener('ody:open-init-wizard', onOpenInitWizard);
     return () => {
       window.removeEventListener('ody:open-init-wizard', onOpenInitWizard);
     };
-  }, []);
+  }, [activeProjectPath]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -366,6 +436,21 @@ const RootLayout = () => {
 
                       <div className="flex items-center gap-2">
                         <Button
+                          size="sm"
+                          variant={isRunning ? 'destructive' : 'default'}
+                          disabled={!activeProjectPath}
+                          onClick={() => {
+                            void handleGlobalRunToggle();
+                          }}
+                        >
+                          {isRunning ? (
+                            <Square className="size-3.5" />
+                          ) : (
+                            <Play className="size-3.5" />
+                          )}
+                          {isRunning ? 'Stop' : 'Run'}
+                        </Button>
+                        <Button
                           variant="outline"
                           size="sm"
                           onClick={() => {
@@ -420,6 +505,10 @@ const RootLayout = () => {
       <Dialog
         open={showSwitchDialog}
         onOpenChange={(open) => {
+          if (isSwitchingProject) {
+            return;
+          }
+
           setShowSwitchDialog(open);
 
           if (!open) {
@@ -431,7 +520,8 @@ const RootLayout = () => {
           <DialogHeader>
             <DialogTitle>Switch projects while agent is running?</DialogTitle>
             <DialogDescription>
-              This resets the current run state and reloads project config and tasks.
+              Switching projects will force-stop the current run before Ody changes the active
+              project and reloads its config and tasks.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -439,6 +529,7 @@ const RootLayout = () => {
               type="button"
               className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
               onClick={handleCancelSwitch}
+              disabled={isSwitchingProject}
             >
               Keep current project
             </button>
@@ -446,18 +537,21 @@ const RootLayout = () => {
               type="button"
               className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-2 text-sm"
               onClick={() => {
-                handleConfirmSwitch();
+                void handleConfirmSwitch();
               }}
+              disabled={isSwitchingProject}
             >
-              Switch project
+              {isSwitchingProject ? 'Stopping run...' : 'Stop and switch'}
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <InitWizard
-        open={showInitWizard}
-        onOpenChange={setShowInitWizard}
+        open={isInitWizardOpen}
+        onOpenChange={(open) => {
+          setInitWizardProjectPath(open && activeProjectPath ? activeProjectPath : null);
+        }}
         onInitialized={() => {
           loadConfig();
           loadTasks();

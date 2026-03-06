@@ -248,3 +248,60 @@
   - Deleted obsolete `packages/desktop/src/renderer/components/Layout.tsx` and confirmed no remaining `Layout`, `viewSlice`, or `setActiveView` references in `src/renderer`
   - Confirmed `VIEW_META` now only exists in `routes/__root.tsx` and `App.tsx` continues to render `RouterProvider`
   - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-05 | render-markdown-in-task-detail-dialog | Completed
+  - Installed react-markdown@10.1.0 and remark-gfm@4.0.1 in packages/desktop
+  - Removed hand-rolled parseMarkdownSections, renderSectionBody, and MarkdownSection type from TaskDetailDialog.tsx
+  - Created RenderedMarkdown component using react-markdown with remark-gfm for GFM support (tables, strikethrough, task lists)
+  - Mapped all markdown elements (h1-h4, p, ul, ol, li, a, strong, em, code, pre, blockquote, hr, table, input) to styled React elements using existing Tailwind design tokens (text-light, text-mid, text-dim, border-edge, bg-panel, etc.)
+  - Inline code styled with bg-accent-bg/text-primary; fenced code blocks in bordered pre with monospace font
+  - Frontmatter and "# Task:" title line stripped before rendering since dialog header already displays them
+  - Dialog chrome (header, status badge, labels, metadata, footer buttons, loading/error states) unchanged
+  - All validation passing: bun lint (0 errors, only pre-existing react-hooks-js todos), bun fmt, bun typecheck (all packages pass)
+
+2026-03-06 | add-global-run-button-to-desktop-header | Completed
+  - Added a global Run/Stop control to the desktop header, starting continuous project-wide runs and surfacing a toast when the loop ends because no unresolved tasks remain
+  - Threaded an agent completion reason from the main process to the renderer and centralized `useAgent` IPC subscriptions to avoid duplicate listeners across screens
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | restrict-desktop-ipc-file-access-to-project-boundaries | Completed
+  - Locked task IPC file operations to the active project's `.ody/tasks` directory with canonical path validation and kept config editing limited to known Ody config files
+  - Applied the same boundary checks to inline edit file access so slash-containing renderer paths are no longer trusted
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | fix-cli-entrypoint-exit-codes | Completed
+  - Updated the CLI entrypoint to stop forcing `process.exit()` on success and to preserve a non-zero `process.exitCode` when top-level command execution throws
+  - Added a focused entrypoint test covering both success and failure exit-status behavior
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | stop-agent-before-switching-projects-in-desktop | Completed
+  - Made desktop project switching wait for the real agent stop lifecycle before changing the active project, and only reset renderer agent state after the switch succeeds
+  - Moved `agent:stopped` synchronization to the actual main-process shutdown path so the run indicator and project views no longer hide a still-running backend process
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | fix-update-command-false-success-reporting | Completed
+  - Refactored `ody update` to stop on install failures without falling through to success messaging, and set a non-zero exit status for failed installs
+  - Added focused CLI tests covering failed update, successful update, and `--check` behavior
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | harden-plan-and-import-agent-completion-validation | Completed
+  - Shared the CLI completion-marker parser/validator, removed early process kills from `plan` and `task import`, and now require a clean exit plus a standalone `<woof>COMPLETE</woof>` marker before reporting success
+  - Added focused tests covering strict marker detection, ambiguous marker output, missing markers, and non-zero exit handling
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | handle-init-prompt-cancellation-safely | Completed
+  - Guarded cancellable `ody init` model and agent text prompts before string coercion so cancel sentinels are never persisted into `.ody/ody.json`
+  - Added a focused CLI regression test for cancelled, blank, and trimmed prompt values
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | make-desktop-graceful-stop-actually-interrupt-runs | Completed
+  - Made desktop graceful stop send `SIGTERM` to the active backend process and escalate to `SIGKILL` after a short timeout so runs do not hang indefinitely
+  - Updated Agent Runner stop dialog and notifications to describe the real stop behavior instead of implying a passive wait-for-next-cycle flow
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-06 | wire-or-remove-no-op-auto-commit-toggle-in-agent-runner | Completed
+  - Removed the no-op auto-commit switch from the Agent Runner run dialog and replaced it with config-derived status text
+  - Aligned run-start messaging with other desktop entry points so auto-commit is described as config-driven instead of a per-run override
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+[2026-03-06] Completed remove-render-phase-state-updates-in-desktop-views: removed render-phase state updates from TaskBoard and tied init wizard visibility to the active project path in the desktop root route.
+[2026-03-06] Completed compare-update-versions-semantically: switched CLI update detection to semantic version ordering and added tests for equal, newer, local-newer, and prerelease cases.

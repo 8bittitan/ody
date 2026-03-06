@@ -78,10 +78,6 @@ export const TaskBoard = ({
   const effectiveLabelFilter = labelFilter ?? localLabelFilter;
   const effectiveStatusFilter = statusFilter ?? localStatusFilter;
 
-  if (!isLoading && viewError !== null) {
-    setViewError(null);
-  }
-
   const updateFilters = (filters: { label?: string | null; status?: TaskStatus | 'all' }) => {
     if (onFiltersChange) {
       onFiltersChange(filters);

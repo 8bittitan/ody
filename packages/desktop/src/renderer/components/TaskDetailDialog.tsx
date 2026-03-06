@@ -13,7 +13,9 @@ import {
   ScrollAreaViewport,
 } from '@/components/ui/scroll-area';
 import type { TaskSummary } from '@/types/ipc';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import { useTasks } from '../hooks/useTasks';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -60,129 +62,144 @@ const getLabelClassName = (label: string) => {
   return 'border-primary/25 bg-accent-bg text-primary';
 };
 
-type MarkdownSection = {
-  heading: string;
-  body: string;
-};
-
-const parseMarkdownSections = (content: string): MarkdownSection[] => {
+const stripFrontmatterAndTitle = (content: string): string => {
   // Strip YAML frontmatter
-  const stripped = content.replace(/^---[\s\S]*?---\s*/, '');
-
-  // Split on ## headings
-  const parts = stripped.split(/^## /m);
-  const sections: MarkdownSection[] = [];
-
-  for (const part of parts) {
-    const trimmed = part.trim();
-
-    if (trimmed.length === 0) {
-      continue;
-    }
-
-    const newlineIndex = trimmed.indexOf('\n');
-
-    if (newlineIndex === -1) {
-      sections.push({ heading: trimmed, body: '' });
-    } else {
-      sections.push({
-        heading: trimmed.slice(0, newlineIndex).trim(),
-        body: trimmed.slice(newlineIndex + 1).trim(),
-      });
-    }
-  }
-
-  return sections;
+  let stripped = content.replace(/^---[\s\S]*?---\s*/, '');
+  // Strip the "# Task: ..." title line since the dialog header already shows the title
+  stripped = stripped.replace(/^# .+\n*/, '');
+  return stripped.trim();
 };
 
-const renderSectionBody = (body: string) => {
-  if (body.length === 0) {
-    return null;
-  }
+const REMARK_PLUGINS = [remarkGfm];
 
-  const lines = body.split('\n');
-  const elements: React.ReactNode[] = [];
-  let listItems: string[] = [];
-  let numberedItems: string[] = [];
-  let key = 0;
+const MARKDOWN_COMPONENTS = {
+  h1: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <h1 className="text-light mt-4 mb-2 text-base font-bold first:mt-0" {...props} />
+  ),
+  h2: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <h2 className="text-light mt-4 mb-2 text-sm font-semibold first:mt-0" {...props} />
+  ),
+  h3: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <h3 className="text-light mt-3 mb-1.5 text-xs font-semibold first:mt-0" {...props} />
+  ),
+  h4: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <h4 className="text-light mt-2 mb-1 text-xs font-medium first:mt-0" {...props} />
+  ),
+  p: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <p className="text-mid mb-2 text-xs leading-relaxed" {...props} />
+  ),
+  ul: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <ul className="text-mid mb-2 list-disc space-y-1 pl-5 text-xs leading-relaxed" {...props} />
+  ),
+  ol: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <ol className="text-mid mb-2 list-decimal space-y-1 pl-5 text-xs leading-relaxed" {...props} />
+  ),
+  li: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <li className="text-mid" {...props} />
+  ),
+  a: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <a
+      className="text-primary decoration-primary/40 hover:decoration-primary underline"
+      target="_blank"
+      rel="noopener noreferrer"
+      {...props}
+    />
+  ),
+  strong: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <strong className="text-light font-semibold" {...props} />
+  ),
+  em: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <em className="text-mid italic" {...props} />
+  ),
+  blockquote: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <blockquote
+      className="border-primary/40 text-dim my-2 border-l-2 pl-3 text-xs italic"
+      {...props}
+    />
+  ),
+  hr: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <hr className="border-edge my-3" {...props} />
+  ),
+  code: ({
+    node: _node,
+    className,
+    children,
+    ...props
+  }: Record<string, unknown> & { className?: string; children?: React.ReactNode }) => {
+    const isBlock = /language-(\w+)/.exec(className ?? '');
 
-  const flushList = () => {
-    if (listItems.length > 0) {
-      elements.push(
-        <ul key={key++} className="text-mid list-disc space-y-1 pl-5 text-xs leading-relaxed">
-          {listItems.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>,
+    if (isBlock) {
+      return (
+        <code className={`font-mono text-[11px] ${className ?? ''}`} {...props}>
+          {children}
+        </code>
       );
-      listItems = [];
-    }
-  };
-
-  const flushNumberedList = () => {
-    if (numberedItems.length > 0) {
-      elements.push(
-        <ol key={key++} className="text-mid list-decimal space-y-1 pl-5 text-xs leading-relaxed">
-          {numberedItems.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ol>,
-      );
-      numberedItems = [];
-    }
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    if (trimmed.length === 0) {
-      flushList();
-      flushNumberedList();
-      continue;
     }
 
-    // Unordered list item
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      flushNumberedList();
-      listItems.push(trimmed.slice(2));
-      continue;
-    }
-
-    // Ordered list item
-    const numberedMatch = trimmed.match(/^\d+\.\s+(.+)/);
-
-    if (numberedMatch) {
-      flushList();
-      numberedItems.push(numberedMatch[1]);
-      continue;
-    }
-
-    // Bold heading-like lines (e.g. **Step 1: ...**)
-    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-      flushList();
-      flushNumberedList();
-      elements.push(
-        <p key={key++} className="text-light mt-1 text-xs font-semibold">
-          {trimmed.replace(/\*\*/g, '')}
-        </p>,
-      );
-      continue;
-    }
-
-    // Regular paragraph
-    flushList();
-    flushNumberedList();
-    elements.push(
-      <p key={key++} className="text-mid text-xs leading-relaxed">
-        {trimmed}
-      </p>,
+    return (
+      <code
+        className="bg-accent-bg text-primary rounded px-1 py-0.5 font-mono text-[11px]"
+        {...props}
+      >
+        {children}
+      </code>
     );
-  }
+  },
+  pre: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <pre
+      className="border-edge bg-panel my-2 overflow-x-auto rounded border p-3 text-xs"
+      {...props}
+    />
+  ),
+  table: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <div className="my-2 overflow-x-auto">
+      <table className="border-edge w-full border-collapse text-xs" {...props} />
+    </div>
+  ),
+  thead: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <thead className="border-edge border-b" {...props} />
+  ),
+  th: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <th
+      className="text-light border-edge border px-2 py-1 text-left text-xs font-semibold"
+      {...props}
+    />
+  ),
+  td: ({ node: _node, ...props }: Record<string, unknown>) => (
+    <td className="text-mid border-edge border px-2 py-1 text-xs" {...props} />
+  ),
+  input: ({
+    node: _node,
+    ...props
+  }: Record<string, unknown> & { type?: string; checked?: boolean }) => {
+    if (props.type === 'checkbox') {
+      return (
+        <input
+          type="checkbox"
+          disabled
+          className="mr-1.5 align-middle"
+          checked={props.checked}
+          readOnly
+        />
+      );
+    }
 
-  flushList();
-  flushNumberedList();
+    return <input {...props} />;
+  },
+} as Record<string, React.ComponentType>;
 
-  return <div className="space-y-2">{elements}</div>;
+type RenderedMarkdownProps = {
+  content: string;
+};
+
+const RenderedMarkdown = ({ content }: RenderedMarkdownProps) => {
+  const stripped = useMemo(() => stripFrontmatterAndTitle(content), [content]);
+
+  return (
+    <Markdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+      {stripped}
+    </Markdown>
+  );
 };
 
 export const TaskDetailDialog = ({ task, open, onClose, onEdit }: TaskDetailDialogProps) => {
@@ -219,8 +236,6 @@ export const TaskDetailDialog = ({ task, open, onClose, onEdit }: TaskDetailDial
       setError(null);
     }
   }, [open, task, fetchContent]);
-
-  const sections = content ? parseMarkdownSections(content) : [];
 
   return (
     <Dialog
@@ -288,16 +303,11 @@ export const TaskDetailDialog = ({ task, open, onClose, onEdit }: TaskDetailDial
           </div>
         ) : null}
 
-        {content && sections.length > 0 ? (
+        {content ? (
           <ScrollArea className="max-h-[70vh] min-h-0">
             <ScrollAreaViewport>
-              <ScrollAreaContent className="space-y-4 pr-2">
-                {sections.map((section) => (
-                  <div key={section.heading}>
-                    <h3 className="text-light mb-2 text-sm font-semibold">{section.heading}</h3>
-                    {renderSectionBody(section.body)}
-                  </div>
-                ))}
+              <ScrollAreaContent className="pr-2">
+                <RenderedMarkdown content={content} />
               </ScrollAreaContent>
             </ScrollAreaViewport>
             <ScrollAreaScrollbar orientation="vertical">

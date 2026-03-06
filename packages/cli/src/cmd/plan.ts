@@ -4,38 +4,12 @@ import path from 'node:path';
 import { spinner, text, isCancel, outro, log, confirm } from '@clack/prompts';
 import { Backend } from '@internal/backends';
 import { buildBatchPlanPrompt, buildPlanPrompt } from '@internal/builders';
+import { buildInteractivePlanPrompt } from '@internal/builders/src/planPrompt';
 import { BASE_DIR, Config, TASKS_DIR } from '@internal/config';
 import { defineCommand } from 'citty';
 
+import { createCompletionMarkerDetector, validateAgentCompletion } from '../util/agentCompletion';
 import { Stream } from '../util/stream';
-
-const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
-
-function createCompletionMarkerDetector() {
-  let rolling = '';
-
-  return {
-    onChunk(chunk: string) {
-      if (chunk === '') {
-        return false;
-      }
-
-      rolling += chunk;
-
-      if (rolling.includes(COMPLETE_MARKER)) {
-        return true;
-      }
-
-      const maxCarry = COMPLETE_MARKER.length - 1;
-
-      if (rolling.length > maxCarry) {
-        rolling = rolling.slice(-maxCarry);
-      }
-
-      return false;
-    },
-  };
-}
 
 export const planCmd = defineCommand({
   meta: {
@@ -58,6 +32,12 @@ export const planCmd = defineCommand({
       default: false,
       description: "Enable verbose logging, streaming the agent's work in progress",
       type: 'boolean',
+    },
+    interactive: {
+      default: false,
+      alias: 'i',
+      type: 'boolean',
+      description: 'Run plan mode interactively with the chosen harness',
     },
   },
   async run({ args }) {
@@ -93,20 +73,19 @@ export const planCmd = defineCommand({
         });
         const markerDetector = createCompletionMarkerDetector();
 
-        await Promise.allSettled([
+        await Promise.all([
           Stream.toOutput(proc.stdout, {
             shouldPrint: args.verbose,
-            onChunk({ chunk }) {
-              if (markerDetector.onChunk(chunk)) {
-                proc.kill();
-                return true;
-              }
+            onChunk(chunk) {
+              markerDetector.onChunk(chunk);
             },
           }),
           Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
         ]);
 
-        await proc.exited;
+        const markerDetection = markerDetector.finalize();
+        const exitCode = await proc.exited;
+        validateAgentCompletion(exitCode, markerDetection, { requireMarker: true });
 
         spin.stop('Task plans generated from file');
       } catch (err) {
@@ -117,6 +96,23 @@ export const planCmd = defineCommand({
 
       outro('Batch task planning complete');
       return;
+    }
+
+    if (args.interactive) {
+      log.info('Interactive mode chosen, launching harness');
+
+      const planPrompt = buildInteractivePlanPrompt();
+
+      const model = Config.resolveModel('plan', config);
+
+      const proc = Bun.spawn({
+        cmd: backend.buildInteractiveCommand(planPrompt, model),
+        stdio: ['inherit', 'inherit', 'inherit'],
+      });
+
+      const exitCode = await proc.exited;
+
+      process.exit(exitCode);
     }
 
     const descriptions: string[] = [];
@@ -174,20 +170,19 @@ export const planCmd = defineCommand({
           });
           const markerDetector = createCompletionMarkerDetector();
 
-          await Promise.allSettled([
+          await Promise.all([
             Stream.toOutput(proc.stdout, {
               shouldPrint: args.verbose,
-              onChunk({ chunk }) {
-                if (markerDetector.onChunk(chunk)) {
-                  proc.kill();
-                  return true;
-                }
+              onChunk(chunk) {
+                markerDetector.onChunk(chunk);
               },
             }),
             Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
           ]);
 
-          await proc.exited;
+          const markerDetection = markerDetector.finalize();
+          const exitCode = await proc.exited;
+          validateAgentCompletion(exitCode, markerDetection, { requireMarker: true });
 
           spin.stop(`Task plan ${i + 1} of ${descriptions.length} generated`);
           generated++;

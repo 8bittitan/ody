@@ -25,6 +25,16 @@ import { defineCommand } from 'citty';
 
 import { getRandomValidatorPlaceholder } from '../util/inputPrompt';
 
+const CANCELLED_PROMPT = Symbol('cancelled-prompt');
+
+export function normalizeOptionalPromptValue(value: string | symbol) {
+  if (typeof value === 'symbol' || isCancel(value)) {
+    return CANCELLED_PROMPT;
+  }
+
+  return value.trim();
+}
+
 async function getOpencodeModels() {
   try {
     const proc = Bun.spawn(['opencode', 'models'], {
@@ -168,25 +178,39 @@ export const initCmd = defineCommand({
               process.exit(0);
             }
 
-            model = modelChoice.toString();
+            model = modelChoice;
           } else {
             log.warn('Could not load models from `opencode models`. Falling back to manual entry.');
-            model = (
+            const manualModelEntry = normalizeOptionalPromptValue(
               await text({
                 message: 'You can choose a model to use for your backend',
                 placeholder: 'Leave blank to use default model set on backend',
                 defaultValue: '',
-              })
-            ).toString();
+              }),
+            );
+
+            if (manualModelEntry === CANCELLED_PROMPT) {
+              cancel('Model selection cancelled.');
+              process.exit(0);
+            }
+
+            model = manualModelEntry;
           }
         } else {
-          model = (
+          const manualModelEntry = normalizeOptionalPromptValue(
             await text({
               message: 'You can choose a model to use for your backend',
               placeholder: 'Leave blank to use default model set on backend',
               defaultValue: '',
-            })
-          ).toString();
+            }),
+          );
+
+          if (manualModelEntry === CANCELLED_PROMPT) {
+            cancel('Model selection cancelled.');
+            process.exit(0);
+          }
+
+          model = manualModelEntry;
         }
       }
 
@@ -197,13 +221,20 @@ export const initCmd = defineCommand({
       let agent = args.agent;
 
       if (!agent) {
-        agent = (
+        const agentEntry = normalizeOptionalPromptValue(
           await text({
             message: 'Agent profile/persona for the backend harness',
             placeholder: 'Leave blank to use default (build)',
             defaultValue: '',
-          })
-        ).toString();
+          }),
+        );
+
+        if (agentEntry === CANCELLED_PROMPT) {
+          cancel('Agent selection cancelled.');
+          process.exit(0);
+        }
+
+        agent = agentEntry;
       }
 
       if (agent && agent.trim() !== '') {
