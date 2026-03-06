@@ -6,6 +6,17 @@ import { useCallback } from 'react';
 
 let cleanupAgentListeners: (() => void) | null = null;
 
+const hydrateAgentStatus = async () => {
+  try {
+    const status = await api.agent.status();
+    const state = useStore.getState();
+    state.setRunning(status.isRunning);
+    state.setIteration(status.iteration, status.maxIterations);
+  } catch {
+    // Ignore hydration failures — the store keeps its current values
+  }
+};
+
 const ensureAgentListeners = () => {
   if (cleanupAgentListeners) {
     return;
@@ -51,6 +62,12 @@ const ensureAgentListeners = () => {
     useStore.getState().setAmbiguousMarker(true);
   });
 
+  const unbindSwitched = api.projects.onSwitched(() => {
+    void hydrateAgentStatus();
+  });
+
+  void hydrateAgentStatus();
+
   cleanupAgentListeners = () => {
     unbindStarted();
     unbindIteration();
@@ -59,6 +76,7 @@ const ensureAgentListeners = () => {
     unbindStopped();
     unbindVerifyFailed();
     unbindAmbiguousMarker();
+    unbindSwitched();
     cleanupAgentListeners = null;
   };
 };

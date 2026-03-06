@@ -18,6 +18,13 @@ export type RunOptions = {
 
 export type AgentCompletionReason = 'finished' | 'no_tasks_remaining';
 
+export type AgentStatus = {
+  isRunning: boolean;
+  iteration: number;
+  maxIterations: number;
+  taskFiles: string[];
+};
+
 export type TaskSummary = {
   filePath: string;
   title: string;
@@ -98,6 +105,7 @@ export type IpcChannels = {
   'tasks:states': (filePaths?: string[]) => TaskState[];
   'agent:run': (opts: RunOptions) => { started: boolean };
   'agent:stop': (force?: boolean) => { stopped: boolean };
+  'agent:status': () => AgentStatus;
   'agent:planNew': (description: string) => { started: boolean };
   'agent:planBatch': (filePath: string) => { started: boolean };
   'agent:planPreview': (description: string) => { prompt: string };
@@ -191,6 +199,7 @@ export type OdyApi = {
   agent: {
     run: Asyncify<IpcChannels['agent:run']>;
     stop: Asyncify<IpcChannels['agent:stop']>;
+    status: Asyncify<IpcChannels['agent:status']>;
     planNew: Asyncify<IpcChannels['agent:planNew']>;
     planBatch: Asyncify<IpcChannels['agent:planBatch']>;
     planPreview: Asyncify<IpcChannels['agent:planPreview']>;

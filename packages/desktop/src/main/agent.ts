@@ -9,7 +9,7 @@ import { Config, TASKS_DIR, type OdyConfig } from '@internal/config';
 import { getTaskStates, getTaskStatus, type TaskState } from '@internal/tasks';
 import { Notification, type BrowserWindow } from 'electron';
 
-import type { AgentCompletionReason, RunOptions } from '../renderer/types/ipc';
+import type { AgentCompletionReason, AgentStatus, RunOptions } from '../renderer/types/ipc';
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
 const GRACEFUL_STOP_TIMEOUT_MS = 5000;
@@ -94,6 +94,9 @@ export class AgentRunner {
   private aborted = false;
   private forceStop = false;
   private procClosed: Promise<void> | null = null;
+  private _iteration = 0;
+  private _maxIterations = 0;
+  private _taskFiles: string[] = [];
 
   constructor(
     private readonly options?: {
@@ -104,6 +107,15 @@ export class AgentRunner {
 
   isRunning() {
     return this.proc !== null;
+  }
+
+  status(): AgentStatus {
+    return {
+      isRunning: this.isRunning(),
+      iteration: this._iteration,
+      maxIterations: this._maxIterations,
+      taskFiles: this._taskFiles,
+    };
   }
 
   async runLoop(win: BrowserWindow, opts: RunOptions, resolvedConfig?: OdyConfig) {
@@ -134,6 +146,9 @@ export class AgentRunner {
 
     this.aborted = false;
     this.forceStop = false;
+    this._iteration = 0;
+    this._maxIterations = maxIterations;
+    this._taskFiles = opts.taskFiles ?? [];
     win.webContents.send('agent:started');
 
     if (await this.shouldStopForNoTasksRemaining({ opts, tasksDirPath, maxIterations })) {
@@ -147,6 +162,7 @@ export class AgentRunner {
       (maxIterations === 0 || iteration <= maxIterations);
       iteration++
     ) {
+      this._iteration = iteration;
       win.webContents.send('agent:iteration', iteration, maxIterations);
 
       const cmd = backend.buildCommand(prompt, model);
@@ -184,6 +200,10 @@ export class AgentRunner {
         this.sendNotification('Ody', `Agent iteration ${iteration} complete`);
       }
     }
+
+    this._iteration = 0;
+    this._maxIterations = 0;
+    this._taskFiles = [];
 
     if (this.aborted) {
       win.webContents.send('agent:stopped');

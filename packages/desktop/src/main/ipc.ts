@@ -775,6 +775,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     return { stopped: stoppedAgent || hadInlineEditProc || hadInlineEditSnapshot };
   });
+  registerHandler('agent:status', () => agentRunner.status());
   registerHandler('agent:planNew', async (description: unknown) => {
     const activeProjectPath = readActiveProjectPath();
     const promptInput = String(description ?? '').trim();

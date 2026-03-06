@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-03-06
-started: null
-completed: null
+started: 2026-03-06
+completed: 2026-03-06
 ---
 
 # Task: Hydrate Agent State on Desktop Load

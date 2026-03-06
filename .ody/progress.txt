@@ -305,3 +305,4 @@
   - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
 [2026-03-06] Completed remove-render-phase-state-updates-in-desktop-views: removed render-phase state updates from TaskBoard and tied init wizard visibility to the active project path in the desktop root route.
 [2026-03-06] Completed compare-update-versions-semantically: switched CLI update detection to semantic version ordering and added tests for equal, newer, local-newer, and prerelease cases.
+[2026-03-06] Completed hydrate-agent-state-on-desktop-load: added agent:status IPC channel so the renderer can query current agent state on mount and project switch, hydrating the Zustand store with isRunning/iteration/maxIterations from the main process.

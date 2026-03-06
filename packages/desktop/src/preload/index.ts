@@ -38,6 +38,7 @@ const ody: OdyApi = {
   agent: {
     run: (opts) => ipcRenderer.invoke('agent:run', opts),
     stop: (force) => ipcRenderer.invoke('agent:stop', force),
+    status: () => ipcRenderer.invoke('agent:status'),
     planNew: (description) => ipcRenderer.invoke('agent:planNew', description),
     planBatch: (filePath) => ipcRenderer.invoke('agent:planBatch', filePath),
     planPreview: (description) => ipcRenderer.invoke('agent:planPreview', description),
