@@ -142,7 +142,5 @@ export namespace Installation {
       const stderr = res.stderr.toString('utf8');
       throw new Error(`Failed to install: ${stderr}`);
     }
-
-    await $`${process.execPath} --version`.nothrow().quiet().text();
   }
 }

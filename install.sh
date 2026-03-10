@@ -31,6 +31,10 @@ main() {
 
   INSTALL_DIR="${ODY_INSTALL_DIR:-$HOME/.local/bin}"
   BINARY_NAME="ody-${PLATFORM}-${ARCH}"
+  TMP_FILE="${INSTALL_DIR}/ody.tmp.$$"
+
+  # Clean up temp file on failure
+  trap 'rm -f "$TMP_FILE" 2>/dev/null' EXIT
 
   printf "Detecting platform: %s %s\n" "$PLATFORM" "$ARCH"
 
@@ -51,11 +55,12 @@ main() {
   # Ensure install directory exists
   mkdir -p "$INSTALL_DIR"
 
-  # Download binary
-  curl -fsSL "$DOWNLOAD_URL" -o "${INSTALL_DIR}/ody"
-
-  # Make executable
-  chmod +x "${INSTALL_DIR}/ody"
+  # Download to a temp file, then atomically replace the target.
+  # Writing directly to the running binary corrupts it on macOS
+  # (code-signature invalidation causes SIGKILL).
+  curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE"
+  chmod +x "$TMP_FILE"
+  mv -f "$TMP_FILE" "${INSTALL_DIR}/ody"
 
   printf "Installed ody to %s/ody\n" "$INSTALL_DIR"
 
