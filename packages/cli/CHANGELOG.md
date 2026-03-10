@@ -1,5 +1,13 @@
 # @ody/cli
 
+## 0.6.1
+
+### Patch Changes
+
+- ### Bug Fixes
+  - Fix update installation (be4faa5)
+  - update combobox popover side (cd5913e)
+
 ## 0.6.0
 
 ### Minor Changes
@@ -25,14 +33,17 @@
 ### Minor Changes
 
 - ### Features
+
   - add OpenCode model autocomplete with fallback (9f2f628)
   - make edit command use interactive PTY (05a1591)
   - update docs layout, add og image generation (cf9c391)
 
   ### Bug Fixes
+
   - fixes layout and incorrect text for auth commands (e9188a9)
 
   ### Maintenance
+
   - bump to use tsgo (a91a6aa)
   - package bumps (fa8817c)
 
