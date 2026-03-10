@@ -167,9 +167,9 @@ export const InitWizard = ({ open, onOpenChange, onInitialized }: InitWizardProp
             <label className="bg-background/40 border-edge flex items-center justify-between rounded-md border px-3 py-2">
               <span className="text-light text-sm">Auto Commit</span>
               <Switch
-                checked={form.shouldCommit}
+                checked={form.autoCommit}
                 onCheckedChange={(checked) => {
-                  setForm((prev) => ({ ...prev, shouldCommit: checked }));
+                  setForm((prev) => ({ ...prev, autoCommit: checked }));
                 }}
               />
             </label>

@@ -162,7 +162,7 @@ export const AgentRunInputSchema = z.object({
   projectPath: z.string(),
   taskId: z.string(),
   model: z.string().optional(),
-  shouldCommit: z.boolean().optional(),
+  autoCommit: z.boolean().optional(),
 });
 
 export const AgentRunResultSchema = z.object({

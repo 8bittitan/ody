@@ -11,11 +11,11 @@ export const LOOP_PROMPT = `
    If any validation commands are failing, do your best to fix them on your own
 5. Update the task's YAML frontmatter: set "status: completed" and set "completed" to today's date (YYYY-MM-DD format).
 6. Append a short progress note to {PROGRESS_FILE} file.
-7. If shouldCommit is true, create a git commit for this task.
+7. If autoCommit is true, create a git commit for this task.
    ONLY commit if all validation commands are passing
 
 INPUT
-shouldCommit: {SHOULD_COMMIT}
+autoCommit: {AUTO_COMMIT}
 
 OUTPUT
 - If all tasks in {TASKS_DIR} are completed (no pending tasks remain), output <woof>COMPLETE</woof>.
@@ -30,11 +30,11 @@ export const SINGLE_TASK_PROMPT = `
    If any validation commands are failing, do your best to fix them on your own
 5. Update the task's YAML frontmatter: set "status: completed" and set "completed" to today's date (YYYY-MM-DD format).
 6. Append a short progress note to {PROGRESS_FILE} file.
-7. If shouldCommit is true, create a git commit for this task.
+7. If autoCommit is true, create a git commit for this task.
    ONLY commit if all validation commands are passing
 
 INPUT
-shouldCommit: {SHOULD_COMMIT}
+autoCommit: {AUTO_COMMIT}
 
 OUTPUT
 - When the task is completed, output <woof>COMPLETE</woof>.
@@ -43,12 +43,12 @@ OUTPUT
 type BuildRunPromptOptions = {
   taskFiles?: string[];
   taskFile?: string;
-  config?: Pick<OdyConfig, 'shouldCommit' | 'validatorCommands' | 'tasksDir'>;
+  config?: Pick<OdyConfig, 'autoCommit' | 'validatorCommands' | 'tasksDir'>;
 };
 
 export const buildRunPrompt = (options?: BuildRunPromptOptions) => {
   const config = options?.config ?? Config.all();
-  const shouldCommit = config.shouldCommit;
+  const autoCommit = config.autoCommit;
   const validatorCommands = config.validatorCommands;
   const tasksDirPath = path.join(BASE_DIR, config.tasksDir ?? TASKS_DIR);
   const validationStr = validatorCommands ? validatorCommands.join(', ') : '';
@@ -57,7 +57,7 @@ export const buildRunPrompt = (options?: BuildRunPromptOptions) => {
     const prompt = SINGLE_TASK_PROMPT.replace('{TASK_FILE}', options.taskFile)
       .replace('{VALIDATION_COMMANDS}', validationStr)
       .replace('{PROGRESS_FILE}', '.ody/progress.txt')
-      .replace('{SHOULD_COMMIT}', String(shouldCommit));
+      .replace('{AUTO_COMMIT}', String(autoCommit));
 
     return prompt.trim();
   }
@@ -65,7 +65,7 @@ export const buildRunPrompt = (options?: BuildRunPromptOptions) => {
   let prompt = LOOP_PROMPT.replace('{VALIDATION_COMMANDS}', validationStr)
     .replace(/{TASKS_DIR}/g, tasksDirPath)
     .replace('{PROGRESS_FILE}', '.ody/progress.txt')
-    .replace('{SHOULD_COMMIT}', String(shouldCommit));
+    .replace('{AUTO_COMMIT}', String(autoCommit));
 
   if (options?.taskFiles && options.taskFiles.length > 0) {
     const taskList = options.taskFiles.map((f) => `  - ${f}`).join('\n');

@@ -34,7 +34,7 @@ const commandModelsSchema = z.object({
 export const configSchema = z.object({
   backend: backendsSchema,
   maxIterations: z.number().int().nonnegative(),
-  shouldCommit: z.boolean().default(false),
+  autoCommit: z.boolean().default(false),
   validatorCommands: z.array(z.string()).default([]).optional(),
   model: z.union([z.string(), commandModelsSchema]).optional(),
   skipPermissions: z.boolean().default(true).optional(),
@@ -83,6 +83,18 @@ async function loadJsonFile(filePath: string): Promise<Record<string, unknown> |
 
   const input = await readFile(filePath, 'utf-8');
   return JSON.parse(input) as Record<string, unknown>;
+}
+
+function migrateDeprecatedKeys(raw: Record<string, unknown>): void {
+  if ('shouldCommit' in raw) {
+    console.warn('[ody] Config key "shouldCommit" is deprecated. Use "autoCommit" instead.');
+
+    if (!('autoCommit' in raw)) {
+      raw.autoCommit = raw.shouldCommit;
+    }
+
+    delete raw.shouldCommit;
+  }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -136,7 +148,7 @@ export namespace Config {
         .int()
         .nonnegative()
         .describe('Max number of iterations to run in the loop (0 = infinite)'),
-      shouldCommit: z
+      autoCommit: z
         .boolean()
         .default(false)
         .describe('Generate a commit after each loop iteration'),
@@ -214,6 +226,7 @@ export namespace Config {
     }
 
     const merged = deepMerge(globalRaw, localRaw);
+    migrateDeprecatedKeys(merged);
     config = parse(merged);
   }
 

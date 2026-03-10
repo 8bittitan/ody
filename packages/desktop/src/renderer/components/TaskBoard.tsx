@@ -1,4 +1,5 @@
-import { Collapsible } from '@/components/ui/collapsible';
+import type { ComboboxOption } from '@/components/ui/combobox';
+import { MultiCombobox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -61,7 +62,7 @@ export const TaskBoard = ({
   onOpenEditor,
   labelFilter,
   statusFilter,
-  onFiltersChange,
+  onFiltersChange: _onFiltersChange,
 }: TaskBoardProps) => {
   const { activeProjectPath } = useProjects();
   const { tasks, loadTasks, isLoading } = useTasks();
@@ -69,36 +70,34 @@ export const TaskBoard = ({
   const { start, stop, isRunning, output, iteration, maxIterations } = useAgent();
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
-  const [localLabelFilter, setLocalLabelFilter] = useState<string | null>(null);
-  const [localStatusFilter, setLocalStatusFilter] = useState<TaskStatus | 'all'>('all');
+  const [localLabelFilter, setLocalLabelFilter] = useState<string[]>([]);
+  const [localStatusFilter, setLocalStatusFilter] = useState<TaskStatus[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<TaskSummary | null>(null);
   const [detailTarget, setDetailTarget] = useState<TaskSummary | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [viewError, setViewError] = useState<string | null>(null);
-  const effectiveLabelFilter = labelFilter ?? localLabelFilter;
-  const effectiveStatusFilter = statusFilter ?? localStatusFilter;
 
-  const updateFilters = (filters: { label?: string | null; status?: TaskStatus | 'all' }) => {
-    if (onFiltersChange) {
-      onFiltersChange(filters);
-      return;
+  const effectiveLabelFilter = useMemo<string[]>(() => {
+    if (labelFilter !== undefined) {
+      return [labelFilter];
     }
+    return localLabelFilter;
+  }, [labelFilter, localLabelFilter]);
 
-    if (filters.label !== undefined) {
-      setLocalLabelFilter(filters.label);
+  const effectiveStatusFilter = useMemo<TaskStatus[]>(() => {
+    if (statusFilter !== undefined && statusFilter !== 'all') {
+      return [statusFilter];
     }
-
-    if (filters.status !== undefined) {
-      setLocalStatusFilter(filters.status);
-    }
-  };
+    return localStatusFilter;
+  }, [statusFilter, localStatusFilter]);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchesLabel =
-        effectiveLabelFilter === null || task.labels.includes(effectiveLabelFilter);
+        effectiveLabelFilter.length === 0 ||
+        task.labels.some((l) => effectiveLabelFilter.includes(l));
       const matchesStatus =
-        effectiveStatusFilter === 'all' || task.status === effectiveStatusFilter;
+        effectiveStatusFilter.length === 0 || effectiveStatusFilter.includes(task.status);
       return matchesLabel && matchesStatus;
     });
   }, [tasks, effectiveLabelFilter, effectiveStatusFilter]);
@@ -124,6 +123,20 @@ export const TaskBoard = ({
 
     return Array.from(labels).sort((a, b) => a.localeCompare(b));
   }, [tasks]);
+
+  const labelOptions = useMemo<ComboboxOption[]>(
+    () => uniqueLabels.map((l) => ({ label: l, value: l })),
+    [uniqueLabels],
+  );
+
+  const statusOptions = useMemo<ComboboxOption[]>(
+    () =>
+      (['pending', 'in_progress', 'completed'] as const).map((s) => ({
+        label: COLUMN_META[s].label,
+        value: s,
+      })),
+    [],
+  );
 
   const groupedTasks = useMemo(
     () => ({
@@ -155,7 +168,7 @@ export const TaskBoard = ({
     }
 
     const iterations = typeof config?.maxIterations === 'number' ? config.maxIterations : 1;
-    const shouldCommit = typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false;
+    const autoCommit = typeof config?.autoCommit === 'boolean' ? config.autoCommit : false;
 
     try {
       const result = await start({
@@ -171,7 +184,7 @@ export const TaskBoard = ({
 
       accent({
         title: 'Task run started',
-        description: shouldCommit ? 'Auto-commit enabled.' : undefined,
+        description: autoCommit ? 'Auto-commit enabled.' : undefined,
       });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unable to start task run';
@@ -304,73 +317,28 @@ export const TaskBoard = ({
         </div>
       </section>
 
-      <Collapsible
-        defaultOpen={false}
-        label="Filter by label"
-        badge={effectiveLabelFilter}
-        className="min-w-0"
-      >
-        <section className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              updateFilters({ label: null });
-            }}
-            className={[
-              'rounded-md border px-2 py-1 text-xs',
-              effectiveLabelFilter === null
-                ? 'border-primary/35 bg-accent-bg text-primary'
-                : 'border-edge text-mid hover:text-light',
-            ].join(' ')}
-          >
-            All labels
-          </button>
-          {uniqueLabels.map((label) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => {
-                updateFilters({ label: effectiveLabelFilter === label ? null : label });
-              }}
-              className={[
-                'rounded-md border px-2 py-1 text-xs',
-                effectiveLabelFilter === label
-                  ? 'border-primary/35 bg-accent-bg text-primary'
-                  : 'border-edge text-mid hover:text-light',
-              ].join(' ')}
-            >
-              {label}
-            </button>
-          ))}
-        </section>
-      </Collapsible>
-
-      <Collapsible
-        defaultOpen={false}
-        label="Filter by status"
-        badge={effectiveStatusFilter === 'all' ? null : effectiveStatusFilter}
-        className="min-w-0"
-      >
-        <section className="flex flex-wrap items-center gap-1.5">
-          {(['all', 'pending', 'in_progress', 'completed'] as const).map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => {
-                updateFilters({ status });
-              }}
-              className={[
-                'rounded-md border px-2 py-1 text-xs',
-                effectiveStatusFilter === status
-                  ? 'border-primary/35 bg-accent-bg text-primary'
-                  : 'border-edge text-mid hover:text-light',
-              ].join(' ')}
-            >
-              {status === 'all' ? 'All statuses' : COLUMN_META[status].label}
-            </button>
-          ))}
-        </section>
-      </Collapsible>
+      <section className="flex flex-wrap items-center gap-3">
+        <MultiCombobox
+          options={labelOptions}
+          value={effectiveLabelFilter}
+          onValueChange={(next) => {
+            setLocalLabelFilter(next);
+          }}
+          placeholder="Filter by label"
+          emptyMessage="No labels found."
+          className="max-w-xs min-w-[12rem] flex-1"
+        />
+        <MultiCombobox
+          options={statusOptions}
+          value={effectiveStatusFilter}
+          onValueChange={(next) => {
+            setLocalStatusFilter(next as TaskStatus[]);
+          }}
+          placeholder="Filter by status"
+          emptyMessage="No statuses found."
+          className="max-w-xs min-w-[12rem] flex-1"
+        />
+      </section>
 
       <section className="grid min-h-0 flex-1 gap-3 md:grid-cols-3">
         {(['pending', 'in_progress', 'completed'] as const).map((status) => {

@@ -16,7 +16,7 @@ ody init
 | `--backend`       | `-b`  | `string`  | _(prompt)_ | Agent backend to use (`claude`, `opencode`, `codex`)   |
 | `--maxIterations` | `-i`  | `string`  | `"0"`      | Max loop iterations. `0` means unlimited               |
 | `--model`         | `-m`  | `string`  | _(prompt)_ | Model identifier for the backend                       |
-| `--shouldCommit`  | `-c`  | `boolean` | `false`    | Commit after each completed task                       |
+| `--autoCommit`    | `-c`  | `boolean` | `false`    | Commit after each completed task                       |
 | `--agent`         | `-a`  | `string`  | _(prompt)_ | Agent profile/persona for the backend harness          |
 | `--notify`        | `-n`  | `string`  | _(prompt)_ | Notification preference (`false`, `all`, `individual`) |
 | `--dry-run`       |       | `boolean` | `false`    | Print the configuration without saving it              |
@@ -45,7 +45,7 @@ ody init
 Non-interactive with all flags:
 
 ```bash
-ody init --backend claude --maxIterations 5 --model claude-sonnet-4-20250514 --shouldCommit
+ody init --backend claude --maxIterations 5 --model claude-sonnet-4-20250514 --autoCommit
 ```
 
 Preview what would be saved:

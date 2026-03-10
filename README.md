@@ -114,7 +114,7 @@ Set up ody for the current project. Creates `.ody/` and writes `ody.json`.
 | `--backend`       | `-b`  | Agent backend: `claude`, `opencode`, or `codex`       |
 | `--maxIterations` | `-i`  | Max loop iterations (0 = unlimited)                   |
 | `--model`         | `-m`  | Model to use for the backend                          |
-| `--shouldCommit`  | `-c`  | Commit after each completed task                      |
+| `--autoCommit`    | `-c`  | Commit after each completed task                      |
 | `--agent`         | `-a`  | Agent profile/persona for the backend harness         |
 | `--notify`        | `-n`  | Notification preference: `false`, `all`, `individual` |
 | `--dry-run`       |       | Print config without saving                           |
@@ -212,7 +212,7 @@ Configuration lives in `.ody/ody.json` (per-project). A global config can also b
 | ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------- |
 | `backend`           | `"claude"` \| `"opencode"` \| `"codex"`                    | Which AI backend to use                                       |
 | `maxIterations`     | number                                                     | Max loop iterations (0 = unlimited)                           |
-| `shouldCommit`      | boolean                                                    | Git-commit after each task                                    |
+| `autoCommit`        | boolean                                                    | Git-commit after each task                                    |
 | `validatorCommands` | string[]                                                   | Shell commands to validate agent work                         |
 | `model`             | string \| `{ run?: string; plan?: string; edit?: string }` | Default model or per-command model overrides                  |
 | `skipPermissions`   | boolean                                                    | Skip Claude Code permission checks (default `true`)           |

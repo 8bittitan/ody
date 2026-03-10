@@ -114,7 +114,7 @@ export const AgentRunner = () => {
       return;
     }
 
-    const shouldCommit = typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false;
+    const autoCommit = typeof config?.autoCommit === 'boolean' ? config.autoCommit : false;
     const result = await start({
       projectDir: activeProjectPath,
       taskFiles: taskFilesForRun,
@@ -128,7 +128,7 @@ export const AgentRunner = () => {
 
     accent({
       title: 'Agent run started',
-      description: shouldCommit ? 'Auto-commit enabled.' : undefined,
+      description: autoCommit ? 'Auto-commit enabled.' : undefined,
     });
     setShowRunConfirm(false);
   };
@@ -308,7 +308,7 @@ export const AgentRunner = () => {
             <div className="border-edge rounded border p-2 text-xs">
               <p className="text-dim">Auto-commit</p>
               <p className="text-mid mt-1">
-                {typeof config?.shouldCommit === 'boolean' && config.shouldCommit
+                {typeof config?.autoCommit === 'boolean' && config.autoCommit
                   ? 'Enabled by config for this project.'
                   : 'Disabled in config.'}
               </p>

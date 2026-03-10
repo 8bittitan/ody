@@ -27,7 +27,7 @@ Configuration lives in `.ody/ody.json` in your project root. A global configurat
       type: 'number',
       required: true,
     },
-    shouldCommit: {
+    autoCommit: {
       description: 'Generate a commit after each loop iteration',
       type: 'boolean',
       default: 'false',
@@ -79,7 +79,7 @@ Configuration lives in `.ody/ody.json` in your project root. A global configurat
 {
   "backend": "claude",
   "maxIterations": 5,
-  "shouldCommit": true,
+  "autoCommit": true,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
   "model": "claude-sonnet-4-20250514"
 }

@@ -31,7 +31,7 @@ This is misleading: users can toggle the switch and reasonably expect it to chan
 - `@internal/config` / backend run behavior — determines whether per-run auto-commit overrides are actually supported
 
 ## Implementation Approach
-1. Review whether the underlying desktop/main-process run flow can support a per-run `shouldCommit` override without broad architectural changes
+1. Review whether the underlying desktop/main-process run flow can support a per-run `autoCommit` override without broad architectural changes
 2. If it can, extend the IPC and run option flow to carry and honor that value
 3. If it cannot, remove the switch and update the dialog to present auto-commit as a config-derived behavior only
 4. Ensure any success notifications describe the real source of auto-commit behavior

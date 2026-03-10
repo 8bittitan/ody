@@ -2,7 +2,8 @@ import { TASK_FILE_FORMAT } from './shared';
 
 const EDIT_PLAN_PROMPT = `
 OVERVIEW
-You are helping the user edit an existing code task plan. The task plan is a structured markdown file that will later be executed by a coding agent. Your goal is to help the user refine and improve the plan so it is clear, complete, and actionable for implementation.
+You are helping the user edit an existing code task plan. The task plan is a structured markdown file that will later be executed by a coding agent.
+Your goal is to help the user refine and improve the plan so it is clear, complete, and actionable for implementation.
 
 This is an interactive session — the user will tell you what they want to change. Apply their requested changes directly.
 

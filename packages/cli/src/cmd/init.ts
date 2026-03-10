@@ -86,7 +86,7 @@ export const initCmd = defineCommand({
       description: 'Which model to use for the respective backend',
       type: 'string',
     },
-    shouldCommit: {
+    autoCommit: {
       alias: 'c',
       required: false,
       default: false,
@@ -154,7 +154,7 @@ export const initCmd = defineCommand({
       const configInput: OdyConfig = {
         backend: backendsSchema.parse(backend),
         maxIterations: parseInt(args.maxIterations, 10),
-        shouldCommit: args.shouldCommit,
+        autoCommit: args.autoCommit,
       };
 
       let model = args.model;

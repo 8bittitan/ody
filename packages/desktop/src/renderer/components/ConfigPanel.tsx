@@ -43,7 +43,7 @@ const SOURCE_LABEL: Record<FieldSource, string> = {
 const FIELD_PATHS = {
   backend: ['backend'],
   maxIterations: ['maxIterations'],
-  shouldCommit: ['shouldCommit'],
+  autoCommit: ['autoCommit'],
   skipPermissions: ['skipPermissions'],
   agent: ['agent'],
   tasksDir: ['tasksDir'],
@@ -337,11 +337,11 @@ export const ConfigPanel = ({ onOpenInitWizard, onEditJson }: ConfigPanelProps) 
               <label className="bg-background/40 border-edge flex items-center justify-between rounded-md border px-3 py-2">
                 <span className="text-light text-sm">Auto Commit</span>
                 <div className="flex items-center gap-2">
-                  <SourceBadge source={sourceFor(FIELD_PATHS.shouldCommit)} />
+                  <SourceBadge source={sourceFor(FIELD_PATHS.autoCommit)} />
                   <Switch
-                    checked={form.shouldCommit}
+                    checked={form.autoCommit}
                     onCheckedChange={(checked) => {
-                      setForm((prev) => ({ ...prev, shouldCommit: checked }));
+                      setForm((prev) => ({ ...prev, autoCommit: checked }));
                     }}
                   />
                 </div>

@@ -283,9 +283,9 @@ export const SettingsModal = ({
                     <p className="text-mid text-xs">Save commits after successful runs.</p>
                   </div>
                   <Switch
-                    checked={form.shouldCommit}
+                    checked={form.autoCommit}
                     onCheckedChange={(value) => {
-                      setForm((prev) => ({ ...prev, shouldCommit: value }));
+                      setForm((prev) => ({ ...prev, autoCommit: value }));
                     }}
                   />
                 </label>

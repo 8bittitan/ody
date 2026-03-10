@@ -12,11 +12,11 @@ When a user clicks the "Run" button on an individual task card in the Task Board
 ## Background
 The Task Board (`TaskBoard.tsx`) renders task cards in a three-column Kanban layout (pending, in_progress, completed). Each pending or in-progress task card has a "Run" action button. Currently, clicking "Run" on a task card sets `runTarget` state which opens a confirmation dialog (lines 406-471 of `TaskBoard.tsx`). The dialog shows the task title, backend name, an editable iterations input, an auto-commit toggle, and Cancel/Start Agent buttons. Only after the user clicks "Start Agent" does the actual agent execution begin via `startTaskRun()`.
 
-The `startTaskRun` function (lines 136-162) calls `useAgent.start()` with the task file path and iteration count, which sends an IPC message to the Electron main process to spawn the backend CLI. The iteration count and auto-commit setting are currently sourced from the dialog's local state, but they have sensible defaults already — iterations defaults to `config.maxIterations` and auto-commit defaults to `config.shouldCommit`.
+The `startTaskRun` function (lines 136-162) calls `useAgent.start()` with the task file path and iteration count, which sends an IPC message to the Electron main process to spawn the backend CLI. The iteration count and auto-commit setting are currently sourced from the dialog's local state, but they have sensible defaults already — iterations defaults to `config.maxIterations` and auto-commit defaults to `config.autoCommit`.
 
 ## Technical Requirements
 1. Clicking the "Run" button on a `TaskCard` in the `TaskBoard` must immediately start the agent for that specific task without displaying the run confirmation dialog
-2. The agent run must use the default configuration values for iterations (`config.maxIterations`) and auto-commit (`config.shouldCommit`) when bypassing the dialog
+2. The agent run must use the default configuration values for iterations (`config.maxIterations`) and auto-commit (`config.autoCommit`) when bypassing the dialog
 3. The run confirmation dialog in the `AgentRunner` page must remain unchanged — it should still display as before
 4. If the agent is already running (`isRunning` is true), the Run button should remain disabled or the click should be a no-op, preserving existing guard behavior
 5. After the agent starts, the task card should transition to showing the live output panel and "Stop" button, exactly as it does today after going through the dialog
@@ -26,7 +26,7 @@ The `startTaskRun` function (lines 136-162) calls `useAgent.start()` with the ta
 - `packages/desktop/src/renderer/components/TaskCard.tsx` — contains the "Run" button that triggers `onRun`
 - `packages/desktop/src/renderer/hooks/useAgent.ts` — provides the `start()` function for launching the agent
 - `packages/desktop/src/renderer/hooks/useTasks.ts` — provides task data and refresh logic
-- Config values (`maxIterations`, `shouldCommit`) used as defaults for the run parameters
+- Config values (`maxIterations`, `autoCommit`) used as defaults for the run parameters
 
 ## Implementation Approach
 1. **Refactor `startTaskRun` in `TaskBoard.tsx`**: Modify the function to accept a task parameter directly instead of reading from `runTarget` dialog state. It should use config defaults for iterations and auto-commit rather than dialog-controlled state values.
@@ -43,7 +43,7 @@ The `startTaskRun` function (lines 136-162) calls `useAgent.start()` with the ta
    - Then the agent starts processing that task immediately without any dialog appearing
 
 2. **Default config values are used**
-   - Given the project has `maxIterations: 5` and `shouldCommit: true` in config
+    - Given the project has `maxIterations: 5` and `autoCommit: true` in config
    - When a task is run directly from the task board
    - Then the agent runs with iterations set to 5 and auto-commit enabled
 

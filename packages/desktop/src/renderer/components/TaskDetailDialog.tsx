@@ -86,16 +86,19 @@ const MARKDOWN_COMPONENTS = {
     <h4 className="text-light mt-2 mb-1 text-xs font-medium first:mt-0" {...props} />
   ),
   p: ({ node: _node, ...props }: Record<string, unknown>) => (
-    <p className="text-mid mb-2 text-xs leading-relaxed" {...props} />
+    <p className="text-light mb-2 text-sm leading-relaxed" {...props} />
   ),
   ul: ({ node: _node, ...props }: Record<string, unknown>) => (
-    <ul className="text-mid mb-2 list-disc space-y-1 pl-5 text-xs leading-relaxed" {...props} />
+    <ul className="text-light mb-2 list-disc space-y-1 pl-5 text-sm leading-relaxed" {...props} />
   ),
   ol: ({ node: _node, ...props }: Record<string, unknown>) => (
-    <ol className="text-mid mb-2 list-decimal space-y-1 pl-5 text-xs leading-relaxed" {...props} />
+    <ol
+      className="text-light mb-2 list-decimal space-y-1 pl-5 text-sm leading-relaxed"
+      {...props}
+    />
   ),
   li: ({ node: _node, ...props }: Record<string, unknown>) => (
-    <li className="text-mid" {...props} />
+    <li className="text-light" {...props} />
   ),
   a: ({ node: _node, ...props }: Record<string, unknown>) => (
     <a
@@ -109,11 +112,11 @@ const MARKDOWN_COMPONENTS = {
     <strong className="text-light font-semibold" {...props} />
   ),
   em: ({ node: _node, ...props }: Record<string, unknown>) => (
-    <em className="text-mid italic" {...props} />
+    <em className="text-light italic" {...props} />
   ),
   blockquote: ({ node: _node, ...props }: Record<string, unknown>) => (
     <blockquote
-      className="border-primary/40 text-dim my-2 border-l-2 pl-3 text-xs italic"
+      className="border-primary/40 text-dim my-2 border-l-2 pl-3 text-sm italic"
       {...props}
     />
   ),
@@ -147,7 +150,7 @@ const MARKDOWN_COMPONENTS = {
   },
   pre: ({ node: _node, ...props }: Record<string, unknown>) => (
     <pre
-      className="border-edge bg-panel my-2 overflow-x-auto rounded border p-3 text-xs"
+      className="border-edge bg-panel my-2 overflow-x-auto rounded border p-3 text-sm"
       {...props}
     />
   ),
@@ -161,12 +164,12 @@ const MARKDOWN_COMPONENTS = {
   ),
   th: ({ node: _node, ...props }: Record<string, unknown>) => (
     <th
-      className="text-light border-edge border px-2 py-1 text-left text-xs font-semibold"
+      className="text-light border-edge border px-2 py-1 text-left text-sm font-semibold"
       {...props}
     />
   ),
   td: ({ node: _node, ...props }: Record<string, unknown>) => (
-    <td className="text-mid border-edge border px-2 py-1 text-xs" {...props} />
+    <td className="text-light border-edge border px-2 py-1 text-sm" {...props} />
   ),
   input: ({
     node: _node,

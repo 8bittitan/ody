@@ -3,8 +3,11 @@ import path from 'node:path';
 
 import { spinner, text, isCancel, outro, log, confirm } from '@clack/prompts';
 import { Backend } from '@internal/backends';
-import { buildBatchPlanPrompt, buildPlanPrompt } from '@internal/builders';
-import { buildInteractivePlanPrompt } from '@internal/builders/src/planPrompt';
+import {
+  buildBatchPlanPrompt,
+  buildInteractivePlanPrompt,
+  buildPlanPrompt,
+} from '@internal/builders';
 import { BASE_DIR, Config, TASKS_DIR } from '@internal/config';
 import { defineCommand } from 'citty';
 
@@ -33,11 +36,11 @@ export const planCmd = defineCommand({
       description: "Enable verbose logging, streaming the agent's work in progress",
       type: 'boolean',
     },
-    interactive: {
+    yolo: {
       default: false,
-      alias: 'i',
       type: 'boolean',
-      description: 'Run plan mode interactively with the chosen harness',
+      description:
+        'Skip interactive mode and generate plans from prompted descriptions in the background',
     },
   },
   async run({ args }) {
@@ -98,101 +101,102 @@ export const planCmd = defineCommand({
       return;
     }
 
-    if (args.interactive) {
-      log.info('Interactive mode chosen, launching harness');
+    if (args.yolo) {
+      const descriptions: string[] = [];
 
-      const planPrompt = buildInteractivePlanPrompt();
+      while (true) {
+        const description = await text({
+          message: 'Describe the task you want to plan',
+          validate(value) {
+            if (!value || value.trim() === '') return 'Please enter a task description.';
 
-      const model = Config.resolveModel('plan', config);
+            return undefined;
+          },
+        });
 
-      const proc = Bun.spawn({
-        cmd: backend.buildInteractiveCommand(planPrompt, model),
-        stdio: ['inherit', 'inherit', 'inherit'],
-      });
+        if (isCancel(description)) {
+          outro('Plan cancelled.');
+          return;
+        }
 
-      const exitCode = await proc.exited;
+        descriptions.push(description);
 
-      process.exit(exitCode);
-    }
+        const another = await confirm({
+          message: 'Add another plan?',
+        });
 
-    const descriptions: string[] = [];
+        if (isCancel(another) || !another) {
+          break;
+        }
+      }
 
-    while (true) {
-      const description = await text({
-        message: 'Describe the task you want to plan',
-        validate(value) {
-          if (!value || value.trim() === '') return 'Please enter a task description.';
-
-          return undefined;
-        },
-      });
-
-      if (isCancel(description)) {
-        outro('Plan cancelled.');
+      if (descriptions.length === 0) {
+        outro('No plans to process.');
         return;
       }
 
-      descriptions.push(description);
+      let generated = 0;
 
-      const another = await confirm({
-        message: 'Add another plan?',
-      });
+      for (let i = 0; i < descriptions.length; i++) {
+        const description = descriptions[i]!;
+        const planPrompt = buildPlanPrompt({
+          description,
+        });
 
-      if (isCancel(another) || !another) {
-        break;
+        if (args['dry-run']) {
+          log.info(`Plan ${i + 1} of ${descriptions.length}:\n${planPrompt}`);
+          generated++;
+        } else {
+          try {
+            await mkdir(tasksDirPath, { recursive: true });
+            spin.start(`Generating task plan ${i + 1} of ${descriptions.length}`);
+
+            const proc = Bun.spawn({
+              cmd: backend.buildCommand(planPrompt, model),
+              stdio: ['ignore', 'pipe', 'pipe'],
+            });
+            const markerDetector = createCompletionMarkerDetector();
+
+            await Promise.all([
+              Stream.toOutput(proc.stdout, {
+                shouldPrint: args.verbose,
+                onChunk(chunk) {
+                  markerDetector.onChunk(chunk);
+                },
+              }),
+              Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
+            ]);
+
+            const markerDetection = markerDetector.finalize();
+            const exitCode = await proc.exited;
+            validateAgentCompletion(exitCode, markerDetection, { requireMarker: true });
+
+            spin.stop(`Task plan ${i + 1} of ${descriptions.length} generated`);
+            generated++;
+          } catch (err) {
+            spin.stop(`Task plan ${i + 1} of ${descriptions.length} failed`);
+            log.error(`Failed to generate task plan ${i + 1}: ${err}`);
+          }
+        }
       }
-    }
 
-    if (descriptions.length === 0) {
-      outro('No plans to process.');
+      outro(`Task planning complete — ${generated} task${generated === 1 ? '' : 's'} generated`);
       return;
     }
 
-    let generated = 0;
+    log.info('Launching interactive plan harness');
 
-    for (let i = 0; i < descriptions.length; i++) {
-      const description = descriptions[i]!;
-      const planPrompt = buildPlanPrompt({
-        description,
-      });
+    const planPrompt = buildInteractivePlanPrompt();
 
-      if (args['dry-run']) {
-        log.info(`Plan ${i + 1} of ${descriptions.length}:\n${planPrompt}`);
-        generated++;
-      } else {
-        try {
-          await mkdir(tasksDirPath, { recursive: true });
-          spin.start(`Generating task plan ${i + 1} of ${descriptions.length}`);
+    const proc = Bun.spawn({
+      cmd: backend.buildInteractiveCommand(planPrompt, model),
+      stdio: ['inherit', 'inherit', 'inherit'],
+    });
 
-          const proc = Bun.spawn({
-            cmd: backend.buildCommand(planPrompt, model),
-            stdio: ['ignore', 'pipe', 'pipe'],
-          });
-          const markerDetector = createCompletionMarkerDetector();
+    const exitCode = await proc.exited;
 
-          await Promise.all([
-            Stream.toOutput(proc.stdout, {
-              shouldPrint: args.verbose,
-              onChunk(chunk) {
-                markerDetector.onChunk(chunk);
-              },
-            }),
-            Stream.toOutput(proc.stderr, { shouldPrint: args.verbose }),
-          ]);
-
-          const markerDetection = markerDetector.finalize();
-          const exitCode = await proc.exited;
-          validateAgentCompletion(exitCode, markerDetection, { requireMarker: true });
-
-          spin.stop(`Task plan ${i + 1} of ${descriptions.length} generated`);
-          generated++;
-        } catch (err) {
-          spin.stop(`Task plan ${i + 1} of ${descriptions.length} failed`);
-          log.error(`Failed to generate task plan ${i + 1}: ${err}`);
-        }
-      }
+    if (exitCode !== 0) {
+      process.exit(exitCode);
     }
-
-    outro(`Task planning complete — ${generated} task${generated === 1 ? '' : 's'} generated`);
   },
 });

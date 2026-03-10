@@ -158,7 +158,7 @@ Run before pushing:
 - NEVER update multiple packages within `packages/` unless explicitly asked.
 - Do not edit `.ody/ody.json` unless a task requires it.
 - Do not commit the generated `ody` binary unless requested.
-- Respect `shouldCommit` config when running agents.
+- Respect `autoCommit` config when running agents.
 - No `.cursor/rules/`, `.cursorrules`, or `.github/copilot-instructions.md` exist.
 
 ## MCPs

@@ -237,7 +237,7 @@ const RootLayout = () => {
       return;
     }
 
-    const shouldCommit = typeof config?.shouldCommit === 'boolean' ? config.shouldCommit : false;
+    const autoCommit = typeof config?.autoCommit === 'boolean' ? config.autoCommit : false;
 
     try {
       const result = await start({
@@ -252,7 +252,7 @@ const RootLayout = () => {
 
       accent({
         title: 'Continuous run started',
-        description: shouldCommit ? 'Auto-commit enabled.' : undefined,
+        description: autoCommit ? 'Auto-commit enabled.' : undefined,
       });
     } catch {
       return;
@@ -436,6 +436,17 @@ const RootLayout = () => {
 
                       <div className="flex items-center gap-2">
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            loadTasks().catch(() => {
+                              return;
+                            });
+                          }}
+                        >
+                          Refresh
+                        </Button>
+                        <Button
                           size="sm"
                           variant={isRunning ? 'destructive' : 'default'}
                           disabled={!activeProjectPath}
@@ -449,25 +460,6 @@ const RootLayout = () => {
                             <Play className="size-3.5" />
                           )}
                           {isRunning ? 'Stop' : 'Run'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            loadTasks().catch(() => {
-                              return;
-                            });
-                          }}
-                        >
-                          Refresh
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            navigate({ to: '/plan' });
-                          }}
-                        >
-                          New Task
                         </Button>
                       </div>
                     </div>

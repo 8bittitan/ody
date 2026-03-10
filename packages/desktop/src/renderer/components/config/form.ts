@@ -3,7 +3,7 @@ export type ModelMode = 'single' | 'per-command';
 export type ConfigFormState = {
   backend: string;
   maxIterations: number;
-  shouldCommit: boolean;
+  autoCommit: boolean;
   modelMode: ModelMode;
   modelSingle: string;
   modelRun: string;
@@ -38,7 +38,7 @@ const getRecord = (value: unknown) =>
 export const createDefaultConfigForm = (): ConfigFormState => ({
   backend: 'opencode',
   maxIterations: 3,
-  shouldCommit: false,
+  autoCommit: false,
   modelMode: 'single',
   modelSingle: '',
   modelRun: '',
@@ -70,7 +70,7 @@ export const toConfigFormState = (config: Record<string, unknown> | null): Confi
   return {
     backend: getString(config.backend, form.backend),
     maxIterations: getNumber(config.maxIterations, form.maxIterations),
-    shouldCommit: getBoolean(config.shouldCommit, form.shouldCommit),
+    autoCommit: getBoolean(config.autoCommit, form.autoCommit),
     modelMode:
       typeof modelValue === 'string' || modelValue === undefined ? 'single' : 'per-command',
     modelSingle: typeof modelValue === 'string' ? modelValue : '',
@@ -97,7 +97,7 @@ export const toConfigPayload = (form: ConfigFormState) => {
   const payload: Record<string, unknown> = {
     backend: form.backend,
     maxIterations: form.maxIterations,
-    shouldCommit: form.shouldCommit,
+    autoCommit: form.autoCommit,
     skipPermissions: form.skipPermissions,
     agent: form.agent,
     tasksDir: form.tasksDir,

@@ -111,13 +111,19 @@
 2026-02-24 | skip-run-dialog-for-single-task | Completed
   - Removed run confirmation dialog from TaskBoard.tsx — clicking "Run" on a task card now starts the agent immediately
   - Refactored startTaskRun to accept a TaskSummary parameter directly instead of reading from dialog state
-  - startTaskRun now uses config defaults for iterations (config.maxIterations) and auto-commit (config.shouldCommit)
+  - startTaskRun now uses config defaults for iterations (config.maxIterations) and auto-commit (config.autoCommit)
   - Added isRunning guard at the top of startTaskRun to prevent concurrent runs without needing the dialog
   - Removed runTarget, runIterations, runShouldCommit state variables and the config-sync useEffect
   - Removed the Switch component import (only used by the run dialog's auto-commit toggle)
   - Removed the entire run confirmation Dialog JSX block (~65 lines)
   - Updated TaskCard onRun handler from setRunTarget to directly call startTaskRun
   - AgentRunner page run dialog is unaffected (lives in a separate component)
+
+2026-03-10 | prompt-for-another-interactive-plan-after-generation | Completed
+  - Refactored the CLI interactive plan branch into a repeatable session loop that prompts `Add another plan?` after each successful run
+  - Preserved immediate failure propagation for non-zero interactive backend exits and clean exit behavior for declined or cancelled follow-up prompts
+  - Added focused CLI tests covering repeat, decline, cancel, and failure behavior for interactive planning
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
   - All validation passing: lint (0 warnings/errors), fmt, typecheck (no new errors introduced)
 
 2026-02-24 | replace-project-switcher-with-dropdown-menu | Completed
@@ -306,3 +312,50 @@
 [2026-03-06] Completed remove-render-phase-state-updates-in-desktop-views: removed render-phase state updates from TaskBoard and tied init wizard visibility to the active project path in the desktop root route.
 [2026-03-06] Completed compare-update-versions-semantically: switched CLI update detection to semantic version ordering and added tests for equal, newer, local-newer, and prerelease cases.
 [2026-03-06] Completed hydrate-agent-state-on-desktop-load: added agent:status IPC channel so the renderer can query current agent state on mount and project switch, hydrating the Zustand store with isRunning/iteration/maxIterations from the main process.
+
+2026-03-09 | rename-should-commit-to-auto-commit | Completed
+  - Renamed `shouldCommit` config property to `autoCommit` across the entire codebase
+  - Updated zod schema (configSchema + Config.Schema) in internal/config
+  - Added backward-compatible deprecation shim: legacy `shouldCommit` key in JSON config is migrated to `autoCommit` with a console.warn
+  - Renamed CLI flag from `--shouldCommit` to `--autoCommit` in init.ts (alias `-c` preserved)
+  - Updated prompt builder (runPrompt.ts) template text and placeholder tokens
+  - Updated all desktop components: form.ts, AgentRunner, TaskBoard, __root, SettingsModal, InitWizard, ConfigPanel
+  - Updated documentation: configuration.mdx, init.mdx, config.mdx, configuration_schema.json, README.md
+  - Updated .ody/ody.json, AGENTS.md, and task/planning markdown files for consistency
+  - Validation passing: `bun lint`, `bun fmt`, `bun typecheck`
+
+2026-03-09 | taskboard-autocomplete-filters | Completed
+  - Created reusable MultiCombobox UI wrapper in packages/desktop/src/renderer/components/ui/combobox.tsx using @base-ui/react/combobox primitives with multi-select, chip display, and dismiss support
+  - Replaced single-select Collapsible pill-button label filter with MultiCombobox (OR semantics across selected labels)
+  - Replaced single-select Collapsible pill-button status filter with MultiCombobox (OR semantics across selected statuses)
+  - Refactored TaskBoard.tsx local state: localLabelFilter changed from string|null to string[], localStatusFilter from TaskStatus|'all' to TaskStatus[]
+  - Updated filteredTasks memo to use array intersection checks instead of single-value equality
+  - Empty selection in either combobox shows all tasks (no filtering applied)
+  - Preserved TaskBoardProps interface and route definition in tasks.tsx unchanged
+  - AgentRunner component untouched
+  - Validation passing: `bun lint` (0 errors, 22 pre-existing warnings), `bun fmt`, `bun typecheck`
+
+2026-03-09 | improve-task-detail-dialog-body-text-readability | Completed
+  - Updated MARKDOWN_COMPONENTS in TaskDetailDialog.tsx to improve dark-mode readability
+  - Changed text color from text-mid to text-light for body elements: p, ul, ol, li, em, td
+  - Changed font size from text-xs to text-sm for body elements: p, ul, ol, pre, td, th, blockquote
+  - Blockquote kept text-dim color (intentionally de-emphasized), only size bumped
+  - Table headers kept text-light color, only size bumped
+  - Headings (h1-h4), strong, a, inline code unchanged — already had appropriate styling
+  - Validation passing: `bun lint` (0 errors, 22 pre-existing warnings), `bun fmt`, `bun typecheck`
+
+2026-03-09 | allow-interactive-plan-to-create-multiple-tasks | Completed
+  - Rewrote `INTERACTIVE_PLAN_PROMPT` in `internal/builders/src/planPrompt.ts` to allow one or more task files instead of forcing exactly one
+  - Added decomposition and logical ordering guidance so broad interactive plans can produce multiple discrete task files with dependencies first
+  - Preserved the collaborative workflow: restate request, ask focused questions, summarize tasks and assumptions, then emit files
+  - Switched the interactive prompt's file-format section to reuse `TASK_FILE_FORMAT` for consistency with the shared task template
+  - Validation passing: `bun lint` (0 errors, 22 pre-existing warnings), `bun fmt`, `bun typecheck`
+
+2026-03-10 | replace-new-task-with-run-in-header | Completed
+  - Removed the desktop header's `New Task` action and reordered the remaining controls to `Refresh`, then `Run`/`Stop` in `packages/desktop/src/renderer/routes/__root.tsx`
+  - Validation passing: `bun lint` (0 errors, 22 pre-existing warnings), `bun fmt`, `bun typecheck`
+
+2026-03-10 | make-plan-interactive-by-default | Completed
+  - Flipped `ody plan` to launch the interactive harness by default, added `--yolo` for the previous prompted background flow, and removed the old interactive flag from the command definition
+  - Re-exported `buildInteractivePlanPrompt` from `@internal/builders` and updated the CLI command to import it through the barrel
+  - Validation passing: `bun lint` (0 errors, 22 pre-existing warnings), `bun fmt`, `bun typecheck`
