@@ -91,20 +91,21 @@ function MultiCombobox({
           className="z-50 outline-none"
           sideOffset={4}
           anchor={containerRef}
+          align="start"
         >
           <ComboboxPrimitive.Popup
             data-slot="combobox-popup"
-            className="bg-popover text-popover-foreground data-[ending-style]:animate-out data-[starting-style]:animate-in data-[ending-style]:fade-out-0 data-[starting-style]:fade-in-0 data-[ending-style]:zoom-out-95 data-[starting-style]:zoom-in-95 max-h-52 min-w-[8rem] overflow-hidden rounded-md border shadow-md"
+            className="bg-popover text-popover-foreground data-[ending-style]:animate-out data-[starting-style]:animate-in data-[ending-style]:fade-out-0 data-[starting-style]:fade-in-0 data-[ending-style]:zoom-out-95 data-[starting-style]:zoom-in-95 group/combobox-content max-h-52 min-w-[8rem] overflow-hidden rounded-md border shadow-md"
           >
-            <ComboboxPrimitive.Empty className="text-dim px-2 py-3 text-center text-xs">
+            <ComboboxPrimitive.Empty className="text-dim hidden px-2 py-3 text-center text-xs group-data-empty/combobox-content:flex">
               {emptyMessage}
             </ComboboxPrimitive.Empty>
-            <ComboboxPrimitive.List className="max-h-52 overflow-y-auto p-1">
+            <ComboboxPrimitive.List className="max-h-52 overflow-y-auto p-1 group-data-empty/combobox-content:hidden">
               {(opt: ComboboxOption) => (
                 <ComboboxPrimitive.Item
                   key={opt.value}
                   value={opt}
-                  className="focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-xs outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-xs outline-hidden select-none group-data-empty/combobox-content:hidden data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <span className="absolute right-2 flex size-3.5 items-center justify-center">
                     <ComboboxPrimitive.ItemIndicator>
