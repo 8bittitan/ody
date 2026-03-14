@@ -9,7 +9,7 @@ import { Config } from '@internal/config';
 import { GitHub } from '@internal/integrations';
 import { defineCommand } from 'citty';
 
-import { Stream } from '../util/stream';
+import { Stream } from '../../util/stream';
 
 const execFileAsync = promisify(execFile);
 
