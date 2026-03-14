@@ -5,6 +5,10 @@ const REVIEW_PROMPT = `
 
 Interactive comprehensive PR review focusing on critical issues: security vulnerabilities, performance degradation, and best practices. Generates concise, actionable comments.
 
+Retrieve and review only the pull request diff.
+If you identify an issue worth flagging, submit it back to GitHub only as an inline pull request review comment.
+Do not submit an overall review state such as APPROVE, COMMENT, or REQUEST_CHANGES.
+
 
 ## Workflow
 
@@ -178,4 +182,4 @@ Once all comments are posted, report that the Pull Request review has been compl
 `;
 
 export const buildReviewPrompt = ({ pullRequestUrl }: { pullRequestUrl: string }) =>
-  REVIEW_PROMPT.replace('{PULL_REQUEST_URL}', pullRequestUrl).trim();
+  REVIEW_PROMPT.replaceAll('{PULL_REQUEST_URL}', pullRequestUrl).trim();
