@@ -1,8 +1,11 @@
 {
   "$schema": "https://odycli.vercel.app/configuration_schema.json",
-  "backend": "codex",
+  "backend": "opencode",
   "maxIterations": 3,
   "autoCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": "gpt-5.4"
+  "model": {
+    "run": "openai/gpt-5.4",
+    "plan": "anthropic/claude-opus-4-6"
+  }
 }

@@ -116,6 +116,11 @@ Quality bar:
 - Labels should be short and useful for filtering.
 
 If the user gives you a well-scoped request, producing one task file is fine. If the user gives you a broad initiative, help decompose it into as many task files as needed.
+
+Follow up questions MUST always use the AskUserQuestion or similar interactive tool. Allow the user to multi-answer by selecting options whenever possible. Limit 
+the amount of free form typing the user needs to do, ALWAYS.
+
+Once the current plan is finished, and all task files are generated; ask if the user would like to start another planning session if they have more features to plan.
 `;
 
 export const buildInteractivePlanPrompt = () => INTERACTIVE_PLAN_PROMPT;
@@ -138,51 +143,7 @@ RULES
 FILE FORMAT
 Each file MUST follow this exact structure:
 
-\`\`\`markdown
----
-status: pending
-created: {CURRENT_DATE}
-started: null
-completed: null
----
-# Task: [Concise Task Name]
-
-## Description
-[A clear description of what needs to be implemented and why]
-
-## Background
-[Relevant context and background information needed to understand the task]
-
-## Technical Requirements
-1. [First requirement]
-2. [Second requirement]
-3. [Third requirement]
-
-## Dependencies
-- [First dependency with details]
-- [Second dependency with details]
-
-## Implementation Approach
-1. [First implementation step or approach]
-2. [Second implementation step or approach]
-3. [Third implementation step or approach]
-
-## Acceptance Criteria
-
-1. **[Criterion Name]**
-   - Given [precondition]
-   - When [action]
-   - Then [expected result]
-
-2. **[Another Criterion]**
-   - Given [precondition]
-   - When [action]
-   - Then [expected result]
-
-## Metadata
-- **Complexity**: [Low/Medium/High]
-- **Labels**: [Comma-separated list of labels]
-\`\`\`
+${TASK_FILE_FORMAT}
 
 PLANNING DOCUMENT FILE
 Read the file at the following path and generate task files based on its contents:

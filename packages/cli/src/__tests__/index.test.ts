@@ -14,6 +14,18 @@ describe('runCli', () => {
     expect(process.exitCode).toBeUndefined();
   });
 
+  test('registers the review subcommand', async () => {
+    await runCli(async (cmd) => {
+      expect(typeof (cmd.subCommands as Record<string, unknown>).review).toBe('function');
+    });
+  });
+
+  test('registers the resolve subcommand', async () => {
+    await runCli(async (cmd) => {
+      expect(typeof (cmd.subCommands as Record<string, unknown>).resolve).toBe('function');
+    });
+  });
+
   test('sets a failure exit status when runMain throws', async () => {
     await runCli(async () => {
       throw new Error('boom');

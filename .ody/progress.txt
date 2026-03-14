@@ -1,0 +1,3 @@
+2026-03-11: Added the `ody review` CLI command with GitHub PR URL validation, a review-specific interactive prompt, and test coverage.
+2026-03-11: Added the `ody resolve` CLI command with PR comment URL parsing, current-branch PR comment selection, resolve-specific prompt generation, and command coverage tests.
+2026-03-11: Switched `ody resolve` to non-interactive execution by default, added `--interactive` and `--verbose` flags, and expanded resolve command test coverage.
