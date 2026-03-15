@@ -1,0 +1,56 @@
+---
+title: ody task
+description: Manage Ody task files
+---
+
+## Synopsis
+
+```bash
+ody task <subcommand>
+```
+
+## Subcommands
+
+| Subcommand | Description                         |
+| ---------- | ----------------------------------- |
+| `list`     | List pending task files             |
+| `edit`     | Edit an existing task plan          |
+| `import`   | Import a task from Jira or GitHub   |
+
+## Behavior
+
+`ody task` groups task management commands for the `.ody/tasks/` workspace directory.
+
+- Use `ody task list` to inspect pending tasks.
+- Use `ody task edit` to revise a generated task plan.
+- Use `ody task import` to convert a Jira ticket or GitHub issue into a task file.
+
+Most task workflows assume the project has already been initialized with `ody init` and that `.ody/tasks/` exists.
+
+## Examples
+
+List pending tasks:
+
+```bash
+ody task list
+```
+
+Edit a task interactively:
+
+```bash
+ody task edit
+```
+
+Import a task from GitHub:
+
+```bash
+ody task import --github owner/repo#123
+```
+
+## Related
+
+- [`ody plan`](/docs/commands/plan) -- Generate task files from new work
+- [`ody run`](/docs/commands/run) -- Execute pending tasks with the agent loop
+- [`ody task list`](/docs/commands/task/list) -- View pending task files
+- [`ody task edit`](/docs/commands/task/edit) -- Refine an existing task plan
+- [`ody task import`](/docs/commands/task/import) -- Import task files from external systems

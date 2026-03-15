@@ -1,0 +1,79 @@
+---
+title: ody pr resolve
+description: Resolve a GitHub pull request comment locally
+---
+
+## Synopsis
+
+```bash
+ody pr resolve [commentUrl] [--dry-run] [--interactive] [--verbose]
+```
+
+## Arguments
+
+| Argument     | Type     | Required | Description                                 |
+| ------------ | -------- | -------- | ------------------------------------------- |
+| `commentUrl` | `string` | No       | GitHub pull request comment URL to resolve  |
+
+## Flags
+
+| Flag            | Alias | Type      | Default | Description                                      |
+| --------------- | ----- | --------- | ------- | ------------------------------------------------ |
+| `--dry-run`     | `-d`  | `boolean` | `false` | Preview the resolve plan without changing files  |
+| `--interactive` | `-i`  | `boolean` | `false` | Launch the resolve harness interactively         |
+| `--verbose`     | `-v`  | `boolean` | `false` | Stream agent output while running non-interactive |
+
+## Behavior
+
+### Direct URL mode
+
+When you provide a comment URL, `ody pr resolve` validates the link and fetches the matching pull request plus the referenced comment.
+
+Supported URLs include:
+
+- `https://github.com/owner/repo/pull/123#issuecomment-456`
+- `https://github.com/owner/repo/pull/123#discussion_r789`
+
+### Selection mode
+
+If you omit `commentUrl`, the command inspects your current repository and branch, finds the matching open pull request on GitHub, and lets you choose from resolvable comments interactively.
+
+### Execution modes
+
+1. Builds a resolve prompt from the selected pull request and comment.
+2. Runs the configured backend against your local checkout.
+3. Applies changes locally when the backend succeeds.
+
+Use `--dry-run` to preview the generated resolve plan. Use `--interactive` to open the backend interactively instead of running non-interactively. If both are passed, interactive mode takes precedence and `--dry-run` is ignored.
+
+## Examples
+
+Resolve a specific review comment:
+
+```bash
+ody pr resolve https://github.com/owner/repo/pull/123#discussion_r456789
+```
+
+Preview the plan for an issue comment:
+
+```bash
+ody pr resolve https://github.com/owner/repo/pull/123#issuecomment-456789 --dry-run
+```
+
+Launch the resolve harness interactively:
+
+```bash
+ody pr resolve https://github.com/owner/repo/pull/123#discussion_r456789 --interactive
+```
+
+Let Ody discover the pull request from the current branch:
+
+```bash
+ody pr resolve
+```
+
+## Related
+
+- [`ody pr`](/docs/commands/pr) -- Overview of pull request commands
+- [`ody pr review`](/docs/commands/pr/review) -- Review a pull request interactively
+- [`ody auth github`](/docs/commands/auth/github) -- Configure GitHub credentials

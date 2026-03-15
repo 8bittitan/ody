@@ -1,0 +1,52 @@
+---
+title: ody pr
+description: Manage pull request review workflows
+---
+
+## Synopsis
+
+```bash
+ody pr <subcommand>
+```
+
+## Subcommands
+
+| Subcommand | Description                                     |
+| ---------- | ----------------------------------------------- |
+| `review`   | Review a GitHub pull request interactively      |
+| `resolve`  | Resolve a GitHub pull request comment locally   |
+
+## Behavior
+
+`ody pr` groups commands for working through GitHub pull request feedback with the configured backend agent.
+
+- `ody pr review` opens an interactive review session for a pull request URL.
+- `ody pr resolve` builds a targeted prompt for a specific pull request comment and runs the agent against your local checkout.
+
+These workflows assume you are in the repository associated with the pull request and have any required GitHub credentials configured.
+
+## Examples
+
+Start an interactive pull request review:
+
+```bash
+ody pr review https://github.com/owner/repo/pull/123
+```
+
+Resolve a specific review comment:
+
+```bash
+ody pr resolve https://github.com/owner/repo/pull/123#discussion_r456789
+```
+
+Preview a resolve plan without changing files:
+
+```bash
+ody pr resolve https://github.com/owner/repo/pull/123#issuecomment-456789 --dry-run
+```
+
+## Related
+
+- [`ody pr review`](/docs/commands/pr/review) -- Start an interactive pull request review
+- [`ody pr resolve`](/docs/commands/pr/resolve) -- Resolve a pull request comment locally
+- [`ody auth github`](/docs/commands/auth/github) -- Configure GitHub credentials

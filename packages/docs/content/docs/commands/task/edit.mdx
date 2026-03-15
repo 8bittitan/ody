@@ -6,7 +6,7 @@ description: Edit an existing task plan
 ## Synopsis
 
 ```bash
-ody task edit [--dry-run] [--verbose]
+ody task edit [--dry-run]
 ```
 
 ## Flags
@@ -14,7 +14,6 @@ ody task edit [--dry-run] [--verbose]
 | Flag        | Alias | Type      | Default | Description                                             |
 | ----------- | ----- | --------- | ------- | ------------------------------------------------------- |
 | `--dry-run` | `-d`  | `boolean` | `false` | Print the generated prompt without sending to the agent |
-| `--verbose` |       | `boolean` | `false` | Stream the agent's output in real time                  |
 
 ## Behavior
 
@@ -46,14 +45,8 @@ $ ody task edit
 # Task plan updated
 ```
 
-Stream the agent's work:
-
-```bash
-ody task edit --verbose
-```
-
 ## Related
 
-- [`ody plan`](/docs/commands/plan/new) -- Create new task plans
-- [`ody task list`](/docs/commands/plan/list) -- View pending tasks
+- [`ody plan`](/docs/commands/plan) -- Create new task plans
+- [`ody task list`](/docs/commands/task/list) -- View pending tasks
 - [`ody run`](/docs/commands/run) -- Execute pending tasks with the agent loop

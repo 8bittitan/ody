@@ -1,0 +1,41 @@
+---
+title: ody pr review
+description: Review a GitHub pull request interactively
+---
+
+## Synopsis
+
+```bash
+ody pr review <pullRequestUrl>
+```
+
+## Arguments
+
+| Argument         | Type     | Required | Description                        |
+| ---------------- | -------- | -------- | ---------------------------------- |
+| `pullRequestUrl` | `string` | Yes      | GitHub pull request URL to review  |
+
+## Flags
+
+This command has no flags.
+
+## Behavior
+
+1. Validates that the provided argument is a GitHub pull request URL.
+2. Loads the configured backend and review model from your Ody configuration.
+3. Builds a pull request review prompt.
+4. Launches the backend in interactive mode so you can inspect and discuss the pull request live.
+
+If the URL is missing or invalid, the command exits with an error.
+
+## Example
+
+```bash
+ody pr review https://github.com/owner/repo/pull/123
+```
+
+## Related
+
+- [`ody pr`](/docs/commands/pr) -- Overview of pull request commands
+- [`ody pr resolve`](/docs/commands/pr/resolve) -- Resolve a specific pull request comment
+- [`ody auth github`](/docs/commands/auth/github) -- Configure GitHub credentials
