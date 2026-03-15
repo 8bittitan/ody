@@ -2,7 +2,6 @@ import {
   createDefaultConfigForm,
   toConfigFormState,
   toConfigPayload,
-  type ConfigFormState,
 } from '@/components/config/form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,9 +19,14 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useTheme } from '@/hooks/useTheme';
 import { api } from '@/lib/api';
+import { ThemeSource } from '@/types/ipc';
+import { useQuery } from '@tanstack/react-query';
 import { FolderSearch, Settings2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+import { Label } from './ui/label';
 
 type SettingsModalProps = {
   open: boolean;
@@ -30,30 +34,6 @@ type SettingsModalProps = {
   activeProjectPath: string | null;
   onBrowseProject: () => Promise<string | null>;
   onOpenConfigView: () => void;
-};
-
-type BackendCard = {
-  name: string;
-  model: string;
-};
-
-const getModelLabel = (config: Record<string, unknown> | null) => {
-  const modelValue = config?.model;
-
-  if (typeof modelValue === 'string' && modelValue.trim().length > 0) {
-    return modelValue;
-  }
-
-  const modelRecord =
-    typeof modelValue === 'object' && modelValue !== null && !Array.isArray(modelValue)
-      ? (modelValue as Record<string, unknown>)
-      : null;
-
-  if (typeof modelRecord?.run === 'string' && modelRecord.run.trim().length > 0) {
-    return modelRecord.run;
-  }
-
-  return 'default model';
 };
 
 export const SettingsModal = ({
@@ -64,81 +44,60 @@ export const SettingsModal = ({
   onOpenConfigView,
 }: SettingsModalProps) => {
   const { loadConfig, validateConfig, saveConfig } = useConfig();
+  const { resolvedTheme, setTheme } = useTheme();
   const { success, error, accent } = useNotifications();
-  const [form, setForm] = useState<ConfigFormState>(createDefaultConfigForm());
   const [projectDir, setProjectDir] = useState('');
   const [newValidator, setNewValidator] = useState('');
-  const [soundNotifications, setSoundNotifications] = useState(false);
-  const [backendCards, setBackendCards] = useState<BackendCard[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasConfig, setHasConfig] = useState(true);
+  const [form, setForm] = useState(createDefaultConfigForm());
+  const { data: config, isLoading: loadingConfig } = useQuery({
+    queryKey: ['config'],
+    queryFn: async () => {
+      const conf = await loadConfig();
+
+      if (conf.merged) {
+        setForm(toConfigFormState(conf.merged));
+      }
+
+      return conf;
+    },
+  });
+  const { data: soundNotifications, isLoading: loadingSoundSettings } = useQuery({
+    queryKey: ['soundEnabled'],
+    queryFn: async () => {
+      const soundSettings = await api.notifications.getSoundEnabled();
+
+      return soundSettings.enabled;
+    },
+  });
+  const { data: backendCards, isLoading: loadingBackends } = useQuery({
+    queryKey: ['backends', config],
+    queryFn: async () => {
+      const backends = await api.backends.available();
+
+      const available = backends.length > 0 ? backends : ['opencode', 'claude', 'codex'];
+
+      return Promise.all(
+        available.map(async (b) => {
+          const models = await api.backends.models(b);
+
+          const fallback = config?.merged?.model;
+
+          return {
+            name: b,
+            model: models[0] ?? fallback,
+          };
+        }),
+      );
+    },
+  });
+
+  const isLoading = loadingConfig && loadingSoundSettings && loadingBackends;
+  const hasConfig = config?.merged !== null;
 
   useEffect(() => {
     setProjectDir(activeProjectPath ?? '');
   }, [activeProjectPath]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    let isMounted = true;
-
-    void (async () => {
-      setIsLoading(true);
-
-      try {
-        const [configResult, soundResult, availableBackends] = await Promise.all([
-          loadConfig(),
-          api.notifications.getSoundEnabled(),
-          api.backends.available(),
-        ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setHasConfig(configResult.merged !== null);
-        setForm(toConfigFormState(configResult.merged));
-        setSoundNotifications(soundResult.enabled);
-
-        const fallbackModel = getModelLabel(configResult.merged);
-        const backendNames =
-          availableBackends.length > 0 ? availableBackends : ['opencode', 'claude', 'codex'];
-        const cards = await Promise.all(
-          backendNames.map(async (name) => {
-            const models = await api.backends.models(name);
-            return {
-              name,
-              model: models[0] ?? fallbackModel,
-            };
-          }),
-        );
-
-        if (!isMounted) {
-          return;
-        }
-
-        setBackendCards(cards);
-      } catch (cause) {
-        if (!isMounted) {
-          return;
-        }
-
-        const message = cause instanceof Error ? cause.message : String(cause);
-        error({ title: 'Failed to load settings', description: message });
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [error, loadConfig, open]);
 
   const addValidator = () => {
     const command = newValidator.trim();
@@ -189,7 +148,7 @@ export const SettingsModal = ({
       }
 
       await saveConfig('local', payload);
-      await api.notifications.setSoundEnabled(soundNotifications);
+      await api.notifications.setSoundEnabled(soundNotifications ?? false);
       success({ title: 'Settings saved' });
       onOpenChange(false);
     } catch (cause) {
@@ -202,7 +161,7 @@ export const SettingsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-panel border-edge max-w-[560px] p-0">
+      <DialogContent className="bg-panel border-edge max-w-140 p-0">
         <DialogHeader className="border-edge border-b px-5 py-4">
           <div className="flex items-start gap-3 pr-6">
             <div className="bg-accent-bg border-primary/35 text-primary mt-0.5 rounded-md border p-2">
@@ -244,11 +203,12 @@ export const SettingsModal = ({
               </TabsList>
 
               <TabsContent value="general" className="mt-4 space-y-4">
-                <label className="space-y-1.5">
-                  <span className="text-light block text-xs">Project directory</span>
+                <div className="space-y-2">
+                  <Label htmlFor="projectDir">Project directory</Label>
                   <div className="flex gap-2">
                     <Input value={projectDir} readOnly placeholder="No project selected" />
                     <Button
+                      id="projectDir"
                       type="button"
                       variant="outline"
                       className="shrink-0"
@@ -260,11 +220,12 @@ export const SettingsModal = ({
                       Browse
                     </Button>
                   </div>
-                </label>
+                </div>
 
-                <label className="space-y-1.5">
-                  <span className="text-light block text-xs">Max iterations</span>
+                <div className="space-y-2">
+                  <Label htmlFor="maxIterations">Max iterations</Label>
                   <Input
+                    id="maxIterations"
                     type="number"
                     min={0}
                     value={form.maxIterations}
@@ -275,9 +236,9 @@ export const SettingsModal = ({
                       }));
                     }}
                   />
-                </label>
+                </div>
 
-                <label className="bg-background/35 border-edge flex items-center justify-between rounded-md border px-3 py-2.5">
+                <Label className="bg-background/35 border-edge flex items-center justify-between rounded-md border px-3 py-2.5">
                   <div>
                     <p className="text-light text-sm">Auto-commit</p>
                     <p className="text-mid text-xs">Save commits after successful runs.</p>
@@ -288,20 +249,30 @@ export const SettingsModal = ({
                       setForm((prev) => ({ ...prev, autoCommit: value }));
                     }}
                   />
-                </label>
+                </Label>
 
-                <label className="bg-background/35 border-edge flex items-center justify-between rounded-md border px-3 py-2.5">
-                  <div>
-                    <p className="text-light text-sm">Sound notifications</p>
-                    <p className="text-mid text-xs">Desktop-only preference in local app store.</p>
-                  </div>
-                  <Switch
-                    checked={soundNotifications}
-                    onCheckedChange={(value) => {
-                      setSoundNotifications(value);
+                <div className="space-y-2">
+                  <Label>Theme</Label>
+                  <RadioGroup
+                    value={resolvedTheme}
+                    onValueChange={(val) => {
+                      setTheme(val as ThemeSource);
                     }}
-                  />
-                </label>
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="light" id="light" />
+                      <Label htmlFor="light">Light</Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="dark" id="dark" />
+                      <Label htmlFor="dark">Dark</Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="system" id="system" />
+                      <Label htmlFor="system">System</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
               </TabsContent>
 
               <TabsContent value="backend" className="mt-4">
@@ -311,7 +282,7 @@ export const SettingsModal = ({
                     setForm((prev) => ({ ...prev, backend: String(value) }));
                   }}
                 >
-                  {backendCards.map((backend) => {
+                  {backendCards?.map((backend) => {
                     const isActive = form.backend === backend.name;
 
                     return (
@@ -390,7 +361,7 @@ export const SettingsModal = ({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button disabled={isSaving || isLoading || !hasConfig} onClick={() => void handleSave()}>
+          <Button disabled={isSaving || isLoading || !hasConfig} onClick={() => handleSave()}>
             Save Settings
           </Button>
         </DialogFooter>

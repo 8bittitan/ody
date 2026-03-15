@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
+import { Label } from './ui/label';
 
 type AuthProvider = 'jira' | 'github';
 
@@ -471,41 +472,44 @@ export const AuthPanel = () => {
           </DialogHeader>
 
           <div className="space-y-3">
-            <label className="space-y-1">
-              <span className="text-light text-xs">Profile name</span>
+            <div className="space-y-2">
+              <Label htmlFor="name">Profile name</Label>
               <Input
+                id="name"
                 value={editor.profile}
                 onChange={(event) => {
                   setEditor((prev) => ({ ...prev, profile: event.target.value }));
                 }}
               />
-            </label>
+            </div>
 
             {editor.provider === 'jira' && (
-              <label className="space-y-1">
-                <span className="text-light text-xs">Email</span>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
+                  id="email"
                   type="email"
                   value={editor.email}
                   onChange={(event) => {
                     setEditor((prev) => ({ ...prev, email: event.target.value }));
                   }}
                 />
-              </label>
+              </div>
             )}
 
-            <label className="space-y-1">
-              <span className="text-light text-xs">
+            <div className="space-y-2">
+              <Label htmlFor="password">
                 {editor.provider === 'jira' ? 'API token' : 'Personal access token'}
-              </span>
+              </Label>
               <Input
+                id="password"
                 type="password"
                 value={editor.secret}
                 onChange={(event) => {
                   setEditor((prev) => ({ ...prev, secret: event.target.value }));
                 }}
               />
-            </label>
+            </div>
           </div>
 
           <DialogFooter>

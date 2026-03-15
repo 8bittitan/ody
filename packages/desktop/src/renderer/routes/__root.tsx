@@ -290,6 +290,10 @@ const RootLayout = () => {
         if (menuAction === 'editor:save') {
           window.dispatchEvent(new CustomEvent('ody:save-editor'));
         }
+
+        if (menuAction === 'view:settings') {
+          setShowSettingsModal(true);
+        }
       };
 
       handleAction(action);
@@ -359,7 +363,6 @@ const RootLayout = () => {
               className="text-dim"
               onClick={() => {
                 setShowSettingsModal(true);
-                accent({ title: 'Settings opened' });
               }}
             >
               <Settings className="size-4" />

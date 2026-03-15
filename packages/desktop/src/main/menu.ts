@@ -6,7 +6,8 @@ type MenuAction =
   | 'view:run'
   | 'view:plan'
   | 'view:config'
-  | 'editor:save';
+  | 'editor:save'
+  | 'view:settings';
 
 const DOCS_URL = 'https://github.com/ody/ody#readme';
 const REPO_URL = 'https://github.com/ody/ody';
@@ -44,7 +45,7 @@ export const buildAppMenu = (win: BrowserWindow) => {
         {
           label: 'Preferences...',
           accelerator: 'Cmd+,',
-          click: () => sendMenuAction(win, 'view:config'),
+          click: () => sendMenuAction(win, 'view:settings'),
         },
         { type: 'separator' },
         { role: 'quit' },

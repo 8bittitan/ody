@@ -8,7 +8,8 @@ export type MenuAction =
   | 'view:run'
   | 'view:plan'
   | 'view:config'
-  | 'editor:save';
+  | 'editor:save'
+  | 'view:settings';
 
 export type RunOptions = {
   projectDir: string;
