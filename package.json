@@ -19,10 +19,10 @@
     "sync:schema": "bun run --filter '@ody/cli' gen:schema && cp ./packages/cli/dist/configuration_schema.json ./packages/docs/public"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "@types/bun": "^1.3.9",
-    "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0"
+    "@changesets/cli": "^2.30.0",
+    "@types/bun": "^1.3.10",
+    "oxfmt": "^0.40.0",
+    "oxlint": "^1.55.0"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"

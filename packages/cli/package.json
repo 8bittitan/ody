@@ -29,14 +29,14 @@
     "typecheck": "bunx tsgo --noEmit"
   },
   "dependencies": {
-    "@clack/prompts": "^1.0.1",
+    "@clack/prompts": "^1.1.0",
     "@internal/auth": "workspace:*",
     "@internal/backends": "workspace:*",
     "@internal/builders": "workspace:*",
     "@internal/config": "workspace:*",
     "@internal/integrations": "workspace:*",
     "@internal/tasks": "workspace:*",
-    "@typescript/native-preview": "^7.0.0-dev.20260225.1",
+    "@typescript/native-preview": "^7.0.0-dev.20260314.1",
     "citty": "^0.2.1",
     "consola": "^3.4.2",
     "xdg-basedir": "^5.1.0",
