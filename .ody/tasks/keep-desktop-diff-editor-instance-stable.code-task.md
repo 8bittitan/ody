@@ -1,8 +1,8 @@
 ---
-status: pending
+status: completed
 created: 2026-03-15
-started: null
-completed: null
+started: 2026-03-16
+completed: 2026-03-16
 ---
 # Task: Keep the desktop diff editor instance stable during review edits
 
