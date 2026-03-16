@@ -81,82 +81,107 @@ const ensureAgentListeners = () => {
   };
 };
 
-export const useAgent = () => {
+const useAgentLifecycle = () => {
   ensureAgentListeners();
+};
+
+export const useAgentStatus = () => {
+  useAgentLifecycle();
 
   const isRunning = useStore((state) => state.isRunning);
   const iteration = useStore((state) => state.iteration);
   const maxIterations = useStore((state) => state.maxIterations);
-  const output = useStore((state) => state.output);
   const isComplete = useStore((state) => state.isComplete);
-  const error = useStore((state) => state.error);
-  const hasAmbiguousMarker = useStore((state) => state.hasAmbiguousMarker);
-  const setRunning = useStore((state) => state.setRunning);
-  const setIteration = useStore((state) => state.setIteration);
-  const setComplete = useStore((state) => state.setComplete);
-  const setError = useStore((state) => state.setError);
-  const setAmbiguousMarker = useStore((state) => state.setAmbiguousMarker);
-  const clearOutput = useStore((state) => state.clearOutput);
-
-  const start = useCallback(
-    async (opts: RunOptions) => {
-      clearOutput();
-      setError(null);
-      setComplete(false);
-      setAmbiguousMarker(false);
-      setIteration(0, opts.iterations ?? 0);
-      let result;
-
-      try {
-        result = await api.agent.run(opts);
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to start run';
-        setError(message);
-        toast.error('Failed to start run', { description: message });
-        throw cause;
-      }
-
-      if (result.started) {
-        setRunning(true);
-      }
-
-      return result;
-    },
-    [clearOutput, setAmbiguousMarker, setComplete, setError, setIteration, setRunning],
-  );
-
-  const stop = useCallback(
-    async (force?: boolean) => {
-      let result;
-
-      try {
-        result = await api.agent.stop(force);
-      } catch (cause) {
-        const message = cause instanceof Error ? cause.message : 'Unable to stop run';
-        setError(message);
-        toast.error('Failed to stop run', { description: message });
-        throw cause;
-      }
-
-      if (result.stopped) {
-        setRunning(false);
-      }
-
-      return result;
-    },
-    [setRunning, setError],
-  );
 
   return {
     isRunning,
     iteration,
     maxIterations,
-    output,
     isComplete,
+  };
+};
+
+export const useAgentOutput = () => {
+  useAgentLifecycle();
+
+  const output = useStore((state) => state.output);
+  const outputPreview = useStore((state) => state.outputPreview);
+  const error = useStore((state) => state.error);
+  const hasAmbiguousMarker = useStore((state) => state.hasAmbiguousMarker);
+  const clearOutput = useCallback(() => {
+    useStore.getState().clearOutput();
+  }, []);
+
+  return {
+    output,
+    outputPreview,
     error,
     hasAmbiguousMarker,
+    clearOutput,
+  };
+};
+
+export const useAgentControls = () => {
+  useAgentLifecycle();
+
+  const start = useCallback(async (opts: RunOptions) => {
+    const state = useStore.getState();
+    state.clearOutput();
+    state.setError(null);
+    state.setComplete(false);
+    state.setAmbiguousMarker(false);
+    state.setIteration(0, opts.iterations ?? 0);
+    let result;
+
+    try {
+      result = await api.agent.run(opts);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Unable to start run';
+      useStore.getState().setError(message);
+      toast.error('Failed to start run', { description: message });
+      throw cause;
+    }
+
+    if (result.started) {
+      useStore.getState().setRunning(true);
+    }
+
+    return result;
+  }, []);
+
+  const stop = useCallback(async (force?: boolean) => {
+    let result;
+
+    try {
+      result = await api.agent.stop(force);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Unable to stop run';
+      useStore.getState().setError(message);
+      toast.error('Failed to stop run', { description: message });
+      throw cause;
+    }
+
+    if (result.stopped) {
+      useStore.getState().setRunning(false);
+    }
+
+    return result;
+  }, []);
+
+  return {
     start,
     stop,
-    clearOutput,
+  };
+};
+
+export const useAgent = () => {
+  const status = useAgentStatus();
+  const output = useAgentOutput();
+  const controls = useAgentControls();
+
+  return {
+    ...status,
+    ...output,
+    ...controls,
   };
 };

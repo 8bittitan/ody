@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAgent } from '@/hooks/useAgent';
+import { useAgentControls, useAgentStatus } from '@/hooks/useAgent';
 import { useApp } from '@/hooks/useApp';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -72,7 +72,8 @@ const RootLayout = () => {
   const { loadTasks } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
   const { isFullscreen } = useApp();
-  const { isRunning, start, stop } = useAgent();
+  const { isRunning } = useAgentStatus();
+  const { start, stop } = useAgentControls();
   const backendName = typeof config?.backend === 'string' ? config.backend : '';
 
   const activeProject = useMemo(() => {

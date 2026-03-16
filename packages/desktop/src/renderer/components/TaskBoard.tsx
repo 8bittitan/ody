@@ -15,13 +15,13 @@ import {
   ScrollAreaThumb,
   ScrollAreaViewport,
 } from '@/components/ui/scroll-area';
-import { stripAnsi } from '@/lib/ansi';
 import { api } from '@/lib/api';
+import { useStore } from '@/store';
 import type { TaskStatus, TaskSummary } from '@/types/ipc';
 import { ClipboardList, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { useAgent } from '../hooks/useAgent';
+import { useAgentControls, useAgentOutput, useAgentStatus } from '../hooks/useAgent';
 import { useConfig } from '../hooks/useConfig';
 import { useNotifications } from '../hooks/useNotifications';
 import { useProjects } from '../hooks/useProjects';
@@ -56,6 +56,55 @@ const COLUMN_META = {
   },
 } as const;
 
+type InProgressTaskCardProps = {
+  task: TaskSummary;
+  onClick: (task: TaskSummary) => void;
+  onRun: (task: TaskSummary) => void;
+  onEdit: (task: TaskSummary) => void;
+  onDelete: (task: TaskSummary) => void;
+};
+
+const InProgressTaskCard = ({
+  task,
+  onClick,
+  onRun,
+  onEdit,
+  onDelete,
+}: InProgressTaskCardProps) => {
+  const { stop } = useAgentControls();
+  const { isRunning } = useAgentStatus();
+  const { outputPreview } = useAgentOutput();
+
+  return (
+    <TaskCard
+      task={task}
+      outputPreview={outputPreview}
+      isRunning={isRunning}
+      onClick={onClick}
+      onRun={onRun}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onStop={() => {
+        void stop(false);
+      }}
+    />
+  );
+};
+
+const TaskBoardRunStatus = () => {
+  const { isRunning, iteration, maxIterations } = useAgentStatus();
+
+  if (!isRunning) {
+    return null;
+  }
+
+  return (
+    <div className="text-dim border-edge bg-background/40 rounded-lg border px-3 py-2 text-xs">
+      Iteration {iteration} of {maxIterations || '∞'} -- Running...
+    </div>
+  );
+};
+
 export const TaskBoard = ({
   onOpenPlan,
   onOpenArchive,
@@ -67,7 +116,7 @@ export const TaskBoard = ({
   const { activeProjectPath } = useProjects();
   const { tasks, loadTasks, isLoading } = useTasks();
   const { config } = useConfig();
-  const { start, stop, isRunning, output, iteration, maxIterations } = useAgent();
+  const { start } = useAgentControls();
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
   const [localLabelFilter, setLocalLabelFilter] = useState<string[]>([]);
@@ -151,24 +200,19 @@ export const TaskBoard = ({
     [tasks],
   );
 
-  const outputPreview = useMemo(() => {
-    const content = stripAnsi(output.join(''));
-    const lines = content.split(/\r?\n/).filter((line) => line.length > 0);
-    return lines.slice(-6).join('\n');
-  }, [output]);
-
   const startTaskRun = async (task: TaskSummary) => {
     if (!activeProjectPath) {
       return;
     }
 
-    if (isRunning) {
+    if (useStore.getState().isRunning) {
       warning({ title: 'Agent is already running' });
       return;
     }
 
     const iterations = typeof config?.maxIterations === 'number' ? config.maxIterations : 1;
     const autoCommit = typeof config?.autoCommit === 'boolean' ? config.autoCommit : false;
+    const startDescription = autoCommit ? 'Auto-commit enabled.' : undefined;
 
     try {
       const result = await start({
@@ -184,7 +228,7 @@ export const TaskBoard = ({
 
       accent({
         title: 'Task run started',
-        description: autoCommit ? 'Auto-commit enabled.' : undefined,
+        description: startDescription,
       });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unable to start task run';
@@ -374,22 +418,31 @@ export const TaskBoard = ({
                         key={task.filePath}
                         className={index % 3 === 0 ? 'd1' : index % 3 === 1 ? 'd2' : 'd3'}
                       >
-                        <TaskCard
-                          task={task}
-                          outputPreview={status === 'in_progress' ? outputPreview : undefined}
-                          isRunning={isRunning}
-                          onClick={setDetailTarget}
-                          onRun={(target) => {
-                            void startTaskRun(target);
-                          }}
-                          onEdit={(target) => {
-                            onOpenEditor(target.filePath);
-                          }}
-                          onDelete={setDeleteTarget}
-                          onStop={() => {
-                            void stop(false);
-                          }}
-                        />
+                        {status === 'in_progress' ? (
+                          <InProgressTaskCard
+                            task={task}
+                            onClick={setDetailTarget}
+                            onRun={(target) => {
+                              void startTaskRun(target);
+                            }}
+                            onEdit={(target) => {
+                              onOpenEditor(target.filePath);
+                            }}
+                            onDelete={setDeleteTarget}
+                          />
+                        ) : (
+                          <TaskCard
+                            task={task}
+                            onClick={setDetailTarget}
+                            onRun={(target) => {
+                              void startTaskRun(target);
+                            }}
+                            onEdit={(target) => {
+                              onOpenEditor(target.filePath);
+                            }}
+                            onDelete={setDeleteTarget}
+                          />
+                        )}
                       </div>
                     ))}
                     {tasksForStatus.length === 0 ? (
@@ -509,11 +562,7 @@ export const TaskBoard = ({
         }}
       />
 
-      {isRunning ? (
-        <div className="text-dim border-edge bg-background/40 rounded-lg border px-3 py-2 text-xs">
-          Iteration {iteration} of {maxIterations || '∞'} -- Running...
-        </div>
-      ) : null}
+      <TaskBoardRunStatus />
     </div>
   );
 };

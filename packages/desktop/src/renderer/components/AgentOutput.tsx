@@ -6,7 +6,7 @@ import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 
 type AgentOutputProps = {
-  output: string[];
+  output: string;
   error: string | null;
   hasAmbiguousMarker: boolean;
   isRunning?: boolean;
@@ -22,8 +22,7 @@ export const AgentOutput = ({
 }: AgentOutputProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const outputContent = useMemo(() => output.join(''), [output]);
-  const outputHtml = useMemo(() => toAnsiHtml(outputContent), [outputContent]);
+  const outputHtml = useMemo(() => toAnsiHtml(output), [output]);
 
   const handleScroll = () => {
     const container = containerRef.current;

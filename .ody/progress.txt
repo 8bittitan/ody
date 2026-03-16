@@ -8,3 +8,4 @@
 2026-03-16: Debounced desktop window size persistence during resize and flush the latest bounds on close to reduce repeated electron-store writes.
 2026-03-16: Standardized desktop settings query keys, split backend model caching by backend name, and kept notification/backend cache entries on shared helpers.
 2026-03-16: Moved desktop editor and config-editor views onto explicit TanStack lazy route files, regenerated the route tree, and verified Milkdown/CodeMirror stay out of the startup bundle.
+2026-03-16: Split desktop agent state hooks by status, output, and controls, cached a lightweight output preview in the store, and kept root/task board rerenders off the full output stream.
