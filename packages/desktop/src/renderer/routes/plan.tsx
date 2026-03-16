@@ -1,11 +1,12 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GenerationOutput } from '@/components/GenerationOutput';
 import { PlanCreator } from '@/components/PlanCreator';
+import { usePlanAgent } from '@/hooks/useAgent';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
-import { api } from '@/lib/api';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export const Route = createFileRoute('/plan')({
   component: PlanPage,
@@ -14,73 +15,51 @@ export const Route = createFileRoute('/plan')({
 function PlanPage() {
   const navigate = useNavigate();
   const { success, error } = useNotifications();
+  const { activeProjectPath } = useProjects();
   const { loadTasks } = useTasks();
-  const [planStreamOutput, setPlanStreamOutput] = useState('');
-  const [isPlanGenerating, setIsPlanGenerating] = useState(false);
+  const {
+    output: planStreamOutput,
+    isRunning: isPlanGenerating,
+    isComplete,
+    error: planError,
+    clearOutput,
+  } = usePlanAgent(activeProjectPath);
   const isPlanGeneratingRef = useRef(false);
 
   const resetPlanStream = useCallback(() => {
-    setPlanStreamOutput('');
-  }, []);
+    clearOutput();
+  }, [clearOutput]);
 
   useEffect(() => {
-    const onOutput = api.agent.onOutput((chunk) => {
-      if (!isPlanGeneratingRef.current) {
-        return;
-      }
+    if (isPlanGenerating) {
+      isPlanGeneratingRef.current = true;
+      return;
+    }
 
-      setPlanStreamOutput((prev) => `${prev}${chunk}`);
+    if (!isPlanGeneratingRef.current) {
+      return;
+    }
+
+    isPlanGeneratingRef.current = false;
+    loadTasks().catch(() => {
+      return;
     });
 
-    const finish = () => {
-      if (!isPlanGeneratingRef.current) {
-        return;
-      }
-
-      isPlanGeneratingRef.current = false;
-      setIsPlanGenerating(false);
-      loadTasks().catch(() => {
-        return;
-      });
-    };
-
-    const onComplete = api.agent.onComplete(() => {
-      finish();
+    if (isComplete) {
       success({ title: 'Plan generation finished' });
-    });
+    }
+  }, [isComplete, isPlanGenerating, loadTasks, success]);
 
-    const onStopped = api.agent.onStopped(() => {
-      finish();
-    });
-
-    const onVerifyFailed = api.agent.onVerifyFailed((message) => {
-      if (!isPlanGeneratingRef.current) {
-        return;
-      }
-
-      isPlanGeneratingRef.current = false;
-      setIsPlanGenerating(false);
-      error({ title: 'Plan generation failed', description: message });
-    });
-
-    return () => {
-      onOutput();
-      onComplete();
-      onStopped();
-      onVerifyFailed();
-    };
-  }, [error, loadTasks, success]);
+  useEffect(() => {
+    if (planError && isPlanGeneratingRef.current) {
+      error({ title: 'Plan generation failed', description: planError });
+    }
+  }, [error, isPlanGenerating, planError]);
 
   return (
     <ErrorBoundary title="Plan view error">
       <div className="grid h-full gap-3 lg:grid-cols-[1.25fr_0.75fr]">
-        <PlanCreator
-          isGenerating={isPlanGenerating}
-          isGeneratingRef={isPlanGeneratingRef}
-          setIsGenerating={setIsPlanGenerating}
-          setStreamOutput={setPlanStreamOutput}
-          resetStream={resetPlanStream}
-        />
+        <PlanCreator isGenerating={isPlanGenerating} resetStream={resetPlanStream} />
         <GenerationOutput
           streamOutput={planStreamOutput}
           isGenerating={isPlanGenerating}

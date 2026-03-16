@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { useEditor } from '@/hooks/useEditor';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DiffView } from './editor/DiffView';
@@ -21,6 +22,7 @@ type TaskEditorProps = {
 };
 
 export const TaskEditor = ({ taskPath, onBack }: TaskEditorProps) => {
+  const { activeProjectPath } = useProjects();
   const { success, error, warning } = useNotifications();
   const {
     fileName,
@@ -46,7 +48,7 @@ export const TaskEditor = ({ taskPath, onBack }: TaskEditorProps) => {
     cancelInlineEdit,
     rejectInlineEdit,
     acceptInlineEdit,
-  } = useEditor(taskPath);
+  } = useEditor(taskPath, activeProjectPath);
   const editorRef = useRef<RichMarkdownEditorHandle>(null);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);

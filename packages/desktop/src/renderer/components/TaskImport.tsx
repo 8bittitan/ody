@@ -4,10 +4,11 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useImport } from '@/hooks/useImport';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { toAnsiHtml } from '@/lib/ansi';
 import { Import } from 'lucide-react';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -19,6 +20,7 @@ type TaskImportProps = {
 };
 
 export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportProps) => {
+  const { activeProjectPath } = useProjects();
   const { refreshTasks } = useTasks();
   const { success, warning, error, accent } = useNotifications();
   const {
@@ -32,6 +34,7 @@ export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportPr
     importData,
     promptPreview,
     streamOutput,
+    generationError,
     missingCredentials,
     settings,
     fetchData,
@@ -39,11 +42,20 @@ export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportPr
     generateTask,
     resetImport,
   } = useImport({
+    activeProjectPath,
     config,
     onComplete: refreshTasks,
   });
 
   const streamOutputHtml = useMemo(() => toAnsiHtml(streamOutput), [streamOutput]);
+
+  useEffect(() => {
+    if (!generationError) {
+      return;
+    }
+
+    error({ title: 'Task generation failed', description: generationError });
+  }, [error, generationError]);
 
   const handleFetch = async () => {
     try {

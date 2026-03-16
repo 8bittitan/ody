@@ -1,4 +1,3 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { access, mkdir, open, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -26,7 +25,7 @@ import type { BrowserWindow } from 'electron';
 import { dialog, ipcMain, nativeTheme, shell } from 'electron';
 import Store from 'electron-store';
 
-import { AgentRunner } from './agent';
+import { DesktopAgentJobManager } from './agent-jobs';
 
 type ProjectItem = {
   name: string;
@@ -515,20 +514,13 @@ const registerHandler = (channel: string, handler: (...args: unknown[]) => unkno
   ipcMain.handle(channel, (_event, ...args) => handler(...args));
 };
 
-const extractModifiedFile = (output: string) => {
-  const match = output.match(/<modified_file>\s*([\s\S]*?)\s*<\/modified_file>/i);
-  return match?.[1] ?? null;
-};
-
 export const registerIpcHandlers = (win: BrowserWindow) => {
-  const agentRunner = new AgentRunner({
+  const jobManager = new DesktopAgentJobManager(win, {
     shouldPlaySound: () => appStore.get('soundNotifications', false),
     playSound: () => {
       shell.beep();
     },
   });
-  let inlineEditProc: ChildProcessWithoutNullStreams | null = null;
-  let inlineEditSnapshot: { filePath: string; content: string } | null = null;
   const handleNativeThemeUpdated = () => {
     const state = getThemeState();
     if (state.source !== 'system') {
@@ -769,125 +761,105 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     }));
   });
 
-  registerHandler('agent:run', (opts: unknown) => {
+  registerHandler('agent:run', async (opts: unknown) => {
     if (!opts || typeof opts !== 'object') {
       return { started: false };
     }
 
-    if (agentRunner.isRunning()) {
+    const options = opts as {
+      projectPath?: unknown;
+      kind?: unknown;
+      taskFiles?: string[];
+      iterations?: number;
+    };
+    const projectPath = String(options.projectPath ?? '').trim();
+
+    if (projectPath.length === 0 || options.kind !== 'run') {
       return { started: false };
     }
 
-    const options = opts as { projectDir?: unknown; taskFiles?: string[]; iterations?: number };
-    const projectDir = String(options.projectDir ?? '').trim();
-
-    if (projectDir.length === 0) {
-      return { started: false };
-    }
-
-    void (async () => {
-      try {
-        const config = await resolveAgentConfig(projectDir);
-        await agentRunner.runLoop(
-          win,
-          {
-            projectDir,
-            taskFiles: options.taskFiles,
-            iterations: options.iterations,
-          },
-          config,
-        );
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        win.webContents.send('agent:verifyFailed', message);
-        win.webContents.send('agent:stopped');
-      }
-    })();
-
-    return { started: true };
+    const config = await resolveAgentConfig(projectPath);
+    return jobManager.startRun(
+      {
+        projectPath,
+        kind: 'run',
+        taskFiles: options.taskFiles,
+        iterations: options.iterations,
+      },
+      config,
+    );
   });
-  registerHandler('agent:stop', async (force: unknown) => {
-    const stoppedAgent = await agentRunner.stop(force === true);
-    const hadInlineEditProc = inlineEditProc !== null;
-    const hadInlineEditSnapshot = inlineEditSnapshot !== null;
-
-    if (inlineEditProc) {
-      inlineEditProc.kill(force === true ? 'SIGKILL' : 'SIGTERM');
-      inlineEditProc = null;
+  registerHandler('agent:stop', async (request: unknown) => {
+    if (!request || typeof request !== 'object') {
+      return { stopped: false };
     }
 
-    if (inlineEditSnapshot) {
-      const snapshot = inlineEditSnapshot;
-      inlineEditSnapshot = null;
-      void writeFile(snapshot.filePath, snapshot.content, 'utf-8');
+    const payload = request as { jobKey?: unknown; force?: unknown };
+    const jobKey = String(payload.jobKey ?? '').trim();
+
+    if (jobKey.length === 0) {
+      return { stopped: false };
     }
 
-    if (!stoppedAgent && !hadInlineEditProc) {
-      win.webContents.send('agent:stopped');
-    }
-
-    return { stopped: stoppedAgent || hadInlineEditProc || hadInlineEditSnapshot };
+    const stopped = await jobManager.stop(jobKey, payload.force === true);
+    return { stopped };
   });
-  registerHandler('agent:status', () => agentRunner.status());
-  registerHandler('agent:planNew', async (description: unknown) => {
-    const activeProjectPath = readActiveProjectPath();
-    const promptInput = String(description ?? '').trim();
-
-    if (!activeProjectPath || promptInput.length === 0 || agentRunner.isRunning()) {
+  registerHandler('agent:status', () => jobManager.statuses());
+  registerHandler('agent:planNew', async (request: unknown) => {
+    if (!request || typeof request !== 'object') {
       return { started: false };
     }
 
-    try {
-      const config = await resolveAgentConfig(activeProjectPath);
-      const prompt = buildPlanPrompt({
-        description: promptInput,
-        tasksDir: config.tasksDir ?? TASKS_DIR,
-      });
-      const backend = new Backend(config.backend, config);
-      const model = Config.resolveModel('plan', config);
-      const command = backend.buildCommand(prompt, model);
+    const payload = request as { projectPath?: unknown; kind?: unknown; description?: unknown };
+    const projectPath = String(payload.projectPath ?? '').trim();
+    const promptInput = String(payload.description ?? '').trim();
 
-      win.webContents.send('agent:started');
-      await agentRunner.spawnAndStream(win, command, activeProjectPath);
-      win.webContents.send('agent:complete');
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      win.webContents.send('agent:verifyFailed', message);
-      win.webContents.send('agent:stopped');
-    }
-
-    return { started: true };
-  });
-  registerHandler('agent:planBatch', (filePath: unknown) => {
-    const activeProjectPath = readActiveProjectPath();
-    const planFilePath = String(filePath ?? '').trim();
-
-    if (!activeProjectPath || planFilePath.length === 0 || agentRunner.isRunning()) {
+    if (projectPath.length === 0 || promptInput.length === 0 || payload.kind !== 'plan') {
       return { started: false };
     }
 
-    void (async () => {
-      try {
-        const config = await resolveAgentConfig(activeProjectPath);
-        const prompt = buildBatchPlanPrompt({
-          filePath: planFilePath,
-          tasksDir: config.tasksDir ?? TASKS_DIR,
-        });
-        const backend = new Backend(config.backend, config);
-        const model = Config.resolveModel('plan', config);
-        const command = backend.buildCommand(prompt, model);
+    const config = await resolveAgentConfig(projectPath);
+    const prompt = buildPlanPrompt({
+      description: promptInput,
+      tasksDir: config.tasksDir ?? TASKS_DIR,
+    });
+    const backend = new Backend(config.backend, config);
+    const model = Config.resolveModel('plan', config);
+    const command = backend.buildCommand(prompt, model);
 
-        win.webContents.send('agent:started');
-        await agentRunner.spawnAndStream(win, command, activeProjectPath);
-        win.webContents.send('agent:complete');
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        win.webContents.send('agent:verifyFailed', message);
-        win.webContents.send('agent:stopped');
-      }
-    })();
+    return jobManager.startPlan(
+      { projectPath, kind: 'plan', description: promptInput },
+      command,
+      projectPath,
+    );
+  });
+  registerHandler('agent:planBatch', async (request: unknown) => {
+    if (!request || typeof request !== 'object') {
+      return { started: false };
+    }
 
-    return { started: true };
+    const payload = request as { projectPath?: unknown; kind?: unknown; filePath?: unknown };
+    const projectPath = String(payload.projectPath ?? '').trim();
+    const planFilePath = String(payload.filePath ?? '').trim();
+
+    if (projectPath.length === 0 || planFilePath.length === 0 || payload.kind !== 'plan') {
+      return { started: false };
+    }
+
+    const config = await resolveAgentConfig(projectPath);
+    const prompt = buildBatchPlanPrompt({
+      filePath: planFilePath,
+      tasksDir: config.tasksDir ?? TASKS_DIR,
+    });
+    const backend = new Backend(config.backend, config);
+    const model = Config.resolveModel('plan', config);
+    const command = backend.buildCommand(prompt, model);
+
+    return jobManager.startPlan(
+      { projectPath, kind: 'plan', filePath: planFilePath },
+      command,
+      projectPath,
+    );
   });
   registerHandler('agent:planPreview', async (description: unknown) => {
     const promptInput = String(description ?? '').trim();
@@ -929,28 +901,30 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       command: backend.buildCommand(prompt, model),
     };
   });
-  registerHandler('agent:editInline', (opts: unknown) => {
-    const activeProjectPath = readActiveProjectPath();
-
-    if (!activeProjectPath || !opts || typeof opts !== 'object') {
-      return { started: false };
-    }
-
-    if (agentRunner.isRunning() || inlineEditProc) {
+  registerHandler('agent:editInline', async (opts: unknown) => {
+    if (!opts || typeof opts !== 'object') {
       return { started: false };
     }
 
     const payload = opts as {
+      projectPath?: unknown;
+      kind?: unknown;
       filePath?: unknown;
       fileContent?: unknown;
       instruction?: unknown;
       selection?: { from?: unknown; to?: unknown } | null;
     };
+    const projectPath = String(payload.projectPath ?? '').trim();
     const requestedPath = String(payload.filePath ?? '').trim();
     const fileContent = String(payload.fileContent ?? '');
     const instruction = String(payload.instruction ?? '').trim();
 
-    if (requestedPath.length === 0 || instruction.length === 0) {
+    if (
+      projectPath.length === 0 ||
+      requestedPath.length === 0 ||
+      instruction.length === 0 ||
+      payload.kind !== 'edit'
+    ) {
       return { started: false };
     }
 
@@ -962,194 +936,121 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
             from: Math.max(0, Math.floor(Math.min(rawFrom, rawTo))),
             to: Math.max(0, Math.floor(Math.max(rawFrom, rawTo))),
           }
-        : undefined;
+        : null;
 
-    void (async () => {
-      try {
-        const resolvedPath = await resolveTaskFilePath(activeProjectPath, requestedPath, true);
-        const config = await resolveAgentConfig(activeProjectPath);
-        const backend = new Backend(config.backend, config);
-        const model = Config.resolveModel('edit', config);
+    const resolvedPath = await resolveTaskFilePath(projectPath, requestedPath, true);
+    const config = await resolveAgentConfig(projectPath);
+    const backend = new Backend(config.backend, config);
+    const model = Config.resolveModel('edit', config);
+    const prompt = buildInlineEditPrompt({
+      fileContent,
+      selection: selection ?? undefined,
+      instruction,
+    });
+    const command = backend.buildCommand(prompt, model);
 
-        const snapshotContent = await readFile(resolvedPath, 'utf-8');
-        inlineEditSnapshot = { filePath: resolvedPath, content: snapshotContent };
-
-        await writeFile(resolvedPath, fileContent, 'utf-8');
-
-        const prompt = buildInlineEditPrompt({
-          fileContent,
-          selection,
-          instruction,
-        });
-        const [bin, ...args] = backend.buildCommand(prompt, model);
-
-        if (!bin) {
-          throw new Error('Cannot start inline edit: command is empty');
-        }
-
-        const proc = spawn(bin, args, {
-          cwd: activeProjectPath,
-          stdio: 'pipe',
-        });
-        inlineEditProc = proc;
-        win.webContents.send('agent:started');
-
-        let fullOutput = '';
-        proc.stdout.on('data', (chunk: Buffer) => {
-          const text = chunk.toString('utf-8');
-          fullOutput += text;
-          win.webContents.send('agent:output', text);
-        });
-        proc.stderr.on('data', (chunk: Buffer) => {
-          const text = chunk.toString('utf-8');
-          fullOutput += text;
-          win.webContents.send('agent:output', text);
-        });
-
-        const exitCode = await new Promise<number | null>((resolve, reject) => {
-          proc.once('error', reject);
-          proc.once('close', (code) => resolve(code));
-        });
-
-        inlineEditProc = null;
-
-        if (exitCode !== 0) {
-          throw new Error(`Inline edit exited with code ${exitCode ?? 'unknown'}`);
-        }
-
-        const modifiedContent = extractModifiedFile(fullOutput);
-
-        if (!modifiedContent) {
-          throw new Error('Inline edit did not return <modified_file> output.');
-        }
-
-        await writeFile(resolvedPath, modifiedContent, 'utf-8');
-        win.webContents.send('agent:editResult', modifiedContent);
-
-        const snapshot = inlineEditSnapshot;
-        inlineEditSnapshot = null;
-        if (snapshot) {
-          await writeFile(snapshot.filePath, snapshot.content, 'utf-8');
-        }
-
-        win.webContents.send('agent:complete');
-      } catch (cause) {
-        inlineEditProc = null;
-
-        const snapshot = inlineEditSnapshot;
-        inlineEditSnapshot = null;
-        if (snapshot) {
-          try {
-            await writeFile(snapshot.filePath, snapshot.content, 'utf-8');
-          } catch {
-            // ignore restore failures after inline edit errors
-          }
-        }
-
-        const message = cause instanceof Error ? cause.message : String(cause);
-        win.webContents.send('agent:verifyFailed', message);
-        win.webContents.send('agent:stopped');
-      }
-    })();
-
-    return { started: true };
+    return jobManager.startInlineEdit(
+      {
+        projectPath,
+        kind: 'edit',
+        filePath: resolvedPath,
+        fileContent,
+        selection,
+        instruction,
+      },
+      command,
+    );
   });
-  registerHandler('agent:importFromJira', (opts: unknown) => {
-    const activeProjectPath = readActiveProjectPath();
-
-    if (!activeProjectPath || agentRunner.isRunning()) {
+  registerHandler('agent:importFromJira', async (opts: unknown) => {
+    if (!opts || typeof opts !== 'object') {
       return { started: false };
     }
 
-    const input = parseImportInput(opts);
+    const payload = opts as { projectPath?: unknown; kind?: unknown; input?: unknown };
+    const projectPath = String(payload.projectPath ?? '').trim();
 
-    void (async () => {
-      try {
-        const settings = await readImportSettings(activeProjectPath);
-        const parsed = Jira.parseInput(input, settings.jiraBaseUrl);
-        const auth = await Auth.getJira(settings.jiraProfile);
-
-        if (!auth) {
-          throw new Error(
-            `Missing Jira credentials for profile "${settings.jiraProfile}". Configure credentials in the Auth view first.`,
-          );
-        }
-
-        const ticket = await Jira.fetchTicket(parsed.baseUrl, parsed.ticketKey, auth);
-        const formatted = Jira.formatAsDescription(ticket);
-
-        const config = await resolveAgentConfig(activeProjectPath);
-        const backend = new Backend(config.backend, config);
-        const model = Config.resolveModel('plan', config);
-        const prompt = buildImportPrompt({
-          data: formatted,
-          source: 'jira',
-          tasksDir: config.tasksDir ?? TASKS_DIR,
-        });
-        const command = backend.buildCommand(prompt, model);
-
-        win.webContents.send('agent:started');
-        await agentRunner.spawnAndStream(win, command, activeProjectPath);
-        win.webContents.send('agent:complete');
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        win.webContents.send('agent:verifyFailed', message);
-        win.webContents.send('agent:stopped');
-      }
-    })();
-
-    return { started: true };
-  });
-  registerHandler('agent:importFromGitHub', (opts: unknown) => {
-    const activeProjectPath = readActiveProjectPath();
-
-    if (!activeProjectPath || agentRunner.isRunning()) {
+    if (projectPath.length === 0 || payload.kind !== 'plan') {
       return { started: false };
     }
 
-    const input = parseImportInput(opts);
+    const input = parseImportInput(payload);
 
-    void (async () => {
-      try {
-        const settings = await readImportSettings(activeProjectPath);
-        const parsed = GitHub.parseInput(input);
-        const auth = await Auth.getGitHub(settings.githubProfile);
+    const settings = await readImportSettings(projectPath);
+    const parsed = Jira.parseInput(input, settings.jiraBaseUrl);
+    const auth = await Auth.getJira(settings.jiraProfile);
 
-        if (!auth) {
-          throw new Error(
-            `Missing GitHub credentials for profile "${settings.githubProfile}". Configure credentials in the Auth view first.`,
-          );
-        }
+    if (!auth) {
+      throw new Error(
+        `Missing Jira credentials for profile "${settings.jiraProfile}". Configure credentials in the Auth view first.`,
+      );
+    }
 
-        const issue = await GitHub.fetchIssue(
-          parsed.owner,
-          parsed.repo,
-          parsed.issueNumber,
-          auth.token,
-        );
-        const formatted = GitHub.formatAsDescription(issue, parsed.owner, parsed.repo);
+    const ticket = await Jira.fetchTicket(parsed.baseUrl, parsed.ticketKey, auth);
+    const formatted = Jira.formatAsDescription(ticket);
 
-        const config = await resolveAgentConfig(activeProjectPath);
-        const backend = new Backend(config.backend, config);
-        const model = Config.resolveModel('plan', config);
-        const prompt = buildImportPrompt({
-          data: formatted,
-          source: 'github',
-          tasksDir: config.tasksDir ?? TASKS_DIR,
-        });
-        const command = backend.buildCommand(prompt, model);
+    const config = await resolveAgentConfig(projectPath);
+    const backend = new Backend(config.backend, config);
+    const model = Config.resolveModel('plan', config);
+    const prompt = buildImportPrompt({
+      data: formatted,
+      source: 'jira',
+      tasksDir: config.tasksDir ?? TASKS_DIR,
+    });
+    const command = backend.buildCommand(prompt, model);
 
-        win.webContents.send('agent:started');
-        await agentRunner.spawnAndStream(win, command, activeProjectPath);
-        win.webContents.send('agent:complete');
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        win.webContents.send('agent:verifyFailed', message);
-        win.webContents.send('agent:stopped');
-      }
-    })();
+    return jobManager.startPlan(
+      { projectPath, kind: 'plan', description: input },
+      command,
+      projectPath,
+    );
+  });
+  registerHandler('agent:importFromGitHub', async (opts: unknown) => {
+    if (!opts || typeof opts !== 'object') {
+      return { started: false };
+    }
 
-    return { started: true };
+    const payload = opts as { projectPath?: unknown; kind?: unknown; input?: unknown };
+    const projectPath = String(payload.projectPath ?? '').trim();
+
+    if (projectPath.length === 0 || payload.kind !== 'plan') {
+      return { started: false };
+    }
+
+    const input = parseImportInput(payload);
+
+    const settings = await readImportSettings(projectPath);
+    const parsed = GitHub.parseInput(input);
+    const auth = await Auth.getGitHub(settings.githubProfile);
+
+    if (!auth) {
+      throw new Error(
+        `Missing GitHub credentials for profile "${settings.githubProfile}". Configure credentials in the Auth view first.`,
+      );
+    }
+
+    const issue = await GitHub.fetchIssue(
+      parsed.owner,
+      parsed.repo,
+      parsed.issueNumber,
+      auth.token,
+    );
+    const formatted = GitHub.formatAsDescription(issue, parsed.owner, parsed.repo);
+
+    const config = await resolveAgentConfig(projectPath);
+    const backend = new Backend(config.backend, config);
+    const model = Config.resolveModel('plan', config);
+    const prompt = buildImportPrompt({
+      data: formatted,
+      source: 'github',
+      tasksDir: config.tasksDir ?? TASKS_DIR,
+    });
+    const command = backend.buildCommand(prompt, model);
+
+    return jobManager.startPlan(
+      { projectPath, kind: 'plan', description: input },
+      command,
+      projectPath,
+    );
   });
   registerHandler('agent:importDryRun', async (opts: unknown) => {
     const activeProjectPath = readActiveProjectPath();

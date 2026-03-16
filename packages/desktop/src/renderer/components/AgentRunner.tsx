@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAgentControls, useAgentOutput, useAgentStatus } from '@/hooks/useAgent';
+import { useRunAgent } from '@/hooks/useAgent';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useProjects } from '@/hooks/useProjects';
@@ -39,9 +39,17 @@ export const AgentRunner = () => {
   const { tasks } = useTasks();
   const { config } = useConfig();
   const { accent, warning, error } = useNotifications();
-  const { start, stop } = useAgentControls();
-  const { isRunning, iteration, maxIterations } = useAgentStatus();
-  const { output, error: runError, hasAmbiguousMarker, clearOutput } = useAgentOutput();
+  const {
+    start,
+    stop,
+    isRunning,
+    iteration,
+    maxIterations,
+    output,
+    error: runError,
+    hasAmbiguousMarker,
+    clearOutput,
+  } = useRunAgent(activeProjectPath);
 
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [selectedTaskFile, setSelectedTaskFile] = useState<string>('');

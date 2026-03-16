@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { buildAgentJobKey } from '@/types/ipc';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type SelectionRange = {
@@ -10,7 +11,7 @@ type EditorMode = 'edit' | 'prompt' | 'review';
 
 const INLINE_FILE_SIZE_LIMIT_BYTES = 500 * 1024;
 
-export const useEditor = (selectedTaskPath: string | null) => {
+export const useEditor = (selectedTaskPath: string | null, projectPath: string | null) => {
   const [filePath, setFilePath] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
@@ -24,6 +25,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
   const [inlineOutput, setInlineOutput] = useState('');
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [isInlineRunning, setIsInlineRunning] = useState(false);
+  const [inlineJobKey, setInlineJobKey] = useState<string | null>(null);
   const [reviewOriginalContent, setReviewOriginalContent] = useState('');
   const [reviewProposedContent, setReviewProposedContent] = useState('');
 
@@ -42,6 +44,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
       setInlineOutput('');
       setInlineError(null);
       setIsInlineRunning(false);
+      setInlineJobKey(null);
       setReviewOriginalContent('');
       setReviewProposedContent('');
 
@@ -68,6 +71,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
       setInlineOutput('');
       setInlineError(null);
       setIsInlineRunning(false);
+      setInlineJobKey(null);
       setReviewOriginalContent('');
       setReviewProposedContent('');
       return;
@@ -133,7 +137,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
   );
 
   const submitInlineEdit = useCallback(async () => {
-    if (!filePath) {
+    if (!filePath || !projectPath) {
       return { ok: false, reason: 'No task selected.' };
     }
 
@@ -156,6 +160,8 @@ export const useEditor = (selectedTaskPath: string | null) => {
     setIsInlineRunning(true);
 
     const result = await api.agent.editInline({
+      projectPath,
+      kind: 'edit',
       filePath,
       fileContent: content,
       selection: inlineSelection,
@@ -168,15 +174,20 @@ export const useEditor = (selectedTaskPath: string | null) => {
       return { ok: false, reason: 'Agent is busy.' };
     }
 
+    setInlineJobKey(result.jobKey ?? buildAgentJobKey(projectPath, 'edit'));
+
     return { ok: true };
-  }, [content, filePath, inlineInstruction, inlineSelection, isLargeFile]);
+  }, [content, filePath, inlineInstruction, inlineSelection, isLargeFile, projectPath]);
 
   const cancelInlineEdit = useCallback(async () => {
     if (isInlineRunning) {
-      await api.agent.stop(true);
+      if (inlineJobKey) {
+        await api.agent.stop({ jobKey: inlineJobKey, force: true });
+      }
     }
 
     setIsInlineRunning(false);
+    setInlineJobKey(null);
     setInlineError(null);
     setInlineOutput('');
     setInlineInstruction('');
@@ -184,13 +195,14 @@ export const useEditor = (selectedTaskPath: string | null) => {
     setReviewOriginalContent('');
     setReviewProposedContent('');
     setEditorMode('edit');
-  }, [isInlineRunning]);
+  }, [inlineJobKey, isInlineRunning]);
 
   const rejectInlineEdit = useCallback(() => {
     setInlineError(null);
     setInlineOutput('');
     setInlineInstruction('');
     setInlineSelection(null);
+    setInlineJobKey(null);
     setReviewOriginalContent('');
     setReviewProposedContent('');
     setEditorMode('edit');
@@ -213,6 +225,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
       setInlineOutput('');
       setInlineInstruction('');
       setInlineSelection(null);
+      setInlineJobKey(null);
       setReviewOriginalContent('');
       setReviewProposedContent('');
       setEditorMode('edit');
@@ -227,36 +240,41 @@ export const useEditor = (selectedTaskPath: string | null) => {
   }, [filePath, reviewProposedContent]);
 
   useEffect(() => {
-    const unbindOutput = api.agent.onOutput((chunk) => {
-      setInlineOutput((prev) => (isInlineRunning ? `${prev}${chunk}` : prev));
+    const unbindOutput = api.agent.onOutput((event) => {
+      setInlineOutput((prev) =>
+        isInlineRunning && event.jobKey === inlineJobKey ? `${prev}${event.chunk}` : prev,
+      );
     });
 
-    const unbindEditResult = api.agent.onEditResult((nextContent) => {
-      if (!isInlineRunning) {
+    const unbindEditResult = api.agent.onEditResult((event) => {
+      if (!isInlineRunning || event.jobKey !== inlineJobKey) {
         return;
       }
 
       setIsInlineRunning(false);
+      setInlineJobKey(null);
       setInlineError(null);
-      setReviewProposedContent(nextContent);
+      setReviewProposedContent(event.content);
       setEditorMode('review');
     });
 
-    const unbindVerifyFailed = api.agent.onVerifyFailed((message) => {
-      if (!isInlineRunning) {
+    const unbindVerifyFailed = api.agent.onVerifyFailed((event) => {
+      if (!isInlineRunning || event.jobKey !== inlineJobKey) {
         return;
       }
 
       setIsInlineRunning(false);
-      setInlineError(message);
+      setInlineJobKey(null);
+      setInlineError(event.message);
     });
 
-    const unbindStopped = api.agent.onStopped(() => {
-      if (!isInlineRunning) {
+    const unbindStopped = api.agent.onStopped((job) => {
+      if (!isInlineRunning || job.jobKey !== inlineJobKey) {
         return;
       }
 
       setIsInlineRunning(false);
+      setInlineJobKey(null);
       setInlineError('AI edit cancelled.');
       setEditorMode('prompt');
     });
@@ -267,7 +285,7 @@ export const useEditor = (selectedTaskPath: string | null) => {
       unbindVerifyFailed();
       unbindStopped();
     };
-  }, [isInlineRunning]);
+  }, [inlineJobKey, isInlineRunning]);
 
   return {
     filePath,

@@ -1,4 +1,5 @@
 import { toast } from '@/lib/toast';
+import { useCallback } from 'react';
 
 type ToastPayload = {
   title: string;
@@ -6,21 +7,21 @@ type ToastPayload = {
 };
 
 export const useNotifications = () => {
-  const accent = ({ title, description }: ToastPayload) => {
+  const accent = useCallback(({ title, description }: ToastPayload) => {
     toast.accent(title, { description });
-  };
+  }, []);
 
-  const success = ({ title, description }: ToastPayload) => {
+  const success = useCallback(({ title, description }: ToastPayload) => {
     toast.success(title, { description });
-  };
+  }, []);
 
-  const error = ({ title, description }: ToastPayload) => {
+  const error = useCallback(({ title, description }: ToastPayload) => {
     toast.error(title, { description });
-  };
+  }, []);
 
-  const warning = ({ title, description }: ToastPayload) => {
+  const warning = useCallback(({ title, description }: ToastPayload) => {
     toast.warning(title, { description });
-  };
+  }, []);
 
   return {
     accent,

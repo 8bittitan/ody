@@ -7,9 +7,25 @@ import { Backend } from '@internal/backends';
 import { buildRunPrompt } from '@internal/builders';
 import { Config, TASKS_DIR, type OdyConfig } from '@internal/config';
 import { getTaskStates, getTaskStatus, type TaskState } from '@internal/tasks';
-import { Notification, type BrowserWindow } from 'electron';
+import { Notification } from 'electron';
 
-import type { AgentCompletionReason, AgentStatus, RunOptions } from '../renderer/types/ipc';
+import type { AgentCompletionReason, RunOptions } from '../renderer/types/ipc';
+
+type AgentRunnerStatus = {
+  isRunning: boolean;
+  iteration: number;
+  maxIterations: number;
+  taskFiles: string[];
+};
+
+type AgentRunnerCallbacks = {
+  onStarted?: () => void;
+  onIteration?: (iteration: number, maxIterations: number) => void;
+  onOutput?: (chunk: string) => void;
+  onAmbiguousMarker?: () => void;
+  onStopped?: () => void;
+  onComplete?: (reason: AgentCompletionReason) => void;
+};
 
 const COMPLETE_MARKER = '<woof>COMPLETE</woof>';
 const GRACEFUL_STOP_TIMEOUT_MS = 5000;
@@ -24,7 +40,9 @@ type CompletionMarkerDetector = {
   finalize: () => MarkerDetectionResult;
 };
 
-type SpawnResult = MarkerDetectionResult;
+type SpawnResult = MarkerDetectionResult & {
+  aborted: boolean;
+};
 
 function createCompletionMarkerDetector(): CompletionMarkerDetector {
   let partialLine = '';
@@ -109,7 +127,7 @@ export class AgentRunner {
     return this.proc !== null;
   }
 
-  status(): AgentStatus {
+  status(): AgentRunnerStatus {
     return {
       isRunning: this.isRunning(),
       iteration: this._iteration,
@@ -118,7 +136,7 @@ export class AgentRunner {
     };
   }
 
-  async runLoop(win: BrowserWindow, opts: RunOptions, resolvedConfig?: OdyConfig) {
+  async runLoop(opts: RunOptions, resolvedConfig?: OdyConfig, callbacks?: AgentRunnerCallbacks) {
     if (this.proc) {
       throw new Error('Agent is already running');
     }
@@ -149,7 +167,7 @@ export class AgentRunner {
     this._iteration = 0;
     this._maxIterations = maxIterations;
     this._taskFiles = opts.taskFiles ?? [];
-    win.webContents.send('agent:started');
+    callbacks?.onStarted?.();
 
     if (await this.shouldStopForNoTasksRemaining({ opts, tasksDirPath, maxIterations })) {
       completionReason = 'no_tasks_remaining';
@@ -163,12 +181,12 @@ export class AgentRunner {
       iteration++
     ) {
       this._iteration = iteration;
-      win.webContents.send('agent:iteration', iteration, maxIterations);
+      callbacks?.onIteration?.(iteration, maxIterations);
 
       const cmd = backend.buildCommand(prompt, model);
-      const result = await this.spawnAndStream(win, cmd, opts.projectDir);
+      const result = await this.spawnAndStream(cmd, opts.projectDir, callbacks);
 
-      if (this.aborted) {
+      if (result.aborted || this.aborted) {
         break;
       }
 
@@ -177,7 +195,7 @@ export class AgentRunner {
       }
 
       if (result.hasAmbiguousMention) {
-        win.webContents.send('agent:ambiguousMarker');
+        callbacks?.onAmbiguousMarker?.();
       }
 
       await this.verifyTaskStates({
@@ -206,11 +224,11 @@ export class AgentRunner {
     this._taskFiles = [];
 
     if (this.aborted) {
-      win.webContents.send('agent:stopped');
+      callbacks?.onStopped?.();
       return;
     }
 
-    win.webContents.send('agent:complete', completionReason);
+    callbacks?.onComplete?.(completionReason);
     if (notifySetting === 'all') {
       this.sendNotification('Ody', 'Agent run complete');
     }
@@ -220,7 +238,11 @@ export class AgentRunner {
     }
   }
 
-  async spawnAndStream(win: BrowserWindow, cmd: string[], cwd: string): Promise<SpawnResult> {
+  async spawnAndStream(
+    cmd: string[],
+    cwd: string,
+    callbacks?: Pick<AgentRunnerCallbacks, 'onOutput'>,
+  ): Promise<SpawnResult> {
     const [bin, ...args] = cmd;
 
     if (!bin) {
@@ -239,13 +261,13 @@ export class AgentRunner {
     proc.stdout.on('data', (chunk: Buffer) => {
       const text = chunk.toString('utf8');
       markerDetector.onChunk(text);
-      win.webContents.send('agent:output', text);
+      callbacks?.onOutput?.(text);
     });
 
     proc.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString('utf8');
       markerDetector.onChunk(text);
-      win.webContents.send('agent:output', text);
+      callbacks?.onOutput?.(text);
     });
 
     const [exitCode] = await once(proc, 'close');
@@ -254,14 +276,17 @@ export class AgentRunner {
     this.procClosed = null;
 
     if (this.aborted) {
-      return { hasStrictMatch: false, hasAmbiguousMention: false };
+      return { hasStrictMatch: false, hasAmbiguousMention: false, aborted: true };
     }
 
     if (exitCode !== 0) {
       throw new Error(`Process exit failure: backend exited with code ${exitCode ?? 'unknown'}`);
     }
 
-    return markerDetector.finalize();
+    return {
+      ...markerDetector.finalize(),
+      aborted: false,
+    };
   }
 
   async stop(force = false) {

@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAgentControls, useAgentStatus } from '@/hooks/useAgent';
+import { useProjectAgentJobs, useRunAgent } from '@/hooks/useAgent';
 import { useApp } from '@/hooks/useApp';
 import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -65,15 +65,15 @@ const RootLayout = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const { projects, activeProjectPath, isLoading, addProject, removeProject, switchProject } =
     useProjects();
-  const resetAgentState = useStore((state) => state.resetAgentState);
+  const resetProjectJobs = useStore((state) => state.resetProjectJobs);
   const sidebarCollapsed = useStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStore((state) => state.toggleSidebar);
   const { loadConfig, config } = useConfig();
   const { loadTasks } = useTasks();
   const { accent, info, warning, success, error } = useNotifications();
   const { isFullscreen } = useApp();
-  const { isRunning } = useAgentStatus();
-  const { start, stop } = useAgentControls();
+  const { start, stop, isRunning } = useRunAgent(activeProjectPath);
+  const { hasRunningJobs, stopAll } = useProjectAgentJobs(activeProjectPath);
   const backendName = typeof config?.backend === 'string' ? config.backend : '';
 
   const activeProject = useMemo(() => {
@@ -152,7 +152,7 @@ const RootLayout = () => {
       return;
     }
 
-    if (isRunning) {
+    if (hasRunningJobs) {
       setPendingSwitchPath(path);
       setShowSwitchDialog(true);
       return;
@@ -170,7 +170,7 @@ const RootLayout = () => {
     setIsSwitchingProject(true);
 
     try {
-      await stop(true);
+      await stopAll();
     } catch {
       setIsSwitchingProject(false);
       return;
@@ -186,7 +186,9 @@ const RootLayout = () => {
 
     setShowSwitchDialog(false);
     setPendingSwitchPath(null);
-    resetAgentState();
+    if (activeProjectPath) {
+      resetProjectJobs(activeProjectPath);
+    }
     info({ title: 'Project switched', description: getProjectName(nextProjectPath) });
     warning({
       title: 'Agent stopped before project switch',
@@ -393,7 +395,7 @@ const RootLayout = () => {
                 handleCopyProjectPath(path);
               }}
               backendName={backendName}
-              agentState={isRunning ? 'running' : 'idle'}
+              agentState={hasRunningJobs ? 'running' : 'idle'}
               isLoadingProjects={isLoading}
               collapsed={sidebarCollapsed}
               onToggle={toggleSidebar}
@@ -484,10 +486,10 @@ const RootLayout = () => {
               <span
                 className={[
                   'inline-block size-1.5 rounded-full',
-                  isRunning ? 'bg-primary animate-pulse-status' : 'bg-mid',
+                  hasRunningJobs ? 'bg-primary animate-pulse-status' : 'bg-mid',
                 ].join(' ')}
               />
-              {isRunning ? 'running' : 'idle'}
+              {hasRunningJobs ? 'running' : 'idle'}
             </span>
             <span>{activeProject?.path ? `${activeProject.path}` : 'No active project'}</span>
           </div>

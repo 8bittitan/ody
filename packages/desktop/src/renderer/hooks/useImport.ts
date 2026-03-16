@@ -1,3 +1,4 @@
+import { usePlanAgent } from '@/hooks/useAgent';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import type { GitHubImportIssue, ImportSource, JiraImportTicket } from '@/types/ipc';
@@ -36,57 +37,45 @@ const resolveSettings = (config: Record<string, unknown> | null): ImportSettings
 };
 
 export const useImport = ({
+  activeProjectPath,
   config,
   onComplete,
 }: {
+  activeProjectPath: string | null;
   config: Record<string, unknown> | null;
   onComplete: () => Promise<unknown>;
 }) => {
   const [source, setSource] = useState<ImportSource>('jira');
   const [input, setInput] = useState('');
   const [isFetching, setIsFetching] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isPromptLoading, setIsPromptLoading] = useState(false);
   const [promptPreview, setPromptPreview] = useState('');
-  const [streamOutput, setStreamOutput] = useState('');
   const [importData, setImportData] = useState<ImportData | null>(null);
   const [missingCredentials, setMissingCredentials] = useState<string | null>(null);
   const isGeneratingRef = useRef(false);
   const settings = useMemo(() => resolveSettings(config), [config]);
+  const {
+    isRunning: isGenerating,
+    output: streamOutput,
+    isComplete,
+    error: generationError,
+    startImport,
+    clearOutput,
+  } = usePlanAgent(activeProjectPath);
 
   useEffect(() => {
-    const onOutput = api.agent.onOutput((chunk) => {
-      if (!isGeneratingRef.current) {
-        return;
-      }
+    if (isGenerating) {
+      isGeneratingRef.current = true;
+      return;
+    }
 
-      setStreamOutput((prev) => `${prev}${chunk}`);
-    });
+    if (!isGeneratingRef.current) {
+      return;
+    }
 
-    const finish = () => {
-      if (!isGeneratingRef.current) {
-        return;
-      }
-
-      isGeneratingRef.current = false;
-      setIsGenerating(false);
-      onComplete();
-    };
-
-    const onAgentComplete = api.agent.onComplete(() => {
-      finish();
-    });
-
-    const onAgentStopped = api.agent.onStopped(() => {
-      finish();
-    });
-
-    return () => {
-      onOutput();
-      onAgentComplete();
-      onAgentStopped();
-    };
-  }, [onComplete]);
+    isGeneratingRef.current = false;
+    void onComplete();
+  }, [isGenerating, onComplete]);
 
   const checkCredentials = async (nextSource: ImportSource) => {
     try {
@@ -193,20 +182,15 @@ export const useImport = ({
     }
 
     setPromptPreview('');
-    setStreamOutput('');
-    setIsGenerating(true);
+    clearOutput();
     isGeneratingRef.current = true;
 
     let result;
 
     try {
-      result =
-        source === 'jira'
-          ? await api.agent.importFromJira({ input: trimmedInput })
-          : await api.agent.importFromGitHub({ input: trimmedInput });
+      result = await startImport(source, trimmedInput);
     } catch (cause) {
       isGeneratingRef.current = false;
-      setIsGenerating(false);
       const message = cause instanceof Error ? cause.message : 'Unable to start task generation';
       toast.error('Failed to start generation', { description: message });
       throw cause;
@@ -214,7 +198,6 @@ export const useImport = ({
 
     if (!result.started) {
       isGeneratingRef.current = false;
-      setIsGenerating(false);
     }
 
     return result;
@@ -223,7 +206,7 @@ export const useImport = ({
   const resetImport = () => {
     setImportData(null);
     setPromptPreview('');
-    setStreamOutput('');
+    clearOutput();
   };
 
   return {
@@ -237,6 +220,8 @@ export const useImport = ({
     importData,
     promptPreview,
     streamOutput,
+    generationError,
+    isComplete,
     missingCredentials,
     settings,
     fetchData,

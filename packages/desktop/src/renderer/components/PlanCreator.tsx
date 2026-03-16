@@ -1,7 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePlanAgent } from '@/hooks/useAgent';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
 import { api } from '@/lib/api';
-import type { MutableRefObject } from 'react';
 import { useState } from 'react';
 
 import { Button } from './ui/button';
@@ -11,18 +12,12 @@ import { Textarea } from './ui/textarea';
 
 type PlanCreatorProps = {
   isGenerating: boolean;
-  isGeneratingRef: MutableRefObject<boolean>;
-  setIsGenerating: (value: boolean) => void;
-  setStreamOutput: (updater: (prev: string) => string) => void;
   resetStream: () => void;
 };
 
-export const PlanCreator = ({
-  isGenerating,
-  isGeneratingRef,
-  setIsGenerating,
-  resetStream,
-}: PlanCreatorProps) => {
+export const PlanCreator = ({ isGenerating, resetStream }: PlanCreatorProps) => {
+  const { activeProjectPath } = useProjects();
+  const { startNew, startBatch } = usePlanAgent(activeProjectPath);
   const { accent, warning } = useNotifications();
   const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
   const [description, setDescription] = useState('');
@@ -33,8 +28,6 @@ export const PlanCreator = ({
   const beginGeneration = () => {
     setPreviewPrompt('');
     resetStream();
-    isGeneratingRef.current = true;
-    setIsGenerating(true);
   };
 
   const handleGenerateSingle = async () => {
@@ -44,11 +37,9 @@ export const PlanCreator = ({
     }
 
     beginGeneration();
-    const result = await api.agent.planNew(description);
+    const result = await startNew(description);
 
     if (!result.started) {
-      isGeneratingRef.current = false;
-      setIsGenerating(false);
       warning({ title: 'Agent is already running' });
       return;
     }
@@ -63,11 +54,9 @@ export const PlanCreator = ({
     }
 
     beginGeneration();
-    const result = await api.agent.planBatch(planFilePath);
+    const result = await startBatch(planFilePath);
 
     if (!result.started) {
-      isGeneratingRef.current = false;
-      setIsGenerating(false);
       warning({ title: 'Agent is already running' });
       return;
     }

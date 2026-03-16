@@ -17,13 +17,90 @@ export type RunOptions = {
   iterations?: number;
 };
 
+export type AgentJobKind = 'run' | 'plan' | 'edit';
+export type AgentJobKey = string;
+
+export type AgentJobIdentity = {
+  jobKey: AgentJobKey;
+  projectPath: string;
+  kind: AgentJobKind;
+};
+
+export const buildAgentJobKey = (projectPath: string, kind: AgentJobKind): AgentJobKey =>
+  `${kind}::${projectPath}`;
+
+export type AgentRunRequest = {
+  projectPath: string;
+  kind: 'run';
+  taskFiles?: string[];
+  iterations?: number;
+};
+
+export type AgentPlanNewRequest = {
+  projectPath: string;
+  kind: 'plan';
+  description: string;
+};
+
+export type AgentPlanBatchRequest = {
+  projectPath: string;
+  kind: 'plan';
+  filePath: string;
+};
+
+export type AgentImportRequest = {
+  projectPath: string;
+  kind: 'plan';
+  input: string;
+};
+
+export type AgentEditInlineRequest = {
+  projectPath: string;
+  kind: 'edit';
+  filePath: string;
+  fileContent: string;
+  selection: { from: number; to: number } | null;
+  instruction: string;
+};
+
+export type AgentStartResult = {
+  started: boolean;
+  jobKey?: AgentJobKey;
+};
+
+export type AgentStopRequest = {
+  jobKey: AgentJobKey;
+  force?: boolean;
+};
+
 export type AgentCompletionReason = 'finished' | 'no_tasks_remaining';
 
-export type AgentStatus = {
+export type AgentStatus = AgentJobIdentity & {
   isRunning: boolean;
   iteration: number;
   maxIterations: number;
   taskFiles: string[];
+};
+
+export type AgentIterationEvent = AgentJobIdentity & {
+  iteration: number;
+  maxIterations: number;
+};
+
+export type AgentOutputEvent = AgentJobIdentity & {
+  chunk: string;
+};
+
+export type AgentCompleteEvent = AgentJobIdentity & {
+  reason?: AgentCompletionReason;
+};
+
+export type AgentVerifyFailedEvent = AgentJobIdentity & {
+  message: string;
+};
+
+export type AgentEditResultEvent = AgentJobIdentity & {
+  content: string;
 };
 
 export type TaskSummary = {
@@ -109,20 +186,15 @@ export type IpcChannels = {
   'tasks:delete': (filePaths: string[]) => { deleted: string[] };
   'tasks:byLabel': (label: string) => TaskSummary[];
   'tasks:states': (filePaths?: string[]) => TaskState[];
-  'agent:run': (opts: RunOptions) => { started: boolean };
-  'agent:stop': (force?: boolean) => { stopped: boolean };
-  'agent:status': () => AgentStatus;
-  'agent:planNew': (description: string) => { started: boolean };
-  'agent:planBatch': (filePath: string) => { started: boolean };
+  'agent:run': (opts: AgentRunRequest) => AgentStartResult;
+  'agent:stop': (request: AgentStopRequest) => { stopped: boolean };
+  'agent:status': () => AgentStatus[];
+  'agent:planNew': (request: AgentPlanNewRequest) => AgentStartResult;
+  'agent:planBatch': (request: AgentPlanBatchRequest) => AgentStartResult;
   'agent:planPreview': (description: string) => { prompt: string };
   'agent:planEdit': (filePath: string, prompt: string) => { started: boolean };
   'agent:dryRun': (opts: RunOptions) => { command: string[] };
-  'agent:editInline': (opts: {
-    filePath: string;
-    fileContent: string;
-    selection: { from: number; to: number } | null;
-    instruction: string;
-  }) => { started: boolean };
+  'agent:editInline': (opts: AgentEditInlineRequest) => AgentStartResult;
   'editor:save': (filePath: string, content: string) => { ok: true };
   'editor:snapshot': (filePath: string) => { filePath: string; content: string };
   'import:fetchJira': (opts: { input: string }) => {
@@ -135,8 +207,8 @@ export type IpcChannels = {
     repo: string;
     formatted: string;
   };
-  'agent:importFromJira': (opts: { input: string }) => { started: boolean };
-  'agent:importFromGitHub': (opts: { input: string }) => { started: boolean };
+  'agent:importFromJira': (opts: AgentImportRequest) => AgentStartResult;
+  'agent:importFromGitHub': (opts: AgentImportRequest) => AgentStartResult;
   'agent:importDryRun': (opts: { source: ImportSource; input: string }) => { prompt: string };
   'auth:list': () => { jira: Record<string, unknown>; github: Record<string, unknown> };
   'auth:setJira': (profile: string, credentials: Record<string, unknown>) => { ok: true };
@@ -161,14 +233,14 @@ export type IpcChannels = {
 };
 
 export type IpcEvents = {
-  'agent:started': [];
-  'agent:iteration': [iteration: number, maxIterations: number];
-  'agent:output': [chunk: string];
-  'agent:complete': [reason?: AgentCompletionReason];
-  'agent:stopped': [];
-  'agent:verifyFailed': [message: string];
-  'agent:ambiguousMarker': [];
-  'agent:editResult': [content: string];
+  'agent:started': [status: AgentStatus];
+  'agent:iteration': [event: AgentIterationEvent];
+  'agent:output': [event: AgentOutputEvent];
+  'agent:complete': [event: AgentCompleteEvent];
+  'agent:stopped': [job: AgentJobIdentity];
+  'agent:verifyFailed': [event: AgentVerifyFailedEvent];
+  'agent:ambiguousMarker': [job: AgentJobIdentity];
+  'agent:editResult': [event: AgentEditResultEvent];
   'projects:switched': [path: string | null];
   'theme:changed': [{ source: ThemeSource; resolved: ThemeResolved }];
   'app:menuAction': [action: MenuAction];

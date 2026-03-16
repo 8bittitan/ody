@@ -10,3 +10,4 @@
 2026-03-16: Moved desktop editor and config-editor views onto explicit TanStack lazy route files, regenerated the route tree, and verified Milkdown/CodeMirror stay out of the startup bundle.
 2026-03-16: Split desktop agent state hooks by status, output, and controls, cached a lightweight output preview in the store, and kept root/task board rerenders off the full output stream.
 2026-03-16: Kept the desktop diff review MergeView mounted across proposed-content edits, synchronized both panes with CodeMirror transactions, and avoided editor resets on each keystroke.
+2026-03-16: Reworked desktop agent orchestration around per-project job keys, scoped run/plan/edit IPC and store state by job, and allowed concurrent local desktop jobs without mixed output.

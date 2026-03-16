@@ -16,12 +16,11 @@ import {
   ScrollAreaViewport,
 } from '@/components/ui/scroll-area';
 import { api } from '@/lib/api';
-import { useStore } from '@/store';
 import type { TaskStatus, TaskSummary } from '@/types/ipc';
 import { ClipboardList, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { useAgentControls, useAgentOutput, useAgentStatus } from '../hooks/useAgent';
+import { useRunAgent } from '../hooks/useAgent';
 import { useConfig } from '../hooks/useConfig';
 import { useNotifications } from '../hooks/useNotifications';
 import { useProjects } from '../hooks/useProjects';
@@ -57,6 +56,7 @@ const COLUMN_META = {
 } as const;
 
 type InProgressTaskCardProps = {
+  projectPath: string | null;
   task: TaskSummary;
   onClick: (task: TaskSummary) => void;
   onRun: (task: TaskSummary) => void;
@@ -65,15 +65,14 @@ type InProgressTaskCardProps = {
 };
 
 const InProgressTaskCard = ({
+  projectPath,
   task,
   onClick,
   onRun,
   onEdit,
   onDelete,
 }: InProgressTaskCardProps) => {
-  const { stop } = useAgentControls();
-  const { isRunning } = useAgentStatus();
-  const { outputPreview } = useAgentOutput();
+  const { stop, isRunning, outputPreview } = useRunAgent(projectPath);
 
   return (
     <TaskCard
@@ -91,8 +90,8 @@ const InProgressTaskCard = ({
   );
 };
 
-const TaskBoardRunStatus = () => {
-  const { isRunning, iteration, maxIterations } = useAgentStatus();
+const TaskBoardRunStatus = ({ projectPath }: { projectPath: string | null }) => {
+  const { isRunning, iteration, maxIterations } = useRunAgent(projectPath);
 
   if (!isRunning) {
     return null;
@@ -116,7 +115,7 @@ export const TaskBoard = ({
   const { activeProjectPath } = useProjects();
   const { tasks, loadTasks, isLoading } = useTasks();
   const { config } = useConfig();
-  const { start } = useAgentControls();
+  const { start, isRunning: isRunActive } = useRunAgent(activeProjectPath);
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
   const [localLabelFilter, setLocalLabelFilter] = useState<string[]>([]);
@@ -205,7 +204,7 @@ export const TaskBoard = ({
       return;
     }
 
-    if (useStore.getState().isRunning) {
+    if (isRunActive) {
       warning({ title: 'Agent is already running' });
       return;
     }
@@ -420,6 +419,7 @@ export const TaskBoard = ({
                       >
                         {status === 'in_progress' ? (
                           <InProgressTaskCard
+                            projectPath={activeProjectPath}
                             task={task}
                             onClick={setDetailTarget}
                             onRun={(target) => {
@@ -562,7 +562,7 @@ export const TaskBoard = ({
         }}
       />
 
-      <TaskBoardRunStatus />
+      <TaskBoardRunStatus projectPath={activeProjectPath} />
     </div>
   );
 };
