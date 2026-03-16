@@ -23,7 +23,6 @@ type RunnerCallbacks = {
   onIteration?: (iteration: number, maxIterations: number) => void;
   onIterationComplete?: (iteration: number, maxIterations: number) => void;
   onOutput?: (chunk: string) => void;
-  onAmbiguousMarker?: () => void;
   onStopped?: () => void;
   onComplete?: (reason?: AgentCompletionReason) => void;
 };
@@ -304,9 +303,6 @@ export class DesktopAgentJobManager {
       },
       onOutput: (chunk) => {
         this.sendOutput(identity, chunk);
-      },
-      onAmbiguousMarker: () => {
-        this.win.webContents.send('agent:ambiguousMarker', identity);
       },
       onStopped: () => {
         this.sendStopped(identity);

@@ -23,7 +23,6 @@ type AgentRunnerCallbacks = {
   onIteration?: (iteration: number, maxIterations: number) => void;
   onIterationComplete?: (iteration: number, maxIterations: number) => void;
   onOutput?: (chunk: string) => void;
-  onAmbiguousMarker?: () => void;
   onStopped?: () => void;
   onComplete?: (reason: AgentCompletionReason) => void;
 };
@@ -33,7 +32,6 @@ const GRACEFUL_STOP_TIMEOUT_MS = 5000;
 
 type MarkerDetectionResult = {
   hasStrictMatch: boolean;
-  hasAmbiguousMention: boolean;
 };
 
 type CompletionMarkerDetector = {
@@ -48,22 +46,12 @@ type SpawnResult = MarkerDetectionResult & {
 function createCompletionMarkerDetector(): CompletionMarkerDetector {
   let partialLine = '';
   let hasStrictMatch = false;
-  let hasAmbiguousMention = false;
 
   const inspectLine = (line: string) => {
     const trimmedLine = line.trim();
 
-    if (trimmedLine === '') {
-      return;
-    }
-
     if (trimmedLine === COMPLETE_MARKER) {
       hasStrictMatch = true;
-      return;
-    }
-
-    if (line.includes(COMPLETE_MARKER) || line.includes('<woof>') || line.includes('</woof>')) {
-      hasAmbiguousMention = true;
     }
   };
 
@@ -82,7 +70,6 @@ function createCompletionMarkerDetector(): CompletionMarkerDetector {
 
       return {
         hasStrictMatch,
-        hasAmbiguousMention: hasAmbiguousMention && !hasStrictMatch,
       };
     },
   };
@@ -195,10 +182,6 @@ export class AgentRunner {
         break;
       }
 
-      if (result.hasAmbiguousMention) {
-        callbacks?.onAmbiguousMarker?.();
-      }
-
       await this.verifyTaskStates({
         opts,
         tasksDirPath,
@@ -278,7 +261,7 @@ export class AgentRunner {
     this.procClosed = null;
 
     if (this.aborted) {
-      return { hasStrictMatch: false, hasAmbiguousMention: false, aborted: true };
+      return { hasStrictMatch: false, aborted: true };
     }
 
     if (exitCode !== 0) {

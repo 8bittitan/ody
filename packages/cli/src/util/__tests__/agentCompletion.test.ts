@@ -32,11 +32,10 @@ describe('agentCompletion', () => {
 
       expect(result).toEqual({
         hasStrictMatch: true,
-        hasAmbiguousMention: false,
       });
     });
 
-    test('detects ambiguous marker-like output without a standalone marker', () => {
+    test('ignores inline marker-like output without a standalone marker', () => {
       const result = feedChunks([
         {
           lines: [`done ${COMPLETE_MARKER}`],
@@ -46,7 +45,19 @@ describe('agentCompletion', () => {
 
       expect(result).toEqual({
         hasStrictMatch: false,
-        hasAmbiguousMention: true,
+      });
+    });
+
+    test('ignores partial woof tags in normal output', () => {
+      const result = feedChunks([
+        {
+          lines: ['The agent prints <woof> and </woof> in explanations'],
+          partialLine: '',
+        },
+      ]);
+
+      expect(result).toEqual({
+        hasStrictMatch: false,
       });
     });
 
@@ -64,7 +75,32 @@ describe('agentCompletion', () => {
 
       expect(result).toEqual({
         hasStrictMatch: true,
-        hasAmbiguousMention: false,
+      });
+    });
+
+    test('detects marker with surrounding whitespace on the line', () => {
+      const result = feedChunks([
+        {
+          lines: [`  ${COMPLETE_MARKER}  `],
+          partialLine: '',
+        },
+      ]);
+
+      expect(result).toEqual({
+        hasStrictMatch: true,
+      });
+    });
+
+    test('returns no match when output is empty', () => {
+      const result = feedChunks([
+        {
+          lines: [],
+          partialLine: '',
+        },
+      ]);
+
+      expect(result).toEqual({
+        hasStrictMatch: false,
       });
     });
   });
@@ -72,54 +108,31 @@ describe('agentCompletion', () => {
   describe('validateAgentCompletion', () => {
     test('throws on non-zero exit codes', () => {
       expect(() =>
-        validateAgentCompletion(
-          1,
-          {
-            hasStrictMatch: true,
-            hasAmbiguousMention: false,
-          },
-          { requireMarker: true },
-        ),
+        validateAgentCompletion(1, { hasStrictMatch: true }, { requireMarker: true }),
       ).toThrow('backend exited with code 1');
     });
 
     test('throws when a required marker is missing', () => {
       expect(() =>
-        validateAgentCompletion(
-          0,
-          {
-            hasStrictMatch: false,
-            hasAmbiguousMention: false,
-          },
-          { requireMarker: true },
-        ),
+        validateAgentCompletion(0, { hasStrictMatch: false }, { requireMarker: true }),
       ).toThrow(`expected standalone ${COMPLETE_MARKER}`);
-    });
-
-    test('throws on ambiguous marker output', () => {
-      expect(() =>
-        validateAgentCompletion(
-          0,
-          {
-            hasStrictMatch: false,
-            hasAmbiguousMention: true,
-          },
-          { requireMarker: true },
-        ),
-      ).toThrow('Marker ambiguity');
     });
 
     test('accepts a clean exit with a strict marker', () => {
       expect(() =>
-        validateAgentCompletion(
-          0,
-          {
-            hasStrictMatch: true,
-            hasAmbiguousMention: false,
-          },
-          { requireMarker: true },
-        ),
+        validateAgentCompletion(0, { hasStrictMatch: true }, { requireMarker: true }),
       ).not.toThrow();
+    });
+
+    test('accepts a clean exit without marker when marker is not required', () => {
+      expect(() => validateAgentCompletion(0, { hasStrictMatch: false })).not.toThrow();
+    });
+
+    test('does not throw for inline marker-like output when marker is required', () => {
+      // Inline marker text is now ignored entirely — no ambiguity failure.
+      expect(() =>
+        validateAgentCompletion(0, { hasStrictMatch: false }, { requireMarker: true }),
+      ).toThrow(`expected standalone ${COMPLETE_MARKER}`);
     });
   });
 });

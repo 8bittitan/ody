@@ -23,7 +23,6 @@ export type AgentJobState = AgentJobIdentity & {
   outputPreview: string;
   isComplete: boolean;
   error: string | null;
-  hasAmbiguousMarker: boolean;
 };
 
 export type AgentSlice = {
@@ -35,7 +34,6 @@ export type AgentSlice = {
   appendJobOutput: (job: AgentJobIdentity, chunk: string) => void;
   setJobComplete: (job: AgentJobIdentity, isComplete: boolean) => void;
   setJobError: (job: AgentJobIdentity, error: string | null) => void;
-  setJobAmbiguousMarker: (job: AgentJobIdentity, hasAmbiguousMarker: boolean) => void;
   clearJobOutput: (jobKey: AgentJobKey) => void;
   resetJob: (jobKey: AgentJobKey) => void;
   resetProjectJobs: (projectPath: string) => void;
@@ -47,7 +45,6 @@ const createJobState = (status: AgentStatus): AgentJobState => ({
   outputPreview: '',
   isComplete: false,
   error: null,
-  hasAmbiguousMarker: false,
 });
 
 const ensureJobState = (
@@ -178,24 +175,6 @@ export const createAgentSlice: StateCreator<AppStore, [], [], AgentSlice> = (set
           [job.jobKey]: {
             ...current,
             error,
-          },
-        },
-      };
-    }),
-  setJobAmbiguousMarker: (job, hasAmbiguousMarker) =>
-    set((state) => {
-      const current = state.jobs[job.jobKey];
-
-      if (!current) {
-        return state;
-      }
-
-      return {
-        jobs: {
-          ...state.jobs,
-          [job.jobKey]: {
-            ...current,
-            hasAmbiguousMarker,
           },
         },
       };

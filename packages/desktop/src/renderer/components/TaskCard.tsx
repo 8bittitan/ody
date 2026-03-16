@@ -45,6 +45,7 @@ export const TaskCard = ({
   onDelete,
   onStop,
 }: TaskCardProps) => {
+  const isPending = task.status === 'pending';
   const isInProgress = task.status === 'in_progress';
   const isCompleted = task.status === 'completed';
 
@@ -89,11 +90,53 @@ export const TaskCard = ({
           <pre className="text-light max-h-20 overflow-auto font-mono text-[10px] leading-relaxed whitespace-pre-wrap">
             {outputPreview || 'Waiting for agent output...'}
           </pre>
-          {onStop ? (
+        </div>
+      ) : null}
+
+      {isPending || isInProgress ? (
+        <div className="mt-3 flex gap-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+          {isPending && (
+            <>
+              <Button
+                variant="primary-outline"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRun(task);
+                }}
+              >
+                <Play className="size-3" />
+                Run
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit(task);
+                }}
+              >
+                <Pencil className="size-3" />
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete(task);
+                }}
+              >
+                <Trash2 className="size-3" />
+                Delete
+              </Button>
+            </>
+          )}
+
+          {isInProgress && onStop && (
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
-              className="text-amber dark:border-amber/35 hover:bg-amber-bg mt-2"
               onClick={(event) => {
                 event.stopPropagation();
                 onStop?.();
@@ -103,45 +146,7 @@ export const TaskCard = ({
               <StopCircle className="size-4" />
               Stop
             </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {!isCompleted ? (
-        <div className="mt-3 flex gap-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-          <Button
-            variant="primary-outline"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              onRun(task);
-            }}
-          >
-            <Play className="size-3" />
-            Run
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              onEdit(task);
-            }}
-          >
-            <Pencil className="size-3" />
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(task);
-            }}
-          >
-            <Trash2 className="size-3" />
-            Delete
-          </Button>
+          )}
         </div>
       ) : null}
 

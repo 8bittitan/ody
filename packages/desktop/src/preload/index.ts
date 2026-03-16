@@ -55,7 +55,6 @@ const ody: OdyApi = {
     onComplete: (listener) => addListener('agent:complete', listener),
     onStopped: (listener) => addListener('agent:stopped', listener),
     onVerifyFailed: (listener) => addListener('agent:verifyFailed', listener),
-    onAmbiguousMarker: (listener) => addListener('agent:ambiguousMarker', listener),
     onEditResult: (listener) => addListener('agent:editResult', listener),
     removeAllListeners: () => {
       ipcRenderer.removeAllListeners('agent:started');
@@ -64,7 +63,6 @@ const ody: OdyApi = {
       ipcRenderer.removeAllListeners('agent:complete');
       ipcRenderer.removeAllListeners('agent:stopped');
       ipcRenderer.removeAllListeners('agent:verifyFailed');
-      ipcRenderer.removeAllListeners('agent:ambiguousMarker');
       ipcRenderer.removeAllListeners('agent:editResult');
     },
   },

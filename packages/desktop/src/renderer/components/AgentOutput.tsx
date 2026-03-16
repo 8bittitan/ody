@@ -8,18 +8,11 @@ import { LoadingSpinner } from './LoadingSpinner';
 type AgentOutputProps = {
   output: string;
   error: string | null;
-  hasAmbiguousMarker: boolean;
   isRunning?: boolean;
   onClear: () => void;
 };
 
-export const AgentOutput = ({
-  output,
-  error,
-  hasAmbiguousMarker,
-  isRunning = false,
-  onClear,
-}: AgentOutputProps) => {
+export const AgentOutput = ({ output, error, isRunning = false, onClear }: AgentOutputProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const outputHtml = useMemo(() => toAnsiHtml(output), [output]);
@@ -56,12 +49,6 @@ export const AgentOutput = ({
           Clear
         </button>
       </header>
-
-      {hasAmbiguousMarker ? (
-        <div className="text-amber bg-amber-bg border-amber/30 border-b px-3 py-2 text-xs">
-          Completion marker looked ambiguous. Review task status before running another cycle.
-        </div>
-      ) : null}
 
       {error ? (
         <div className="text-red bg-red-bg border-red/35 border-b px-3 py-2 text-xs">{error}</div>

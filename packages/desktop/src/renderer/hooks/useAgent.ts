@@ -27,7 +27,6 @@ const ensureAgentListeners = () => {
     state.setJobRunning(status, true);
     state.setJobComplete(status, false);
     state.setJobError(status, null);
-    state.setJobAmbiguousMarker(status, false);
   });
 
   const unbindIteration = api.agent.onIteration((event) => {
@@ -64,10 +63,6 @@ const ensureAgentListeners = () => {
     useStore.getState().setJobError(event, event.message);
   });
 
-  const unbindAmbiguousMarker = api.agent.onAmbiguousMarker((job) => {
-    useStore.getState().setJobAmbiguousMarker(job, true);
-  });
-
   const unbindSwitched = api.projects.onSwitched(() => {
     void hydrateAgentStatus();
   });
@@ -81,7 +76,6 @@ const ensureAgentListeners = () => {
     unbindComplete();
     unbindStopped();
     unbindVerifyFailed();
-    unbindAmbiguousMarker();
     unbindSwitched();
     cleanupAgentListeners = null;
   };
@@ -99,7 +93,6 @@ const EMPTY_JOB = {
   outputPreview: '',
   isComplete: false,
   error: null,
-  hasAmbiguousMarker: false,
   taskFiles: [],
 };
 
@@ -173,7 +166,6 @@ export const useRunAgent = (projectPath: string | null) => {
       state.clearJobOutput(nextStatus.jobKey);
       state.setJobError(nextStatus, null);
       state.setJobComplete(nextStatus, false);
-      state.setJobAmbiguousMarker(nextStatus, false);
       state.setJobIteration(nextStatus, 0, opts.iterations ?? 0);
 
       try {
@@ -222,7 +214,6 @@ export const usePlanAgent = (projectPath: string | null) => {
     state.clearJobOutput(status.jobKey);
     state.setJobError(status, null);
     state.setJobComplete(status, false);
-    state.setJobAmbiguousMarker(status, false);
 
     return status;
   }, [projectPath]);

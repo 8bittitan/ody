@@ -256,7 +256,6 @@ export type IpcEvents = {
   'agent:complete': [event: AgentCompleteEvent];
   'agent:stopped': [job: AgentJobIdentity];
   'agent:verifyFailed': [event: AgentVerifyFailedEvent];
-  'agent:ambiguousMarker': [job: AgentJobIdentity];
   'agent:editResult': [event: AgentEditResultEvent];
   'projects:switched': [path: string | null];
   'theme:changed': [{ source: ThemeSource; resolved: ThemeResolved }];
@@ -312,7 +311,6 @@ export type OdyApi = {
     onComplete: (listener: Listener<IpcEvents['agent:complete']>) => () => void;
     onStopped: (listener: Listener<IpcEvents['agent:stopped']>) => () => void;
     onVerifyFailed: (listener: Listener<IpcEvents['agent:verifyFailed']>) => () => void;
-    onAmbiguousMarker: (listener: Listener<IpcEvents['agent:ambiguousMarker']>) => () => void;
     onEditResult: (listener: Listener<IpcEvents['agent:editResult']>) => () => void;
     removeAllListeners: () => void;
   };

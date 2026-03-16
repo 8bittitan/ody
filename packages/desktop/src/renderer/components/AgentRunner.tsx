@@ -47,7 +47,6 @@ export const AgentRunner = () => {
     maxIterations,
     output,
     error: runError,
-    hasAmbiguousMarker,
     clearOutput,
   } = useRunAgent(activeProjectPath);
 
@@ -268,7 +267,6 @@ export const AgentRunner = () => {
       <AgentOutput
         output={output}
         error={runError}
-        hasAmbiguousMarker={hasAmbiguousMarker}
         isRunning={isRunning}
         onClear={() => {
           clearOutput();
