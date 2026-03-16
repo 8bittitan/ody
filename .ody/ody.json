@@ -4,8 +4,5 @@
   "maxIterations": 3,
   "autoCommit": false,
   "validatorCommands": ["bun lint", "bun fmt", "bun typecheck"],
-  "model": {
-    "run": "openai/gpt-5.4",
-    "plan": "anthropic/claude-opus-4-6"
-  }
+  "model": "openai/gpt-5.4" 
 }

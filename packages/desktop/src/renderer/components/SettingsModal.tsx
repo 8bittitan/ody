@@ -21,8 +21,9 @@ import { useConfig } from '@/hooks/useConfig';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useTheme } from '@/hooks/useTheme';
 import { api } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import { ThemeSource } from '@/types/ipc';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { FolderSearch, Settings2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -36,6 +37,10 @@ type SettingsModalProps = {
   onOpenConfigView: () => void;
 };
 
+type SettingsTab = 'general' | 'backend' | 'validators';
+
+const DEFAULT_BACKENDS = ['opencode', 'claude', 'codex'] as const;
+
 export const SettingsModal = ({
   open,
   onOpenChange,
@@ -43,61 +48,65 @@ export const SettingsModal = ({
   onBrowseProject,
   onOpenConfigView,
 }: SettingsModalProps) => {
-  const { loadConfig, validateConfig, saveConfig } = useConfig();
+  const { config, isLoading: loadingConfig, validateConfig, saveConfig } = useConfig();
   const { resolvedTheme, setTheme } = useTheme();
   const { success, error, accent } = useNotifications();
   const [projectDir, setProjectDir] = useState('');
   const [newValidator, setNewValidator] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState(createDefaultConfigForm());
-  const { data: config, isLoading: loadingConfig } = useQuery({
-    queryKey: ['config'],
-    queryFn: async () => {
-      const conf = await loadConfig();
-
-      if (conf.merged) {
-        setForm(toConfigFormState(conf.merged));
-      }
-
-      return conf;
-    },
-  });
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const { data: soundNotifications, isLoading: loadingSoundSettings } = useQuery({
-    queryKey: ['soundEnabled'],
+    queryKey: queryKeys.settings.notifications.sound,
     queryFn: async () => {
       const soundSettings = await api.notifications.getSoundEnabled();
 
       return soundSettings.enabled;
     },
+    enabled: open,
   });
-  const { data: backendCards, isLoading: loadingBackends } = useQuery({
-    queryKey: ['backends', config],
+  const { data: availableBackends = DEFAULT_BACKENDS, isLoading: loadingBackendList } = useQuery({
+    queryKey: queryKeys.settings.backends.list,
     queryFn: async () => {
       const backends = await api.backends.available();
 
-      const available = backends.length > 0 ? backends : ['opencode', 'claude', 'codex'];
-
-      return Promise.all(
-        available.map(async (b) => {
-          const models = await api.backends.models(b);
-
-          const fallback = config?.merged?.model;
-
-          return {
-            name: b,
-            model: models[0] ?? fallback,
-          };
-        }),
-      );
+      return backends.length > 0 ? backends : [...DEFAULT_BACKENDS];
     },
+    enabled: open && activeTab === 'backend',
+  });
+  const backendModelQueries = useQueries({
+    queries: availableBackends.map((backendName) => ({
+      queryKey: queryKeys.settings.backends.model(backendName),
+      queryFn: async () => {
+        const models = await api.backends.models(backendName);
+
+        return models[0] ?? null;
+      },
+      enabled: open && activeTab === 'backend',
+    })),
   });
 
-  const isLoading = loadingConfig && loadingSoundSettings && loadingBackends;
-  const hasConfig = config?.merged !== null;
+  const loadingBackends =
+    loadingBackendList || backendModelQueries.some((query) => query.isLoading);
+  const backendCards = availableBackends.map((backendName, index) => ({
+    name: backendName,
+    model: backendModelQueries[index]?.data ?? null,
+  }));
+
+  const isLoading = loadingConfig || loadingSoundSettings;
+  const hasConfig = config !== null;
+  const fallbackModelLabel =
+    form.modelMode === 'single'
+      ? form.modelSingle.trim()
+      : form.modelRun.trim() || form.modelPlan.trim() || form.modelEdit.trim();
 
   useEffect(() => {
     setProjectDir(activeProjectPath ?? '');
   }, [activeProjectPath]);
+
+  useEffect(() => {
+    setForm(toConfigFormState(config));
+  }, [config]);
 
   const addValidator = () => {
     const command = newValidator.trim();
@@ -195,7 +204,7 @@ export const SettingsModal = ({
               </Button>
             </section>
           ) : (
-            <Tabs defaultValue="general">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTab)}>
               <TabsList className="bg-background/50 border-edge grid w-full grid-cols-3 border">
                 <TabsTrigger value="general">General</TabsTrigger>
                 <TabsTrigger value="backend">Backend</TabsTrigger>
@@ -276,39 +285,45 @@ export const SettingsModal = ({
               </TabsContent>
 
               <TabsContent value="backend" className="mt-4">
-                <RadioGroup
-                  value={form.backend}
-                  onValueChange={(value) => {
-                    setForm((prev) => ({ ...prev, backend: String(value) }));
-                  }}
-                >
-                  {backendCards?.map((backend) => {
-                    const isActive = form.backend === backend.name;
+                {loadingBackends ? (
+                  <section className="text-mid py-4 text-sm">Loading backends...</section>
+                ) : (
+                  <RadioGroup
+                    value={form.backend}
+                    onValueChange={(value) => {
+                      setForm((prev) => ({ ...prev, backend: String(value) }));
+                    }}
+                  >
+                    {backendCards?.map((backend) => {
+                      const isActive = form.backend === backend.name;
+                      const modelLabel =
+                        backend.model ?? (fallbackModelLabel || 'No model detected');
 
-                    return (
-                      <label
-                        key={backend.name}
-                        className={[
-                          'bg-background/35 border-edge flex cursor-pointer items-start justify-between rounded-md border p-3 transition-colors',
-                          isActive
-                            ? 'border-primary/60 bg-accent-bg/65'
-                            : 'hover:border-primary/35',
-                        ].join(' ')}
-                      >
-                        <div>
-                          <p className="text-light text-sm font-medium capitalize">
-                            {backend.name}
-                          </p>
-                          <p className="text-mid mt-1 text-xs">Model: {backend.model}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isActive ? <Badge className="text-[11px]">Active</Badge> : null}
-                          <RadioGroupItem value={backend.name} className="mt-0.5" />
-                        </div>
-                      </label>
-                    );
-                  })}
-                </RadioGroup>
+                      return (
+                        <label
+                          key={backend.name}
+                          className={[
+                            'bg-background/35 border-edge flex cursor-pointer items-start justify-between rounded-md border p-3 transition-colors',
+                            isActive
+                              ? 'border-primary/60 bg-accent-bg/65'
+                              : 'hover:border-primary/35',
+                          ].join(' ')}
+                        >
+                          <div>
+                            <p className="text-light text-sm font-medium capitalize">
+                              {backend.name}
+                            </p>
+                            <p className="text-mid mt-1 text-xs">Model: {modelLabel}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isActive ? <Badge className="text-[11px]">Active</Badge> : null}
+                            <RadioGroupItem value={backend.name} className="mt-0.5" />
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </RadioGroup>
+                )}
               </TabsContent>
 
               <TabsContent value="validators" className="mt-4 space-y-3">

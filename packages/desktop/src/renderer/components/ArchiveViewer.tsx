@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import type { ArchiveEntry } from '@/types/ipc';
 import { Archive } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -12,38 +12,156 @@ type ExpandedSection = {
   section: 'tasks' | 'progress' | 'legacy';
 };
 
+type ArchiveSectionState = {
+  content: string;
+  error: string | null;
+  isLoading: boolean;
+  loaded: boolean;
+  missing: boolean;
+};
+
+const getSectionKey = (date: string, section: ExpandedSection['section']) => `${date}:${section}`;
+
 export const ArchiveViewer = () => {
   const [archives, setArchives] = useState<ArchiveEntry[]>([]);
   const [expandedSection, setExpandedSection] = useState<ExpandedSection | null>(null);
+  const [sectionState, setSectionState] = useState<Record<string, ArchiveSectionState>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const loadArchives = async () => {
+  const loadArchives = useCallback(async () => {
     setIsLoading(true);
 
     try {
       const result = await api.archive.list();
       setArchives(result);
+      setSectionState({});
+      setExpandedSection(null);
       setLoadError(null);
     } catch (cause) {
       setLoadError(cause instanceof Error ? cause.message : 'Unable to load archives');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadArchives();
-  }, []);
+  }, [loadArchives]);
 
-  const toggleSection = (date: string, section: ExpandedSection['section']) => {
-    setExpandedSection((prev) =>
-      prev?.date === date && prev.section === section ? null : { date, section },
-    );
+  const loadSection = useCallback(
+    async (archive: ArchiveEntry, section: ExpandedSection['section']) => {
+      const target = archive[section];
+
+      if (!target) {
+        return;
+      }
+
+      const key = getSectionKey(archive.date, section);
+      let shouldLoad = false;
+
+      setSectionState((prev) => {
+        const current = prev[key];
+
+        if (current?.isLoading || current?.loaded) {
+          return prev;
+        }
+
+        shouldLoad = true;
+
+        return {
+          ...prev,
+          [key]: {
+            content: '',
+            error: null,
+            isLoading: true,
+            loaded: false,
+            missing: false,
+          },
+        };
+      });
+
+      if (!shouldLoad) {
+        return;
+      }
+
+      try {
+        const result = await api.archive.read(target.filePath);
+        setSectionState((prev) => ({
+          ...prev,
+          [key]: {
+            content: result.content,
+            error: null,
+            isLoading: false,
+            loaded: true,
+            missing: result.missing,
+          },
+        }));
+      } catch (cause) {
+        setSectionState((prev) => ({
+          ...prev,
+          [key]: {
+            content: '',
+            error: cause instanceof Error ? cause.message : 'Unable to load archive content',
+            isLoading: false,
+            loaded: true,
+            missing: false,
+          },
+        }));
+      }
+    },
+    [],
+  );
+
+  const toggleSection = (archive: ArchiveEntry, section: ExpandedSection['section']) => {
+    const isOpen = expandedSection?.date === archive.date && expandedSection.section === section;
+
+    if (isOpen) {
+      setExpandedSection(null);
+      return;
+    }
+
+    setExpandedSection({ date: archive.date, section });
+    void loadSection(archive, section);
   };
 
   const isExpanded = (date: string, section: ExpandedSection['section']) =>
     expandedSection?.date === date && expandedSection.section === section;
+
+  const renderSectionContent = (archive: ArchiveEntry, section: ExpandedSection['section']) => {
+    const key = getSectionKey(archive.date, section);
+    const state = sectionState[key];
+
+    if (state?.isLoading) {
+      return <LoadingSpinner size="sm" label={`Loading ${section}`} />;
+    }
+
+    if (state?.error) {
+      return (
+        <div className="border-red/30 bg-red-bg mt-2 rounded border px-3 py-2">
+          <p className="text-red text-xs">{state.error}</p>
+        </div>
+      );
+    }
+
+    if (state?.missing) {
+      return (
+        <div className="border-edge bg-panel mt-2 rounded border px-3 py-2">
+          <p className="text-dim text-xs">This archive file is no longer available.</p>
+        </div>
+      );
+    }
+
+    if (!state?.loaded) {
+      return null;
+    }
+
+    return (
+      <pre className="border-edge bg-panel mt-2 max-h-64 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
+        {state.content}
+      </pre>
+    );
+  };
 
   return (
     <section className="bg-panel/92 border-edge h-full rounded-lg border p-4 backdrop-blur-sm">
@@ -106,7 +224,7 @@ export const ArchiveViewer = () => {
                       variant={isExpanded(archive.date, 'tasks') ? 'default' : 'secondary'}
                       size="xs"
                       onClick={() => {
-                        toggleSection(archive.date, 'tasks');
+                        toggleSection(archive, 'tasks');
                       }}
                     >
                       Tasks
@@ -118,7 +236,7 @@ export const ArchiveViewer = () => {
                       variant={isExpanded(archive.date, 'progress') ? 'default' : 'secondary'}
                       size="xs"
                       onClick={() => {
-                        toggleSection(archive.date, 'progress');
+                        toggleSection(archive, 'progress');
                       }}
                     >
                       Progress
@@ -130,7 +248,7 @@ export const ArchiveViewer = () => {
                       variant={isExpanded(archive.date, 'legacy') ? 'default' : 'secondary'}
                       size="xs"
                       onClick={() => {
-                        toggleSection(archive.date, 'legacy');
+                        toggleSection(archive, 'legacy');
                       }}
                     >
                       View
@@ -138,23 +256,17 @@ export const ArchiveViewer = () => {
                   ) : null}
                 </div>
 
-                {isExpanded(archive.date, 'tasks') && archive.tasks ? (
-                  <pre className="border-edge bg-panel mt-2 max-h-64 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
-                    {archive.tasks.content}
-                  </pre>
-                ) : null}
+                {isExpanded(archive.date, 'tasks') && archive.tasks
+                  ? renderSectionContent(archive, 'tasks')
+                  : null}
 
-                {isExpanded(archive.date, 'progress') && archive.progress ? (
-                  <pre className="border-edge bg-panel mt-2 max-h-64 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
-                    {archive.progress.content}
-                  </pre>
-                ) : null}
+                {isExpanded(archive.date, 'progress') && archive.progress
+                  ? renderSectionContent(archive, 'progress')
+                  : null}
 
-                {isExpanded(archive.date, 'legacy') && archive.legacy ? (
-                  <pre className="border-edge bg-panel mt-2 max-h-64 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
-                    {archive.legacy.content}
-                  </pre>
-                ) : null}
+                {isExpanded(archive.date, 'legacy') && archive.legacy
+                  ? renderSectionContent(archive, 'legacy')
+                  : null}
               </article>
             );
           })}

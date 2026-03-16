@@ -553,15 +553,17 @@ const RootLayout = () => {
         }}
       />
 
-      <SettingsModal
-        open={showSettingsModal}
-        onOpenChange={setShowSettingsModal}
-        activeProjectPath={activeProjectPath}
-        onBrowseProject={handleBrowseProject}
-        onOpenConfigView={() => {
-          navigate({ to: '/config' });
-        }}
-      />
+      {showSettingsModal ? (
+        <SettingsModal
+          open={showSettingsModal}
+          onOpenChange={setShowSettingsModal}
+          activeProjectPath={activeProjectPath}
+          onBrowseProject={handleBrowseProject}
+          onOpenConfigView={() => {
+            navigate({ to: '/config' });
+          }}
+        />
+      ) : null}
 
       {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
     </div>

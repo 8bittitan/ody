@@ -17,4 +17,16 @@ export const queryKeys = {
     all: ['auth'] as const,
     list: ['auth', 'list'] as const,
   },
+  settings: {
+    all: ['settings'] as const,
+    notifications: {
+      all: ['settings', 'notifications'] as const,
+      sound: ['settings', 'notifications', 'sound'] as const,
+    },
+    backends: {
+      all: ['settings', 'backends'] as const,
+      list: ['settings', 'backends', 'list'] as const,
+      model: (backendName: string) => ['settings', 'backends', 'model', backendName] as const,
+    },
+  },
 };

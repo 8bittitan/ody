@@ -44,12 +44,12 @@ const EditorRoute = EditorRouteImport.update({
   id: '/editor',
   path: '/editor',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/editor.lazy').then((d) => d.Route))
 const ConfigEditorRoute = ConfigEditorRouteImport.update({
   id: '/config-editor',
   path: '/config-editor',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/config-editor.lazy').then((d) => d.Route))
 const ConfigRoute = ConfigRouteImport.update({
   id: '/config',
   path: '/config',

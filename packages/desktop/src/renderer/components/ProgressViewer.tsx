@@ -1,7 +1,7 @@
 import { useNotifications } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
 import { MinusIcon, NotebookText, PlusIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -12,28 +12,39 @@ type ProgressViewerProps = {
   isRunning: boolean;
 };
 
+type LoadProgressOptions = {
+  notifyOnError?: boolean;
+};
+
 export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const justOpenedRef = useRef(false);
   const { error } = useNotifications();
 
-  const loadProgress = useCallback(async () => {
-    setIsLoading(true);
+  const loadProgress = useCallback(
+    async ({ notifyOnError = true }: LoadProgressOptions = {}) => {
+      setIsLoading(true);
 
-    try {
-      const result = await api.progress.read();
-      setContent(result.content);
-      setLoadError(null);
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'Unable to load progress';
-      setLoadError(message);
-      error({ title: 'Failed to load progress', description: message });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [error]);
+      try {
+        const result = await api.progress.read();
+        setContent(result.content);
+        setLoadError(null);
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : 'Unable to load progress';
+        setLoadError(message);
+
+        if (notifyOnError) {
+          error({ title: 'Failed to load progress', description: message });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [error],
+  );
 
   const clearProgress = async () => {
     try {
@@ -46,16 +57,21 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
   };
 
   useEffect(() => {
-    void loadProgress();
-  }, [loadProgress]);
+    if (!isOpen) {
+      return;
+    }
 
-  useEffect(() => {
+    if (justOpenedRef.current) {
+      justOpenedRef.current = false;
+      return;
+    }
+
     if (iteration === 0 && !isRunning) {
       return;
     }
 
-    void loadProgress();
-  }, [iteration, isRunning, loadProgress]);
+    void loadProgress({ notifyOnError: false });
+  }, [isOpen, iteration, isRunning, loadProgress]);
 
   return (
     <section className="bg-panel/90 border-edge rounded-lg border">
@@ -64,7 +80,16 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
           variant="ghost"
           size="sm"
           onClick={() => {
-            setIsOpen((prev) => !prev);
+            setIsOpen((prev) => {
+              const nextIsOpen = !prev;
+
+              if (nextIsOpen) {
+                justOpenedRef.current = true;
+                void loadProgress();
+              }
+
+              return nextIsOpen;
+            });
           }}
         >
           Progress Notes {isOpen ? <MinusIcon /> : <PlusIcon />}

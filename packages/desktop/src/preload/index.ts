@@ -89,6 +89,7 @@ const ody: OdyApi = {
   archive: {
     compact: () => ipcRenderer.invoke('archive:compact'),
     list: () => ipcRenderer.invoke('archive:list'),
+    read: (filePath) => ipcRenderer.invoke('archive:read', filePath),
   },
   projects: {
     list: () => ipcRenderer.invoke('projects:list'),

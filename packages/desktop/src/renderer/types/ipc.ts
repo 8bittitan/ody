@@ -43,17 +43,22 @@ export type TaskState = {
   status: TaskStatus;
 };
 
-export type ArchiveFile = {
+export type ArchiveSectionSummary = {
+  filePath: string;
+  taskCount: number;
+};
+
+export type ArchiveReadResult = {
   filePath: string;
   content: string;
-  taskCount: number;
+  missing: boolean;
 };
 
 export type ArchiveEntry = {
   date: string;
-  tasks: ArchiveFile | null;
-  progress: ArchiveFile | null;
-  legacy: ArchiveFile | null;
+  tasks: ArchiveSectionSummary | null;
+  progress: ArchiveSectionSummary | null;
+  legacy: ArchiveSectionSummary | null;
 };
 
 export type ImportSource = 'jira' | 'github';
@@ -142,6 +147,7 @@ export type IpcChannels = {
   'progress:clear': () => { ok: true };
   'archive:compact': () => { archived: string[]; archiveFilePath: string | null };
   'archive:list': () => ArchiveEntry[];
+  'archive:read': (filePath: string) => ArchiveReadResult;
   'projects:list': () => Array<{ name: string; path: string }>;
   'projects:add': () => { added: { name: string; path: string } | null };
   'projects:remove': (path: string) => { ok: true };
@@ -242,6 +248,7 @@ export type OdyApi = {
   archive: {
     compact: Asyncify<IpcChannels['archive:compact']>;
     list: Asyncify<IpcChannels['archive:list']>;
+    read: Asyncify<IpcChannels['archive:read']>;
   };
   projects: {
     list: Asyncify<IpcChannels['projects:list']>;

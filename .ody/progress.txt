@@ -2,3 +2,9 @@
 2026-03-11: Added the `ody resolve` CLI command with PR comment URL parsing, current-branch PR comment selection, resolve-specific prompt generation, and command coverage tests.
 2026-03-11: Switched `ody resolve` to non-interactive execution by default, added `--interactive` and `--verbose` flags, and expanded resolve command test coverage.
 2026-03-14: Moved PR review and resolve under `ody pr`, added the new `pr` subcommand group, and relocated their tests with updated CLI routing.
+2026-03-16: Deferred desktop settings modal queries until open, moved settings cache keys into shared helpers, and only load backend model metadata when the backend tab is viewed.
+2026-03-16: Made desktop progress notes load on expand, refresh only while visible, and avoid background refresh toast noise.
+2026-03-16: Made desktop archive browsing lazy-load archive bodies over IPC, added on-demand archive reads, and reduced eager task/archive file reads in the desktop main process.
+2026-03-16: Debounced desktop window size persistence during resize and flush the latest bounds on close to reduce repeated electron-store writes.
+2026-03-16: Standardized desktop settings query keys, split backend model caching by backend name, and kept notification/backend cache entries on shared helpers.
+2026-03-16: Moved desktop editor and config-editor views onto explicit TanStack lazy route files, regenerated the route tree, and verified Milkdown/CodeMirror stay out of the startup bundle.

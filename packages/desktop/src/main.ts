@@ -25,6 +25,8 @@ const appStore = new Store<AppStore>({
   },
 });
 
+const WINDOW_STATE_SAVE_DEBOUNCE_MS = 250;
+
 const createWindow = () => {
   const windowDims = appStore.get('window');
 
@@ -40,10 +42,36 @@ const createWindow = () => {
     },
   });
 
-  mainWindow.on('resized', () => {
-    const newDims = mainWindow.getBounds();
+  let persistWindowStateTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    appStore.set('window', { height: newDims.height, width: newDims.width });
+  const persistWindowState = () => {
+    const { height, width } = mainWindow.getBounds();
+
+    appStore.set('window', { height, width });
+  };
+
+  const scheduleWindowStatePersistence = () => {
+    if (persistWindowStateTimeout) {
+      clearTimeout(persistWindowStateTimeout);
+    }
+
+    persistWindowStateTimeout = setTimeout(() => {
+      persistWindowStateTimeout = null;
+      persistWindowState();
+    }, WINDOW_STATE_SAVE_DEBOUNCE_MS);
+  };
+
+  mainWindow.on('resize', () => {
+    scheduleWindowStatePersistence();
+  });
+
+  mainWindow.on('close', () => {
+    if (persistWindowStateTimeout) {
+      clearTimeout(persistWindowStateTimeout);
+      persistWindowStateTimeout = null;
+    }
+
+    persistWindowState();
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {

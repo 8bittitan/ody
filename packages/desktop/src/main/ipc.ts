@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { access, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, open, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
@@ -45,6 +45,24 @@ type TaskSummary = {
   created: string | null;
   started: string | null;
   completed: string | null;
+};
+
+type ArchiveSectionSummary = {
+  filePath: string;
+  taskCount: number;
+};
+
+type ArchiveEntry = {
+  date: string;
+  tasks: ArchiveSectionSummary | null;
+  progress: ArchiveSectionSummary | null;
+  legacy: ArchiveSectionSummary | null;
+};
+
+type ArchiveReadResult = {
+  filePath: string;
+  content: string;
+  missing: boolean;
 };
 
 type DesktopStore = {
@@ -241,6 +259,8 @@ const resolveTasksDirPath = (projectPath: string) => join(projectPath, BASE_DIR,
 const resolveProgressFilePath = (projectPath: string) =>
   join(projectPath, BASE_DIR, 'progress.txt');
 const resolveHistoryDirPath = (projectPath: string) => join(projectPath, BASE_DIR, 'history');
+const TASK_SUMMARY_READ_BYTES = 64 * 1024;
+const ARCHIVE_METADATA_READ_BYTES = 4 * 1024;
 
 const canonicalizeExistingPath = async (filePath: string) => {
   try {
@@ -316,6 +336,27 @@ const resolveTaskFilePath = async (
   return resolvedPath;
 };
 
+const resolveArchiveFilePath = async (projectPath: string, requestedPath: string) => {
+  const trimmedPath = requestedPath.trim();
+
+  if (trimmedPath.length === 0) {
+    throw new Error('Archive file path is required.');
+  }
+
+  const resolvedPath = await resolvePathWithinDirectory(
+    resolveHistoryDirPath(projectPath),
+    trimmedPath,
+  );
+
+  if (!resolvedPath) {
+    throw new Error(
+      `Archive file path must stay within ${BASE_DIR}/history for the active project.`,
+    );
+  }
+
+  return resolvedPath;
+};
+
 const resolveEditorFilePath = async (
   projectPath: string,
   requestedPath: string,
@@ -371,6 +412,18 @@ const parseTaskCountFromArchive = (content: string) => {
   return headings?.length ?? 0;
 };
 
+const readFilePreview = async (filePath: string, maxBytes: number) => {
+  const file = await open(filePath, 'r');
+
+  try {
+    const buffer = Buffer.alloc(maxBytes);
+    const { bytesRead } = await file.read(buffer, 0, maxBytes, 0);
+    return buffer.subarray(0, bytesRead).toString('utf-8');
+  } finally {
+    await file.close();
+  }
+};
+
 const normalizeTaskStatus = (status: string | undefined): TaskStatus => {
   if (status === 'in_progress') {
     return 'in_progress';
@@ -408,7 +461,7 @@ const buildTaskSummary = async (
   const filePath = join(tasksDirPath, taskFile);
 
   try {
-    const content = await readFile(filePath, 'utf-8');
+    const content = await readFilePreview(filePath, TASK_SUMMARY_READ_BYTES);
     const frontmatter = parseFrontmatter(content);
 
     return {
@@ -1472,9 +1525,9 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       const archiveMap = new Map<
         string,
         {
-          tasks: { filePath: string; content: string; taskCount: number } | null;
-          progress: { filePath: string; content: string; taskCount: number } | null;
-          legacy: { filePath: string; content: string; taskCount: number } | null;
+          tasks: ArchiveSectionSummary | null;
+          progress: ArchiveSectionSummary | null;
+          legacy: ArchiveSectionSummary | null;
         }
       >();
 
@@ -1487,10 +1540,9 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
           try {
             const tasksPath = join(dirPath, 'tasks.md');
-            const tasksContent = await readFile(tasksPath, 'utf-8');
+            const tasksContent = await readFilePreview(tasksPath, ARCHIVE_METADATA_READ_BYTES);
             group.tasks = {
               filePath: tasksPath,
-              content: tasksContent,
               taskCount: parseTaskCountFromArchive(tasksContent),
             };
           } catch {
@@ -1499,10 +1551,9 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
           try {
             const progressPath = join(dirPath, 'progress.md');
-            const progressContent = await readFile(progressPath, 'utf-8');
+            await access(progressPath);
             group.progress = {
               filePath: progressPath,
-              content: progressContent,
               taskCount: 0,
             };
           } catch {
@@ -1522,11 +1573,10 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
           if (legacyMatch?.[1]) {
             const date = legacyMatch[1];
             const filePath = join(historyDirPath, entry.name);
-            const content = await readFile(filePath, 'utf-8');
+            const content = await readFilePreview(filePath, ARCHIVE_METADATA_READ_BYTES);
             const group = archiveMap.get(date) ?? { tasks: null, progress: null, legacy: null };
             group.legacy = {
               filePath,
-              content,
               taskCount: parseTaskCountFromArchive(content),
             };
             archiveMap.set(date, group);
@@ -1544,10 +1594,39 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
           tasks: group.tasks,
           progress: group.progress,
           legacy: group.legacy,
-        };
+        } satisfies ArchiveEntry;
       });
     } catch {
       return [];
+    }
+  });
+  registerHandler('archive:read', async (filePath: unknown): Promise<ArchiveReadResult> => {
+    const requestedPath = String(filePath ?? '');
+    const activeProjectPath = readActiveProjectPath();
+
+    if (!activeProjectPath || requestedPath.length === 0) {
+      return {
+        filePath: requestedPath,
+        content: '',
+        missing: true,
+      };
+    }
+
+    const resolvedPath = await resolveArchiveFilePath(activeProjectPath, requestedPath);
+
+    try {
+      const content = await readFile(resolvedPath, 'utf-8');
+      return {
+        filePath: resolvedPath,
+        content,
+        missing: false,
+      };
+    } catch {
+      return {
+        filePath: resolvedPath,
+        content: '',
+        missing: true,
+      };
     }
   });
 
