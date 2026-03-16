@@ -21,6 +21,7 @@ type AgentRunnerStatus = {
 type AgentRunnerCallbacks = {
   onStarted?: () => void;
   onIteration?: (iteration: number, maxIterations: number) => void;
+  onIterationComplete?: (iteration: number, maxIterations: number) => void;
   onOutput?: (chunk: string) => void;
   onAmbiguousMarker?: () => void;
   onStopped?: () => void;
@@ -204,6 +205,7 @@ export class AgentRunner {
         markerDetection: result,
         singleTaskFile,
       });
+      callbacks?.onIterationComplete?.(iteration, maxIterations);
 
       if (await this.shouldStopForNoTasksRemaining({ opts, tasksDirPath, maxIterations })) {
         completionReason = 'no_tasks_remaining';

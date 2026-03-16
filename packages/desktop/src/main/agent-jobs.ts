@@ -13,6 +13,7 @@ import type {
   AgentPlanNewRequest,
   AgentRunRequest,
   AgentStatus,
+  TaskChangeReason,
 } from '../renderer/types/ipc';
 import { buildAgentJobKey } from '../renderer/types/ipc';
 import { AgentRunner } from './agent';
@@ -20,6 +21,7 @@ import { AgentRunner } from './agent';
 type RunnerCallbacks = {
   onStarted?: () => void;
   onIteration?: (iteration: number, maxIterations: number) => void;
+  onIterationComplete?: (iteration: number, maxIterations: number) => void;
   onOutput?: (chunk: string) => void;
   onAmbiguousMarker?: () => void;
   onStopped?: () => void;
@@ -45,6 +47,7 @@ export class DesktopAgentJobManager {
     private readonly options?: {
       shouldPlaySound?: () => boolean;
       playSound?: () => void;
+      onTasksChanged?: (projectPath: string, reason: TaskChangeReason) => void;
     },
   ) {}
 
@@ -102,6 +105,7 @@ export class DesktopAgentJobManager {
     request: AgentPlanNewRequest | AgentPlanBatchRequest,
     command: string[],
     projectPath: string,
+    taskChangeReason: TaskChangeReason = 'plan-created',
   ) {
     const identity = this.createIdentity(request.projectPath, request.kind);
 
@@ -126,6 +130,7 @@ export class DesktopAgentJobManager {
         }
 
         this.sendComplete(identity);
+        this.options?.onTasksChanged?.(identity.projectPath, taskChangeReason);
       })
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
@@ -294,6 +299,9 @@ export class DesktopAgentJobManager {
           maxIterations,
         });
       },
+      onIterationComplete: () => {
+        this.options?.onTasksChanged?.(identity.projectPath, 'agent-iteration');
+      },
       onOutput: (chunk) => {
         this.sendOutput(identity, chunk);
       },
@@ -305,6 +313,7 @@ export class DesktopAgentJobManager {
       },
       onComplete: (reason) => {
         this.sendComplete(identity, reason);
+        this.options?.onTasksChanged?.(identity.projectPath, 'agent-complete');
       },
     };
   }

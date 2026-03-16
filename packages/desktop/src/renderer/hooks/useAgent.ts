@@ -295,7 +295,9 @@ export const useProjectAgentJobs = (projectPath: string | null) => {
       return false;
     }
 
-    return Object.values(state.jobs).some((job) => job.projectPath === projectPath && job.isRunning);
+    return Object.values(state.jobs).some(
+      (job) => job.projectPath === projectPath && job.isRunning,
+    );
   });
   const stopAll = useCallback(async () => {
     if (!projectPath) {

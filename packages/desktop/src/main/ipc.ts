@@ -1,3 +1,4 @@
+import { type FSWatcher, watch } from 'node:fs';
 import { access, mkdir, open, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -25,6 +26,7 @@ import type { BrowserWindow } from 'electron';
 import { dialog, ipcMain, nativeTheme, shell } from 'electron';
 import Store from 'electron-store';
 
+import type { TaskChangeReason } from '../renderer/types/ipc';
 import { DesktopAgentJobManager } from './agent-jobs';
 
 type ProjectItem = {
@@ -260,6 +262,16 @@ const resolveProgressFilePath = (projectPath: string) =>
 const resolveHistoryDirPath = (projectPath: string) => join(projectPath, BASE_DIR, 'history');
 const TASK_SUMMARY_READ_BYTES = 64 * 1024;
 const ARCHIVE_METADATA_READ_BYTES = 4 * 1024;
+const TASK_WATCH_DEBOUNCE_MS = 200;
+const TASK_FILE_SUFFIX = '.code-task.md';
+
+type ProjectTaskSyncState = {
+  basePath: string | null;
+  baseWatcher: FSWatcher | null;
+  tasksPath: string | null;
+  tasksWatcher: FSWatcher | null;
+  debounceTimer: ReturnType<typeof setTimeout> | null;
+};
 
 const canonicalizeExistingPath = async (filePath: string) => {
   try {
@@ -515,10 +527,146 @@ const registerHandler = (channel: string, handler: (...args: unknown[]) => unkno
 };
 
 export const registerIpcHandlers = (win: BrowserWindow) => {
+  const taskSyncByProject = new Map<string, ProjectTaskSyncState>();
+  const getTaskSyncState = (projectPath: string): ProjectTaskSyncState => {
+    const existing = taskSyncByProject.get(projectPath);
+
+    if (existing) {
+      return existing;
+    }
+
+    const created: ProjectTaskSyncState = {
+      basePath: null,
+      baseWatcher: null,
+      tasksPath: null,
+      tasksWatcher: null,
+      debounceTimer: null,
+    };
+    taskSyncByProject.set(projectPath, created);
+    return created;
+  };
+  const closeWatcher = (watcher: FSWatcher | null) => {
+    if (!watcher) {
+      return;
+    }
+
+    try {
+      watcher.close();
+    } catch {
+      // ignore watcher close failures during teardown
+    }
+  };
+  const emitTasksChanged = (projectPath: string, reason: TaskChangeReason) => {
+    win.webContents.send('tasks:changed', { projectPath, reason });
+  };
+  const scheduleFsTaskRefresh = (projectPath: string) => {
+    const state = getTaskSyncState(projectPath);
+
+    if (state.debounceTimer) {
+      clearTimeout(state.debounceTimer);
+    }
+
+    state.debounceTimer = setTimeout(() => {
+      state.debounceTimer = null;
+      emitTasksChanged(projectPath, 'fs-change');
+      void ensureProjectTaskSync(projectPath);
+    }, TASK_WATCH_DEBOUNCE_MS);
+  };
+  const watchPath = (
+    filePath: string,
+    onEvent: (_eventType: string, fileName: string | null) => void,
+  ) => {
+    try {
+      const watcher = watch(filePath, { persistent: false }, (eventType, fileName) => {
+        onEvent(eventType, typeof fileName === 'string' ? fileName : null);
+      });
+
+      watcher.on('error', () => {
+        closeWatcher(watcher);
+      });
+
+      return watcher;
+    } catch {
+      return null;
+    }
+  };
+  const ensureProjectTaskSync = async (projectPath: string) => {
+    const state = getTaskSyncState(projectPath);
+    const odyDirPath = join(projectPath, BASE_DIR);
+    const tasksDirPath = resolveTasksDirPath(projectPath);
+    const baseWatchPath = (await projectExists(odyDirPath)) ? odyDirPath : projectPath;
+
+    if (state.basePath !== baseWatchPath) {
+      closeWatcher(state.baseWatcher);
+      state.baseWatcher = watchPath(baseWatchPath, (_eventType, fileName) => {
+        if (
+          (baseWatchPath === projectPath && fileName && fileName !== BASE_DIR) ||
+          (baseWatchPath === odyDirPath &&
+            fileName &&
+            fileName !== TASKS_DIR &&
+            fileName !== 'progress.txt')
+        ) {
+          return;
+        }
+
+        scheduleFsTaskRefresh(projectPath);
+      });
+      state.basePath = baseWatchPath;
+    }
+
+    if (await projectExists(tasksDirPath)) {
+      if (state.tasksPath !== tasksDirPath) {
+        closeWatcher(state.tasksWatcher);
+        state.tasksWatcher = watchPath(tasksDirPath, (_eventType, fileName) => {
+          if (fileName && !fileName.endsWith(TASK_FILE_SUFFIX)) {
+            return;
+          }
+
+          scheduleFsTaskRefresh(projectPath);
+        });
+        state.tasksPath = tasksDirPath;
+      }
+    } else {
+      closeWatcher(state.tasksWatcher);
+      state.tasksWatcher = null;
+      state.tasksPath = null;
+    }
+  };
+  const disposeProjectTaskSync = (projectPath: string) => {
+    const state = taskSyncByProject.get(projectPath);
+
+    if (!state) {
+      return;
+    }
+
+    if (state.debounceTimer) {
+      clearTimeout(state.debounceTimer);
+    }
+
+    closeWatcher(state.baseWatcher);
+    closeWatcher(state.tasksWatcher);
+    taskSyncByProject.delete(projectPath);
+  };
+  const syncProjectTaskWatchers = async (projectPaths: string[]) => {
+    const uniqueProjectPaths = [
+      ...new Set(projectPaths.filter((projectPath) => projectPath.length > 0)),
+    ];
+
+    await Promise.all(uniqueProjectPaths.map((projectPath) => ensureProjectTaskSync(projectPath)));
+
+    for (const existingProjectPath of taskSyncByProject.keys()) {
+      if (!uniqueProjectPaths.includes(existingProjectPath)) {
+        disposeProjectTaskSync(existingProjectPath);
+      }
+    }
+  };
   const jobManager = new DesktopAgentJobManager(win, {
     shouldPlaySound: () => appStore.get('soundNotifications', false),
     playSound: () => {
       shell.beep();
+    },
+    onTasksChanged: (projectPath, reason) => {
+      emitTasksChanged(projectPath, reason);
     },
   });
   const handleNativeThemeUpdated = () => {
@@ -533,7 +681,24 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
   nativeTheme.on('updated', handleNativeThemeUpdated);
   win.on('closed', () => {
     nativeTheme.removeListener('updated', handleNativeThemeUpdated);
+    for (const projectPath of taskSyncByProject.keys()) {
+      disposeProjectTaskSync(projectPath);
+    }
   });
+
+  void cleanupProjects()
+    .then(({ projects, activeProject }) => {
+      const projectPaths = projects.map((project) => project.path);
+
+      if (activeProject) {
+        projectPaths.push(activeProject);
+      }
+
+      return syncProjectTaskWatchers(projectPaths);
+    })
+    .catch(() => {
+      // ignore startup watcher sync failures
+    });
 
   win.on('enter-full-screen', () => {
     win.webContents.send('app:fullscreen-status', true);
@@ -724,6 +889,10 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       }
     }
 
+    if (deleted.length > 0) {
+      emitTasksChanged(activeProjectPath, 'task-deleted');
+    }
+
     return { deleted };
   });
   registerHandler('tasks:byLabel', async (label: unknown) => {
@@ -831,6 +1000,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       { projectPath, kind: 'plan', description: promptInput },
       command,
       projectPath,
+      'plan-created',
     );
   });
   registerHandler('agent:planBatch', async (request: unknown) => {
@@ -859,6 +1029,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       { projectPath, kind: 'plan', filePath: planFilePath },
       command,
       projectPath,
+      'plan-created',
     );
   });
   registerHandler('agent:planPreview', async (description: unknown) => {
@@ -1002,6 +1173,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       { projectPath, kind: 'plan', description: input },
       command,
       projectPath,
+      'import-created',
     );
   });
   registerHandler('agent:importFromGitHub', async (opts: unknown) => {
@@ -1050,6 +1222,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       { projectPath, kind: 'plan', description: input },
       command,
       projectPath,
+      'import-created',
     );
   });
   registerHandler('agent:importDryRun', async (opts: unknown) => {
@@ -1119,6 +1292,11 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     const resolvedPath = await resolveEditorFilePath(activeProjectPath, requestedPath, true);
 
     await writeFile(resolvedPath, String(content ?? ''), 'utf-8');
+
+    if (isPathInsideDirectory(resolveTasksDirPath(activeProjectPath), resolvedPath)) {
+      emitTasksChanged(activeProjectPath, 'task-saved');
+    }
+
     return { ok: true };
   });
   registerHandler('editor:snapshot', async (filePath: unknown) => {
@@ -1317,6 +1495,8 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     await mkdir(dirname(progressFilePath), { recursive: true });
     await writeFile(progressFilePath, '', 'utf-8');
 
+    emitTasksChanged(activeProjectPath, 'progress-cleared');
+
     return { ok: true };
   });
 
@@ -1403,6 +1583,8 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
     await mkdir(dirname(progressFilePath), { recursive: true });
     await writeFile(progressFilePath, '', 'utf-8');
+
+    emitTasksChanged(activeProjectPath, 'task-archived');
 
     return {
       archived: completedTasks.map((task) => task.filePath),
@@ -1533,6 +1715,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
 
   registerHandler('projects:list', async () => {
     const { projects } = await cleanupProjects();
+    await syncProjectTaskWatchers(projects.map((project) => project.path));
     return projects;
   });
   registerHandler('projects:add', async () => {
@@ -1561,6 +1744,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       saveProjects([...projects, added]);
     }
 
+    await ensureProjectTaskSync(added.path);
     setActiveProject(added.path);
     win.webContents.send('projects:switched', added.path);
     return { added };
@@ -1571,6 +1755,7 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
     const nextProjects = projects.filter((project) => project.path !== target);
 
     saveProjects(nextProjects);
+    disposeProjectTaskSync(target);
 
     if (activeProject === target) {
       const fallback = nextProjects[0]?.path ?? null;
@@ -1592,12 +1777,18 @@ export const registerIpcHandlers = (win: BrowserWindow) => {
       saveProjects([...projects, { name: projectNameFromPath(target), path: target }]);
     }
 
+    await ensureProjectTaskSync(target);
     setActiveProject(target);
     win.webContents.send('projects:switched', target);
     return { ok: true };
   });
   registerHandler('projects:active', async () => {
     const { activeProject } = await cleanupProjects();
+
+    if (activeProject) {
+      await ensureProjectTaskSync(activeProject);
+    }
+
     return { path: activeProject };
   });
 

@@ -1,4 +1,5 @@
 import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
 import { api } from '@/lib/api';
 import { MinusIcon, NotebookText, PlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,6 +23,7 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const justOpenedRef = useRef(false);
+  const { activeProjectPath } = useProjects();
   const { error } = useNotifications();
 
   const loadProgress = useCallback(
@@ -72,6 +74,16 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
 
     void loadProgress({ notifyOnError: false });
   }, [isOpen, iteration, isRunning, loadProgress]);
+
+  useEffect(() => {
+    return api.tasks.onChanged(({ projectPath }) => {
+      if (!isOpen || !activeProjectPath || projectPath !== activeProjectPath) {
+        return;
+      }
+
+      void loadProgress({ notifyOnError: false });
+    });
+  }, [activeProjectPath, isOpen, loadProgress]);
 
   return (
     <section className="bg-panel/90 border-edge rounded-lg border">

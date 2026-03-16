@@ -34,6 +34,7 @@ const ody: OdyApi = {
     delete: (filePaths) => ipcRenderer.invoke('tasks:delete', filePaths),
     byLabel: (label) => ipcRenderer.invoke('tasks:byLabel', label),
     states: (filePaths) => ipcRenderer.invoke('tasks:states', filePaths),
+    onChanged: (listener) => addListener('tasks:changed', listener),
   },
   agent: {
     run: (opts) => ipcRenderer.invoke('agent:run', opts),

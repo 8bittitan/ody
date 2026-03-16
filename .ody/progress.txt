@@ -11,3 +11,4 @@
 2026-03-16: Split desktop agent state hooks by status, output, and controls, cached a lightweight output preview in the store, and kept root/task board rerenders off the full output stream.
 2026-03-16: Kept the desktop diff review MergeView mounted across proposed-content edits, synchronized both panes with CodeMirror transactions, and avoided editor resets on each keystroke.
 2026-03-16: Reworked desktop agent orchestration around per-project job keys, scoped run/plan/edit IPC and store state by job, and allowed concurrent local desktop jobs without mixed output.
+2026-03-16: Added desktop `tasks:changed` IPC notifications, per-project task watchers with debounced filesystem refreshes, and renderer task/progress subscriptions that auto-refresh on task file changes.

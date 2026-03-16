@@ -103,6 +103,22 @@ export type AgentEditResultEvent = AgentJobIdentity & {
   content: string;
 };
 
+export type TaskChangeReason =
+  | 'agent-iteration'
+  | 'agent-complete'
+  | 'plan-created'
+  | 'import-created'
+  | 'task-deleted'
+  | 'task-archived'
+  | 'task-saved'
+  | 'progress-cleared'
+  | 'fs-change';
+
+export type TasksChangedEvent = {
+  projectPath: string;
+  reason: TaskChangeReason;
+};
+
 export type TaskSummary = {
   filePath: string;
   title: string;
@@ -233,6 +249,7 @@ export type IpcChannels = {
 };
 
 export type IpcEvents = {
+  'tasks:changed': [event: TasksChangedEvent];
   'agent:started': [status: AgentStatus];
   'agent:iteration': [event: AgentIterationEvent];
   'agent:output': [event: AgentOutputEvent];
@@ -274,6 +291,7 @@ export type OdyApi = {
     delete: Asyncify<IpcChannels['tasks:delete']>;
     byLabel: Asyncify<IpcChannels['tasks:byLabel']>;
     states: Asyncify<IpcChannels['tasks:states']>;
+    onChanged: (listener: Listener<IpcEvents['tasks:changed']>) => () => void;
   };
   agent: {
     run: Asyncify<IpcChannels['agent:run']>;
