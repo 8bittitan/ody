@@ -1,10 +1,9 @@
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { MultiCombobox } from '@/components/ui/combobox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Search } from 'lucide-react';
 
 import type { TaskStatus } from '../types/ipc';
+import { InputGroup, InputGroupAddon, InputGroupInput } from './ui/input-group';
 
 type TaskFiltersProps = {
   search: string;
@@ -35,19 +34,19 @@ export const TaskFilters = ({
     <>
       <section className="border-edge bg-background/40 flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
         <div className="relative max-w-sm flex-1">
-          <Label htmlFor="task-search" className="sr-only">
-            Search tasks
-          </Label>
-          <Search className="text-dim absolute top-2 left-2.5 size-3.5" />
-          <Input
-            id="task-search"
-            value={search}
-            onChange={(event) => {
-              onSearchChange(event.target.value);
-            }}
-            placeholder="Search tasks"
-            className="pr-2 pl-8"
-          />
+          <InputGroup>
+            <InputGroupInput
+              id="task-search"
+              value={search}
+              onChange={(e) => {
+                onSearchChange(e.target.value);
+              }}
+              placeholder="Search tasks"
+            />
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+          </InputGroup>
         </div>
       </section>
 
@@ -60,7 +59,7 @@ export const TaskFilters = ({
           }}
           placeholder="Filter by label"
           emptyMessage="No labels found."
-          className="max-w-xs min-w-[12rem] flex-1"
+          className="max-w-xs min-w-48 flex-1"
           label="Label filter"
         />
         <MultiCombobox
@@ -81,7 +80,7 @@ export const TaskFilters = ({
           }}
           placeholder="Filter by status"
           emptyMessage="No statuses found."
-          className="max-w-xs min-w-[12rem] flex-1"
+          className="max-w-xs min-w-48 flex-1"
           label="Status filter"
         />
       </section>

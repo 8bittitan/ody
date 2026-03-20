@@ -67,8 +67,14 @@ export const TaskBoard = ({
   const { activeProjectPath } = useProjects();
   const { tasks, loadTasks, isLoading } = useTasks();
   const { config } = useConfig();
-  const { start, stop, isRunning: isRunActive, outputPreview, iteration, maxIterations } =
-    useRunAgent(activeProjectPath);
+  const {
+    start,
+    stop,
+    isRunning: isRunActive,
+    outputPreview,
+    iteration,
+    maxIterations,
+  } = useRunAgent(activeProjectPath);
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<TaskSummary | null>(null);
@@ -106,7 +112,8 @@ export const TaskBoard = ({
       }
 
       if (query.length > 0) {
-        const searchable = `${task.title}\n${task.description}\n${task.labels.join(' ')}`.toLowerCase();
+        const searchable =
+          `${task.title}\n${task.description}\n${task.labels.join(' ')}`.toLowerCase();
         if (!searchable.includes(query)) {
           continue;
         }
@@ -373,7 +380,10 @@ export const TaskBoard = ({
 
           <div className="max-h-52 space-y-1 overflow-auto pr-1">
             {computed.completedTasks.map((task) => (
-              <p key={task.filePath} className="border-edge text-light rounded border px-2 py-1 text-xs">
+              <p
+                key={task.filePath}
+                className="border-edge text-light rounded border px-2 py-1 text-xs"
+              >
                 {task.title}
               </p>
             ))}
