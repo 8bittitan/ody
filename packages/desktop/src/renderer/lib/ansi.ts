@@ -25,89 +25,124 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
-/** Convert a string containing ANSI escape sequences into styled HTML. */
-export const toAnsiHtml = (content: string) => {
-  const pattern = new RegExp(String.raw`\u001b\[([0-9;]+)m`, 'g');
-  let cursor = 0;
-  let currentColor: string | null = null;
-  let currentBold = false;
-  let html = '';
+export type AnsiRenderState = {
+  currentColor: string | null;
+  currentBold: boolean;
+  pendingEscape: string;
+};
 
-  const appendSegment = (segment: string) => {
-    if (segment.length === 0) {
-      return;
+const appendSegment = (segment: string, state: AnsiRenderState) => {
+  if (segment.length === 0) {
+    return '';
+  }
+
+  const styles: string[] = [];
+
+  if (state.currentColor) {
+    styles.push(`color:${state.currentColor}`);
+  }
+
+  if (state.currentBold) {
+    styles.push('font-weight:600');
+  }
+
+  const escaped = escapeHtml(segment);
+  if (styles.length === 0) {
+    return escaped;
+  }
+
+  return `<span style="${styles.join(';')}">${escaped}</span>`;
+};
+
+export const createAnsiRenderState = (): AnsiRenderState => ({
+  currentColor: null,
+  currentBold: false,
+  pendingEscape: '',
+});
+
+const applyCodes = (codes: number[], state: AnsiRenderState) => {
+  if (codes.length === 0) {
+    state.currentColor = null;
+    state.currentBold = false;
+    return;
+  }
+
+  for (const code of codes) {
+    if (code === 0) {
+      state.currentColor = null;
+      state.currentBold = false;
+      continue;
     }
 
-    const styles: string[] = [];
-
-    if (currentColor) {
-      styles.push(`color:${currentColor}`);
+    if (code === 1) {
+      state.currentBold = true;
+      continue;
     }
 
-    if (currentBold) {
-      styles.push('font-weight:600');
+    if (code === 22) {
+      state.currentBold = false;
+      continue;
     }
 
-    const escaped = escapeHtml(segment);
-    if (styles.length === 0) {
-      html += escaped;
-      return;
+    if (code === 39) {
+      state.currentColor = null;
+      continue;
     }
 
-    html += `<span style="${styles.join(';')}">${escaped}</span>`;
+    const mapped = COLOR_MAP[code];
+    if (mapped) {
+      state.currentColor = mapped;
+    }
+  }
+};
+
+export const appendAnsiHtml = (content: string, previousState = createAnsiRenderState()) => {
+  const source = `${previousState.pendingEscape}${content}`;
+  const state: AnsiRenderState = {
+    currentColor: previousState.currentColor,
+    currentBold: previousState.currentBold,
+    pendingEscape: '',
   };
+  let html = '';
+  let cursor = 0;
 
-  let match = pattern.exec(content);
-  while (match) {
-    const segment = content.slice(cursor, match.index);
-    appendSegment(segment);
+  while (cursor < source.length) {
+    const escapeIndex = source.indexOf('\u001b', cursor);
 
-    const codes = (match[1] ?? '')
+    if (escapeIndex === -1) {
+      html += appendSegment(source.slice(cursor), state);
+      break;
+    }
+
+    html += appendSegment(source.slice(cursor, escapeIndex), state);
+
+    if (source[escapeIndex + 1] !== '[') {
+      html += appendSegment(source[escapeIndex], state);
+      cursor = escapeIndex + 1;
+      continue;
+    }
+
+    const endIndex = source.indexOf('m', escapeIndex + 2);
+    if (endIndex === -1) {
+      state.pendingEscape = source.slice(escapeIndex);
+      break;
+    }
+
+    const codes = source
+      .slice(escapeIndex + 2, endIndex)
       .split(';')
       .map((code) => Number.parseInt(code, 10))
       .filter((code) => !Number.isNaN(code));
 
-    if (codes.length === 0) {
-      currentColor = null;
-      currentBold = false;
-    }
-
-    for (const code of codes) {
-      if (code === 0) {
-        currentColor = null;
-        currentBold = false;
-        continue;
-      }
-
-      if (code === 1) {
-        currentBold = true;
-        continue;
-      }
-
-      if (code === 22) {
-        currentBold = false;
-        continue;
-      }
-
-      if (code === 39) {
-        currentColor = null;
-        continue;
-      }
-
-      const mapped = COLOR_MAP[code];
-      if (mapped) {
-        currentColor = mapped;
-      }
-    }
-
-    cursor = match.index + match[0].length;
-    match = pattern.exec(content);
+    applyCodes(codes, state);
+    cursor = endIndex + 1;
   }
 
-  appendSegment(content.slice(cursor));
-
-  return html;
+  return { html, state };
 };
+
+/** Convert a string containing ANSI escape sequences into styled HTML. */
+export const toAnsiHtml = (content: string) => appendAnsiHtml(content).html;
 
 /** Strip all ANSI escape sequences, returning plain text. */
 // eslint-disable-next-line no-control-regex

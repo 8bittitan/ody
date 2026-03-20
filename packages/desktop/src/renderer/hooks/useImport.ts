@@ -56,7 +56,7 @@ export const useImport = ({
   const settings = useMemo(() => resolveSettings(config), [config]);
   const {
     isRunning: isGenerating,
-    output: streamOutput,
+    outputHtmlChunks,
     isComplete,
     error: generationError,
     startImport,
@@ -219,7 +219,9 @@ export const useImport = ({
     isPromptLoading,
     importData,
     promptPreview,
-    streamOutput,
+    streamOutput: {
+      htmlChunks: outputHtmlChunks,
+    },
     generationError,
     isComplete,
     missingCredentials,

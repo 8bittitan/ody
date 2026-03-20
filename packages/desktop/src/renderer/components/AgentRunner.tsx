@@ -45,7 +45,7 @@ export const AgentRunner = () => {
     isRunning,
     iteration,
     maxIterations,
-    output,
+    outputHtmlChunks,
     error: runError,
     clearOutput,
   } = useRunAgent(activeProjectPath);
@@ -265,7 +265,7 @@ export const AgentRunner = () => {
       </section>
 
       <AgentOutput
-        output={output}
+        outputHtmlChunks={outputHtmlChunks}
         error={runError}
         isRunning={isRunning}
         onClear={() => {
@@ -317,24 +317,21 @@ export const AgentRunner = () => {
           </div>
 
           <DialogFooter>
-            <button
-              type="button"
-              className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
+            <Button
+              variant="outline"
               onClick={() => {
                 setShowRunConfirm(false);
               }}
             >
               Cancel
-            </button>
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-accent-hover rounded-md px-3 py-2 text-sm"
+            </Button>
+            <Button
               onClick={() => {
                 void handleStart();
               }}
             >
               Start Agent
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -388,24 +385,22 @@ export const AgentRunner = () => {
           </div>
 
           <DialogFooter>
-            <button
-              type="button"
-              className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
+            <Button
+              variant="outline"
               onClick={() => {
                 setShowStopConfirm(false);
               }}
             >
               Keep Running
-            </button>
-            <button
-              type="button"
-              className="text-red border-red/35 hover:bg-red-bg rounded-md border px-3 py-2 text-sm"
+            </Button>
+            <Button
+              variant="destructive"
               onClick={() => {
                 void handleStop();
               }}
             >
               Stop Agent
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

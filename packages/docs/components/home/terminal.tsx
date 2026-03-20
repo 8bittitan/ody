@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const PRIMARY_MID = 'lab(58% -2 -22)';
 
@@ -14,31 +14,63 @@ function TypingText({
   text,
   delay = 0,
   speed = 45,
+  reducedMotion = false,
 }: {
   text: string;
   delay?: number;
   speed?: number;
+  reducedMotion?: boolean;
 }) {
   const [displayed, setDisplayed] = useState('');
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
+    if (reducedMotion) {
+      setDisplayed(text);
+      setStarted(true);
+      return;
+    }
+
     const timeout = setTimeout(() => setStarted(true), delay);
     return () => clearTimeout(timeout);
-  }, [delay]);
+  }, [delay, reducedMotion, text]);
 
   useEffect(() => {
+    if (reducedMotion) {
+      return;
+    }
+
     if (!started) return;
     if (displayed.length < text.length) {
       const timeout = setTimeout(() => setDisplayed(text.slice(0, displayed.length + 1)), speed);
       return () => clearTimeout(timeout);
     }
-  }, [displayed, started, text, speed]);
+  }, [displayed, reducedMotion, speed, started, text]);
 
   return <span>{displayed}</span>;
 }
 
-function BlinkingCursor() {
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    update();
+    mediaQuery.addEventListener('change', update);
+
+    return () => {
+      mediaQuery.removeEventListener('change', update);
+    };
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function BlinkingCursor({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <span
       style={{
@@ -48,22 +80,28 @@ function BlinkingCursor() {
         background: PRIMARY_MID,
         marginLeft: '2px',
         verticalAlign: 'text-bottom',
-        animation: 'blink 1s step-end infinite',
+        animation: reducedMotion ? 'none' : 'blink 1s step-end infinite',
       }}
     />
   );
 }
 
 export function Terminal() {
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [visibleLines, setVisibleLines] = useState(0);
 
   useEffect(() => {
+    if (prefersReducedMotion) {
+      setVisibleLines(COMMANDS.length);
+      return;
+    }
+
     const timeouts: ReturnType<typeof setTimeout>[] = [];
     COMMANDS.forEach((_, i) => {
       timeouts.push(setTimeout(() => setVisibleLines((v) => Math.max(v, i + 1)), i * 2200));
     });
     return () => timeouts.forEach(clearTimeout);
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <div
@@ -130,7 +168,10 @@ export function Terminal() {
       {/* Content */}
       <div className="min-h-65 px-5.5 pt-5 pb-6.5 text-sm leading-loose">
         {COMMANDS.slice(0, visibleLines).map((cmd, i) => (
-          <div key={i} style={{ animation: 'fadeInUp 0.3s ease-out' }}>
+          <div
+            key={i}
+            style={{ animation: prefersReducedMotion ? 'none' : 'fadeInUp 0.3s ease-out' }}
+          >
             <div>
               <span
                 className="text-[#6f8eb1] dark:text-[#aac3e2]"
@@ -138,23 +179,33 @@ export function Terminal() {
                   fontWeight: 500,
                 }}
               >
-                <TypingText text={cmd.prompt} delay={i * 2200} speed={40} />
+                <TypingText
+                  text={cmd.prompt}
+                  delay={i * 2200}
+                  speed={40}
+                  reducedMotion={prefersReducedMotion}
+                />
               </span>
             </div>
             <div
-              className="text-[#aaa] dark:text-[#4a5878]"
+              className="text-[#6b7280] dark:text-[#7f91b3]"
               style={{
                 paddingLeft: '16px',
                 transition: 'color 0.5s',
               }}
             >
-              <TypingText text={cmd.output} delay={i * 2200 + 900} speed={20} />
+              <TypingText
+                text={cmd.output}
+                delay={i * 2200 + 900}
+                speed={20}
+                reducedMotion={prefersReducedMotion}
+              />
             </div>
           </div>
         ))}
         <div style={{ marginTop: '4px' }}>
           <span className="text-[#6f8eb1] dark:text-[#aac3e2]">$ </span>
-          <BlinkingCursor />
+          <BlinkingCursor reducedMotion={prefersReducedMotion} />
         </div>
       </div>
     </div>

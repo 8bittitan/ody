@@ -3,15 +3,25 @@ import { RouterProvider } from '@tanstack/react-router';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from './components/ui/sonner';
+import { useAgentEventsBootstrap } from './hooks/useAgentEventsBootstrap';
+import { useTaskEventsBootstrap } from './hooks/useTaskEventsBootstrap';
 import { useTheme } from './hooks/useTheme';
 import { queryClient } from './lib/queryClient';
 import { router } from './router';
+
+const AppBootstraps = () => {
+  useAgentEventsBootstrap();
+  useTaskEventsBootstrap();
+
+  return null;
+};
 
 export const App = () => {
   useTheme();
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AppBootstraps />
       <ErrorBoundary title="Application crashed">
         <RouterProvider router={router} />
       </ErrorBoundary>

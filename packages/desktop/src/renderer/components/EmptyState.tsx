@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { Button } from './ui/button';
+
 type EmptyStateProps = {
   icon?: ReactNode;
   title: string;
@@ -23,13 +25,9 @@ export const EmptyState = ({
       <h3 className="text-light text-sm font-semibold tracking-[0.08em] uppercase">{title}</h3>
       <p className="text-mid mx-auto mt-2 max-w-md text-sm">{description}</p>
       {onAction && actionLabel ? (
-        <button
-          type="button"
-          className="bg-primary text-primary-foreground hover:bg-accent-hover mt-4 rounded-md px-3 py-1.5 text-xs font-medium"
-          onClick={onAction}
-        >
+        <Button size="sm" className="mt-4" onClick={onAction}>
           {actionLabel}
-        </button>
+        </Button>
       ) : null}
     </section>
   );

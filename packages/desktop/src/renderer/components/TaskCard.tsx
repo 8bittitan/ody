@@ -55,9 +55,22 @@ export const TaskCard = ({
         'group animate-fade-up bg-panel rounded-lg border p-3',
         isInProgress ? 'border-primary/40 shadow-[0_0_0_1px_rgb(0_245_212/12%)]' : 'border-edge',
         isCompleted ? 'opacity-70' : '',
-        onClick ? 'cursor-pointer' : '',
+        onClick ? 'cursor-pointer focus-visible:ring-primary/30 focus-visible:ring-2' : '',
       ].join(' ')}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       onClick={() => onClick?.(task)}
+      onKeyDown={(event) => {
+        if (!onClick) {
+          return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick(task);
+        }
+      }}
+      aria-label={onClick ? `Open task details for ${task.title}` : undefined}
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-light text-sm leading-snug font-semibold">{task.title}</h3>
@@ -94,7 +107,7 @@ export const TaskCard = ({
       ) : null}
 
       {isPending || isInProgress ? (
-        <div className="mt-3 flex gap-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+        <div className="mt-3 flex gap-1.5 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
           {isPending && (
             <>
               <Button

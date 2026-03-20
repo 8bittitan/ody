@@ -6,10 +6,10 @@ import { useImport } from '@/hooks/useImport';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useProjects } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
-import { toAnsiHtml } from '@/lib/ansi';
 import { Import } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 
+import { AnsiLogViewer } from './AnsiLogViewer';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -46,8 +46,6 @@ export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportPr
     config,
     onComplete: refreshTasks,
   });
-
-  const streamOutputHtml = useMemo(() => toAnsiHtml(streamOutput), [streamOutput]);
 
   useEffect(() => {
     if (!generationError) {
@@ -277,24 +275,20 @@ export const TaskImport = ({ config, onOpenAuth, onOpenTaskBoard }: TaskImportPr
           </div>
         ) : null}
 
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-dim text-xs tracking-[0.08em] uppercase">Generation Output</p>
-            <Button size="xs" variant="link" className="h-auto p-0" onClick={onOpenTaskBoard}>
-              Open Task Board
-            </Button>
-          </div>
-          {streamOutput.trim().length > 0 ? (
-            <pre
-              className="bg-background border-edge max-h-56 min-h-28 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200"
-              dangerouslySetInnerHTML={{ __html: streamOutputHtml }}
-            />
-          ) : (
-            <pre className="bg-background border-edge max-h-56 min-h-28 overflow-auto rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200">
-              {isGenerating ? 'Waiting for first output...' : 'No output yet.'}
-            </pre>
-          )}
-        </div>
+        <AnsiLogViewer
+          title="Generation Output"
+          htmlChunks={streamOutput.htmlChunks}
+          error={null}
+          isRunning={isGenerating}
+          emptyTitle="No output yet"
+          emptyDescription="Generate a task to stream output here."
+          loadingLabel="Waiting for first output"
+          actionLabel="Open Task Board"
+          onAction={onOpenTaskBoard}
+          className="bg-panel/90 border-edge flex min-h-0 flex-col rounded-lg border"
+          bodyClassName="max-h-56 min-h-28 overflow-auto p-3"
+          preClassName="bg-background border-edge rounded border p-2 font-mono text-[11px] whitespace-pre-wrap text-zinc-200"
+        />
       </div>
     </section>
   );

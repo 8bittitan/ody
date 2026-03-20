@@ -1,5 +1,3 @@
-import type { ComboboxOption } from '@/components/ui/combobox';
-import { MultiCombobox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -15,20 +13,21 @@ import {
   ScrollAreaThumb,
   ScrollAreaViewport,
 } from '@/components/ui/scroll-area';
+import { useRunAgent } from '@/hooks/useAgent';
+import { useConfig } from '@/hooks/useConfig';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useProjects } from '@/hooks/useProjects';
+import { useTasks } from '@/hooks/useTasks';
 import { api } from '@/lib/api';
 import type { TaskStatus, TaskSummary } from '@/types/ipc';
-import { ClipboardList, Search } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { useRunAgent } from '../hooks/useAgent';
-import { useConfig } from '../hooks/useConfig';
-import { useNotifications } from '../hooks/useNotifications';
-import { useProjects } from '../hooks/useProjects';
-import { useTasks } from '../hooks/useTasks';
 import { EmptyState } from './EmptyState';
 import { LoadingSpinner } from './LoadingSpinner';
 import { TaskCard } from './TaskCard';
 import { TaskDetailDialog } from './TaskDetailDialog';
+import { TaskFilters } from './TaskFilters';
 import { Button } from './ui/button';
 
 type TaskBoardProps = {
@@ -55,149 +54,75 @@ const COLUMN_META = {
   },
 } as const;
 
-type InProgressTaskCardProps = {
-  projectPath: string | null;
-  task: TaskSummary;
-  onClick: (task: TaskSummary) => void;
-  onRun: (task: TaskSummary) => void;
-  onEdit: (task: TaskSummary) => void;
-  onDelete: (task: TaskSummary) => void;
-};
-
-const InProgressTaskCard = ({
-  projectPath,
-  task,
-  onClick,
-  onRun,
-  onEdit,
-  onDelete,
-}: InProgressTaskCardProps) => {
-  const { stop, isRunning, outputPreview } = useRunAgent(projectPath);
-
-  return (
-    <TaskCard
-      task={task}
-      outputPreview={outputPreview}
-      isRunning={isRunning}
-      onClick={onClick}
-      onRun={onRun}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      onStop={() => {
-        void stop(false);
-      }}
-    />
-  );
-};
-
-const TaskBoardRunStatus = ({ projectPath }: { projectPath: string | null }) => {
-  const { isRunning, iteration, maxIterations } = useRunAgent(projectPath);
-
-  if (!isRunning) {
-    return null;
-  }
-
-  return (
-    <div className="text-dim border-edge bg-background/40 rounded-lg border px-3 py-2 text-xs">
-      Iteration {iteration} of {maxIterations || '∞'} -- Running...
-    </div>
-  );
-};
+const LARGE_COLUMN_THRESHOLD = 40;
 
 export const TaskBoard = ({
   onOpenPlan,
   onOpenArchive,
   onOpenEditor,
   labelFilter,
-  statusFilter,
-  onFiltersChange: _onFiltersChange,
+  statusFilter = 'all',
+  onFiltersChange,
 }: TaskBoardProps) => {
   const { activeProjectPath } = useProjects();
   const { tasks, loadTasks, isLoading } = useTasks();
   const { config } = useConfig();
-  const { start, isRunning: isRunActive } = useRunAgent(activeProjectPath);
+  const { start, stop, isRunning: isRunActive, outputPreview, iteration, maxIterations } =
+    useRunAgent(activeProjectPath);
   const { accent, warning, error } = useNotifications();
   const [search, setSearch] = useState('');
-  const [localLabelFilter, setLocalLabelFilter] = useState<string[]>([]);
-  const [localStatusFilter, setLocalStatusFilter] = useState<TaskStatus[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<TaskSummary | null>(null);
   const [detailTarget, setDetailTarget] = useState<TaskSummary | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [viewError, setViewError] = useState<string | null>(null);
 
-  const effectiveLabelFilter = useMemo<string[]>(() => {
-    if (labelFilter !== undefined) {
-      return [labelFilter];
-    }
-    return localLabelFilter;
-  }, [labelFilter, localLabelFilter]);
-
-  const effectiveStatusFilter = useMemo<TaskStatus[]>(() => {
-    if (statusFilter !== undefined && statusFilter !== 'all') {
-      return [statusFilter];
-    }
-    return localStatusFilter;
-  }, [statusFilter, localStatusFilter]);
-
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      const matchesLabel =
-        effectiveLabelFilter.length === 0 ||
-        task.labels.some((l) => effectiveLabelFilter.includes(l));
-      const matchesStatus =
-        effectiveStatusFilter.length === 0 || effectiveStatusFilter.includes(task.status);
-      return matchesLabel && matchesStatus;
-    });
-  }, [tasks, effectiveLabelFilter, effectiveStatusFilter]);
-
-  const filteredBySearch = useMemo(() => {
+  const computed = useMemo(() => {
     const query = search.trim().toLowerCase();
-
-    if (query.length === 0) {
-      return filteredTasks;
-    }
-
-    return filteredTasks.filter((task) => task.title.toLowerCase().includes(query));
-  }, [search, filteredTasks]);
-
-  const uniqueLabels = useMemo(() => {
-    const labels = new Set<string>();
+    const activeLabel = labelFilter ?? null;
+    const activeStatus = statusFilter === 'all' ? null : statusFilter;
+    const uniqueLabels = new Set<string>();
+    const grouped: Record<TaskStatus, TaskSummary[]> = {
+      pending: [],
+      in_progress: [],
+      completed: [],
+    };
+    const completedTasks: TaskSummary[] = [];
 
     for (const task of tasks) {
       for (const label of task.labels) {
-        labels.add(label);
+        uniqueLabels.add(label);
       }
+
+      if (task.status === 'completed') {
+        completedTasks.push(task);
+      }
+
+      if (activeLabel && !task.labels.includes(activeLabel)) {
+        continue;
+      }
+
+      if (activeStatus && task.status !== activeStatus) {
+        continue;
+      }
+
+      if (query.length > 0) {
+        const searchable = `${task.title}\n${task.description}\n${task.labels.join(' ')}`.toLowerCase();
+        if (!searchable.includes(query)) {
+          continue;
+        }
+      }
+
+      grouped[task.status].push(task);
     }
 
-    return Array.from(labels).sort((a, b) => a.localeCompare(b));
-  }, [tasks]);
-
-  const labelOptions = useMemo<ComboboxOption[]>(
-    () => uniqueLabels.map((l) => ({ label: l, value: l })),
-    [uniqueLabels],
-  );
-
-  const statusOptions = useMemo<ComboboxOption[]>(
-    () =>
-      (['pending', 'in_progress', 'completed'] as const).map((s) => ({
-        label: COLUMN_META[s].label,
-        value: s,
-      })),
-    [],
-  );
-
-  const groupedTasks = useMemo(
-    () => ({
-      pending: filteredBySearch.filter((task) => task.status === 'pending'),
-      in_progress: filteredBySearch.filter((task) => task.status === 'in_progress'),
-      completed: filteredBySearch.filter((task) => task.status === 'completed'),
-    }),
-    [filteredBySearch],
-  );
-  const completedTasks = useMemo(
-    () => tasks.filter((task) => task.status === 'completed'),
-    [tasks],
-  );
+    return {
+      grouped,
+      completedTasks,
+      labelOptions: [...uniqueLabels]
+        .sort((left, right) => left.localeCompare(right))
+        .map((label) => ({ label, value: label })),
+    };
+  }, [labelFilter, search, statusFilter, tasks]);
 
   const startTaskRun = async (task: TaskSummary) => {
     if (!activeProjectPath) {
@@ -211,7 +136,6 @@ export const TaskBoard = ({
 
     const iterations = typeof config?.maxIterations === 'number' ? config.maxIterations : 1;
     const autoCommit = typeof config?.autoCommit === 'boolean' ? config.autoCommit : false;
-    const startDescription = autoCommit ? 'Auto-commit enabled.' : undefined;
 
     try {
       const result = await start({
@@ -227,7 +151,7 @@ export const TaskBoard = ({
 
       accent({
         title: 'Task run started',
-        description: startDescription,
+        description: autoCommit ? 'Auto-commit enabled.' : undefined,
       });
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unable to start task run';
@@ -243,7 +167,7 @@ export const TaskBoard = ({
     try {
       const result = await api.tasks.delete([deleteTarget.filePath]);
       if (result.deleted.length > 0) {
-        error({ title: 'Task deleted', description: deleteTarget.title });
+        accent({ title: 'Task deleted', description: deleteTarget.title });
         await loadTasks();
       } else {
         error({ title: 'Task deletion failed' });
@@ -257,7 +181,7 @@ export const TaskBoard = ({
   };
 
   const archiveCompleted = async () => {
-    if (completedTasks.length === 0) {
+    if (computed.completedTasks.length === 0) {
       warning({ title: 'No completed tasks to archive' });
       setShowArchiveConfirm(false);
       return;
@@ -282,7 +206,6 @@ export const TaskBoard = ({
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Unable to archive tasks';
       error({ title: 'Archive failed', description: message });
-      return;
     }
   };
 
@@ -325,26 +248,31 @@ export const TaskBoard = ({
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <section className="border-edge bg-background/40 flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
-        <div className="relative max-w-sm flex-1">
-          <Search className="text-dim absolute top-2 left-2.5 size-3.5" />
-          <input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-            }}
-            placeholder="Search tasks"
-            className="bg-panel border-edge text-light placeholder:text-dim h-8 w-full rounded border pr-2 pl-8 text-sm"
-          />
+      <TaskFilters
+        search={search}
+        onSearchChange={setSearch}
+        labelOptions={computed.labelOptions}
+        selectedLabel={labelFilter ?? null}
+        onLabelChange={(value) => {
+          onFiltersChange?.({ label: value });
+        }}
+        selectedStatus={statusFilter}
+        onStatusChange={(value) => {
+          onFiltersChange?.({ status: value });
+        }}
+      />
+
+      <section className="flex items-center justify-between gap-2">
+        <div className="text-dim border-edge bg-background/40 rounded-lg border px-3 py-2 text-xs">
+          {isRunActive ? `Iteration ${iteration} of ${maxIterations || '∞'} - Running...` : 'Idle'}
         </div>
 
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="dark:text-amber dark:hover:bg-amber-bg dark:border-amber/30 dark:bg-background"
             onClick={() => {
-              if (completedTasks.length === 0) {
+              if (computed.completedTasks.length === 0) {
                 warning({ title: 'No completed tasks to archive' });
                 return;
               }
@@ -360,32 +288,10 @@ export const TaskBoard = ({
         </div>
       </section>
 
-      <section className="flex flex-wrap items-center gap-3">
-        <MultiCombobox
-          options={labelOptions}
-          value={effectiveLabelFilter}
-          onValueChange={(next) => {
-            setLocalLabelFilter(next);
-          }}
-          placeholder="Filter by label"
-          emptyMessage="No labels found."
-          className="max-w-xs min-w-[12rem] flex-1"
-        />
-        <MultiCombobox
-          options={statusOptions}
-          value={effectiveStatusFilter}
-          onValueChange={(next) => {
-            setLocalStatusFilter(next as TaskStatus[]);
-          }}
-          placeholder="Filter by status"
-          emptyMessage="No statuses found."
-          className="max-w-xs min-w-[12rem] flex-1"
-        />
-      </section>
-
       <section className="grid min-h-0 flex-1 gap-3 md:grid-cols-3">
         {(['pending', 'in_progress', 'completed'] as const).map((status) => {
-          const tasksForStatus = groupedTasks[status];
+          const tasksForStatus = computed.grouped[status];
+          const useContentVisibility = tasksForStatus.length >= LARGE_COLUMN_THRESHOLD;
 
           return (
             <div
@@ -412,37 +318,31 @@ export const TaskBoard = ({
               <ScrollArea className="min-h-0 flex-1">
                 <ScrollAreaViewport>
                   <ScrollAreaContent className="space-y-2 pb-1">
-                    {tasksForStatus.map((task, index) => (
+                    {tasksForStatus.map((task) => (
                       <div
                         key={task.filePath}
-                        className={index % 3 === 0 ? 'd1' : index % 3 === 1 ? 'd2' : 'd3'}
+                        style={useContentVisibility ? { contentVisibility: 'auto' } : undefined}
                       >
-                        {status === 'in_progress' ? (
-                          <InProgressTaskCard
-                            projectPath={activeProjectPath}
-                            task={task}
-                            onClick={setDetailTarget}
-                            onRun={(target) => {
-                              void startTaskRun(target);
-                            }}
-                            onEdit={(target) => {
-                              onOpenEditor(target.filePath);
-                            }}
-                            onDelete={setDeleteTarget}
-                          />
-                        ) : (
-                          <TaskCard
-                            task={task}
-                            onClick={setDetailTarget}
-                            onRun={(target) => {
-                              void startTaskRun(target);
-                            }}
-                            onEdit={(target) => {
-                              onOpenEditor(target.filePath);
-                            }}
-                            onDelete={setDeleteTarget}
-                          />
-                        )}
+                        <TaskCard
+                          task={task}
+                          outputPreview={status === 'in_progress' ? outputPreview : undefined}
+                          isRunning={status === 'in_progress' ? isRunActive : undefined}
+                          onClick={setDetailTarget}
+                          onRun={(target) => {
+                            void startTaskRun(target);
+                          }}
+                          onEdit={(target) => {
+                            onOpenEditor(target.filePath);
+                          }}
+                          onDelete={setDeleteTarget}
+                          onStop={
+                            status === 'in_progress'
+                              ? () => {
+                                  void stop(false);
+                                }
+                              : undefined
+                          }
+                        />
                       </div>
                     ))}
                     {tasksForStatus.length === 0 ? (
@@ -461,12 +361,7 @@ export const TaskBoard = ({
         })}
       </section>
 
-      <Dialog
-        open={showArchiveConfirm}
-        onOpenChange={(open) => {
-          setShowArchiveConfirm(open);
-        }}
-      >
+      <Dialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
         <DialogContent className="bg-panel border-edge max-w-lg">
           <DialogHeader>
             <DialogTitle>Archive completed tasks?</DialogTitle>
@@ -477,35 +372,20 @@ export const TaskBoard = ({
           </DialogHeader>
 
           <div className="max-h-52 space-y-1 overflow-auto pr-1">
-            {completedTasks.map((task) => (
-              <p
-                key={task.filePath}
-                className="border-edge text-light rounded border px-2 py-1 text-xs"
-              >
+            {computed.completedTasks.map((task) => (
+              <p key={task.filePath} className="border-edge text-light rounded border px-2 py-1 text-xs">
                 {task.title}
               </p>
             ))}
           </div>
 
           <DialogFooter>
-            <button
-              type="button"
-              className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
-              onClick={() => {
-                setShowArchiveConfirm(false);
-              }}
-            >
+            <Button variant="outline" onClick={() => setShowArchiveConfirm(false)}>
               Cancel
-            </button>
-            <button
-              type="button"
-              className="text-amber border-amber/30 hover:bg-amber-bg rounded-md border px-3 py-2 text-sm"
-              onClick={() => {
-                void archiveCompleted();
-              }}
-            >
+            </Button>
+            <Button variant="primary-outline" onClick={() => void archiveCompleted()}>
               Archive Tasks
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -522,31 +402,18 @@ export const TaskBoard = ({
           <DialogHeader>
             <DialogTitle>Delete task?</DialogTitle>
             <DialogDescription>
-              This removes the task file from disk and cannot be undone.
+              {deleteTarget
+                ? `This will permanently remove "${deleteTarget.title}".`
+                : 'This action cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
-
-          <p className="text-light border-edge rounded border p-2 text-sm">{deleteTarget?.title}</p>
-
           <DialogFooter>
-            <button
-              type="button"
-              className="text-mid hover:text-light border-edge rounded-md border px-3 py-2 text-sm"
-              onClick={() => {
-                setDeleteTarget(null);
-              }}
-            >
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
               Cancel
-            </button>
-            <button
-              type="button"
-              className="text-red border-red/35 hover:bg-red-bg rounded-md border px-3 py-2 text-sm"
-              onClick={() => {
-                void deleteTask();
-              }}
-            >
+            </Button>
+            <Button variant="destructive" onClick={() => void deleteTask()}>
               Delete
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -554,15 +421,9 @@ export const TaskBoard = ({
       <TaskDetailDialog
         task={detailTarget}
         open={detailTarget !== null}
-        onClose={() => {
-          setDetailTarget(null);
-        }}
-        onEdit={(filePath) => {
-          onOpenEditor(filePath);
-        }}
+        onClose={() => setDetailTarget(null)}
+        onEdit={onOpenEditor}
       />
-
-      <TaskBoardRunStatus projectPath={activeProjectPath} />
     </div>
   );
 };

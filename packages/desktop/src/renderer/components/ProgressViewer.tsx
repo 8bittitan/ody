@@ -108,24 +108,24 @@ export const ProgressViewer = ({ iteration, isRunning }: ProgressViewerProps) =>
         </Button>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="text-mid border-edge hover:text-light rounded border px-2 py-1 text-xs"
+          <Button
+            variant="outline"
+            size="xs"
             onClick={() => {
               void loadProgress();
             }}
           >
             Refresh
-          </button>
-          <button
-            type="button"
-            className="text-red border-red/35 hover:bg-red-bg rounded border px-2 py-1 text-xs"
+          </Button>
+          <Button
+            variant="destructive"
+            size="xs"
             onClick={() => {
               void clearProgress();
             }}
           >
             Clear Progress
-          </button>
+          </Button>
         </div>
       </header>
 

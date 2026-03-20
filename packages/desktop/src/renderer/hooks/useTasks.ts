@@ -1,45 +1,17 @@
 import { api } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import type { TaskState, TaskSummary } from '@/types/ipc';
-import type { QueryClient } from '@tanstack/react-query';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 import { useProjects } from './useProjects';
 
 const EMPTY_TASKS: TaskSummary[] = [];
 const EMPTY_STATES: TaskState[] = [];
 
-let taskChangeSubscriberCount = 0;
-let removeTaskChangeListener: (() => void) | null = null;
-
-const subscribeToTaskChanges = (queryClient: QueryClient) => {
-  taskChangeSubscriberCount += 1;
-
-  if (!removeTaskChangeListener) {
-    removeTaskChangeListener = api.tasks.onChanged(({ projectPath }) => {
-      void Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.list(projectPath) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.tasks.states(projectPath) }),
-      ]);
-    });
-  }
-
-  return () => {
-    taskChangeSubscriberCount = Math.max(0, taskChangeSubscriberCount - 1);
-
-    if (taskChangeSubscriberCount === 0 && removeTaskChangeListener) {
-      removeTaskChangeListener();
-      removeTaskChangeListener = null;
-    }
-  };
-};
-
 export const useTasks = () => {
   const queryClient = useQueryClient();
   const { activeProjectPath } = useProjects();
-
-  useEffect(() => subscribeToTaskChanges(queryClient), [queryClient]);
 
   const tasksQuery = useQuery({
     queryKey: queryKeys.tasks.list(activeProjectPath),

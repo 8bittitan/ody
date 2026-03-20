@@ -5,7 +5,7 @@ const PRIMARY = 'lab(88.4575% -1.94722 -16.9139)';
 export default function HomePage() {
   return (
     <div
-      className="relative min-h-screen overflow-hidden bg-gray-50 text-gray-600 dark:bg-[#0a0e18] dark:text-slate-600"
+      className="relative min-h-screen overflow-hidden bg-gray-50 text-gray-700 dark:bg-[#0a0e18] dark:text-slate-300"
       style={{
         transition:
           'background 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -33,21 +33,29 @@ export default function HomePage() {
           70% { transform: translate(1%, -1%); }
           90% { transform: translate(0%, 1%); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
+        }
       `}</style>
 
       {/* Noise grain overlay */}
       <div
-        className="pointer-events-none fixed inset-0 z-50 opacity-[0.03] transition-opacity duration-500"
+        className="pointer-events-none fixed inset-0 z-50 opacity-[0.02] transition-opacity duration-500 motion-reduce:hidden"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
           backgroundSize: '128px 128px',
-          animation: 'grainShift 0.5s steps(6) infinite',
+          animation: 'grainShift 1.6s steps(4) infinite',
         }}
       />
 
       {/* Background orbs */}
       <div
-        className="pointer-events-none fixed top-[-10%] right-[10%] size-125 rounded-[50%] opacity-[0.1] blur-[60px]"
+        className="pointer-events-none fixed top-[-10%] right-[10%] size-125 rounded-[50%] opacity-[0.08] blur-[60px] motion-reduce:hidden"
         style={{
           background: `radial-gradient(circle, ${PRIMARY} 0%, transparent 70%)`,
           animation: 'softFloat 10s ease-in-out infinite',
@@ -55,6 +63,7 @@ export default function HomePage() {
         }}
       />
       <div
+        className="motion-reduce:hidden"
         style={{
           position: 'fixed',
           bottom: '-15%',
@@ -68,6 +77,7 @@ export default function HomePage() {
           pointerEvents: 'none',
           animation: 'softFloat 12s ease-in-out infinite 3s',
           transition: 'opacity 0.5s',
+          contentVisibility: 'auto',
         }}
       />
 
@@ -114,7 +124,7 @@ export default function HomePage() {
             <br />
             <span className="text-[#6f8eb1] dark:text-[#aac3e2]">autonomous agents</span>
           </h1>
-          <p className="max-w-[65ch] leading-relaxed text-[#777] transition-colors duration-500 dark:text-[#5a6a88]">
+          <p className="max-w-[65ch] leading-relaxed text-[#616161] transition-colors duration-500 dark:text-[#8f9fbe]">
             Ody is a CLI that orchestrates AI coding agents. Point it at a task, and it loops until
             the work is done. No babysitting required.
           </p>
@@ -124,7 +134,7 @@ export default function HomePage() {
         <Terminal />
 
         {/* Feature grid */}
-        <div className="mb-18 grid grid-cols-2 gap-3">
+        <div className="mb-18 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {[
             { title: 'Multi-backend', desc: 'OpenCode, Claude, Codex. Pick your engine.' },
             { title: 'Auto-loop', desc: 'Set iterations and let it run to completion.' },
@@ -152,7 +162,7 @@ export default function HomePage() {
                 {f.title}
               </div>
               <div
-                className="dark:text-gray-[#4a5878] text-xs text-gray-400 transition-colors duration-500"
+                className="text-xs text-gray-500 transition-colors duration-500 dark:text-[#8595b2]"
                 style={{
                   lineHeight: 1.6,
                 }}

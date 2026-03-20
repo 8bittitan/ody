@@ -1,17 +1,44 @@
-import { stripAnsi } from '@/lib/ansi';
+import { appendAnsiHtml, createAnsiRenderState, stripAnsi, type AnsiRenderState } from '@/lib/ansi';
 import type { AgentJobIdentity, AgentJobKey, AgentStatus } from '@/types/ipc';
 import type { StateCreator } from 'zustand';
 
 import type { AppStore } from '../index';
 
 const MAX_OUTPUT_PREVIEW_LINES = 6;
+const MAX_OUTPUT_BYTES = 256 * 1024;
+const MAX_OUTPUT_CHUNKS = 400;
+const TRUNCATED_OUTPUT_HTML =
+  '<span style="color:var(--muted-foreground);font-style:italic">... earlier output truncated ...</span>\n';
 
-const appendOutputPreview = (currentPreview: string, chunk: string) => {
-  const combined = `${currentPreview}${stripAnsi(chunk)}`
-    .replaceAll('\r\n', '\n')
-    .replaceAll('\r', '\n');
-  const lines = combined.split('\n').filter((line) => line.length > 0);
-  return lines.slice(-MAX_OUTPUT_PREVIEW_LINES).join('\n');
+type OutputPreviewState = {
+  lines: string[];
+  partialLine: string;
+};
+
+const appendOutputPreview = (currentPreview: OutputPreviewState, chunk: string): OutputPreviewState => {
+  const normalized = stripAnsi(chunk).replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  const segments = normalized.split('\n');
+  const lines = [...currentPreview.lines];
+  let partialLine = currentPreview.partialLine;
+
+  for (const [index, segment] of segments.entries()) {
+    partialLine += segment;
+
+    if (index === segments.length - 1) {
+      continue;
+    }
+
+    if (partialLine.length > 0) {
+      lines.push(partialLine);
+    }
+
+    partialLine = '';
+  }
+
+  return {
+    lines: lines.slice(-MAX_OUTPUT_PREVIEW_LINES),
+    partialLine,
+  };
 };
 
 export type AgentJobState = AgentJobIdentity & {
@@ -19,8 +46,13 @@ export type AgentJobState = AgentJobIdentity & {
   iteration: number;
   maxIterations: number;
   taskFiles: string[];
-  output: string;
+  outputHtmlChunks: string[];
+  outputChunkSizes: number[];
   outputPreview: string;
+  outputPreviewState: OutputPreviewState;
+  totalOutputBytes: number;
+  isOutputTruncated: boolean;
+  ansiState: AnsiRenderState;
   isComplete: boolean;
   error: string | null;
 };
@@ -41,8 +73,16 @@ export type AgentSlice = {
 
 const createJobState = (status: AgentStatus): AgentJobState => ({
   ...status,
-  output: '',
+  outputHtmlChunks: [],
+  outputChunkSizes: [],
   outputPreview: '',
+  outputPreviewState: {
+    lines: [],
+    partialLine: '',
+  },
+  totalOutputBytes: 0,
+  isOutputTruncated: false,
+  ansiState: createAnsiRenderState(),
   isComplete: false,
   error: null,
 });
@@ -67,6 +107,44 @@ export const selectAgentJob = (jobs: Record<AgentJobKey, AgentJobState>, jobKey:
   }
 
   return jobs[jobKey] ?? null;
+};
+
+const appendAgentOutput = (current: AgentJobState, chunk: string): AgentJobState => {
+  const chunkBytes = Buffer.byteLength(chunk, 'utf8');
+  const rendered = appendAnsiHtml(chunk, current.ansiState);
+  const previewState = appendOutputPreview(current.outputPreviewState, chunk);
+  const outputHtmlChunks = [...current.outputHtmlChunks, rendered.html];
+  const outputChunkSizes = [...current.outputChunkSizes, chunkBytes];
+  let totalOutputBytes = current.totalOutputBytes + chunkBytes;
+  let isOutputTruncated = current.isOutputTruncated;
+
+  while (
+    outputHtmlChunks.length > 1 &&
+    (totalOutputBytes > MAX_OUTPUT_BYTES || outputHtmlChunks.length > MAX_OUTPUT_CHUNKS)
+  ) {
+    outputHtmlChunks.shift();
+    totalOutputBytes -= outputChunkSizes.shift() ?? 0;
+    isOutputTruncated = true;
+  }
+
+  if (isOutputTruncated) {
+    if (outputHtmlChunks[0] !== TRUNCATED_OUTPUT_HTML) {
+      outputHtmlChunks.unshift(TRUNCATED_OUTPUT_HTML);
+    }
+  } else if (outputHtmlChunks[0] === TRUNCATED_OUTPUT_HTML) {
+    outputHtmlChunks.shift();
+  }
+
+  return {
+    ...current,
+    outputHtmlChunks,
+    outputChunkSizes,
+    outputPreview: previewState.lines.join('\n'),
+    outputPreviewState: previewState,
+    totalOutputBytes,
+    isOutputTruncated,
+    ansiState: rendered.state,
+  };
 };
 
 export const createAgentSlice: StateCreator<AppStore, [], [], AgentSlice> = (set) => ({
@@ -135,9 +213,7 @@ export const createAgentSlice: StateCreator<AppStore, [], [], AgentSlice> = (set
         jobs: {
           ...state.jobs,
           [job.jobKey]: {
-            ...current,
-            output: current.output + chunk,
-            outputPreview: appendOutputPreview(current.outputPreview, chunk),
+            ...appendAgentOutput(current, chunk),
           },
         },
       };
@@ -192,8 +268,16 @@ export const createAgentSlice: StateCreator<AppStore, [], [], AgentSlice> = (set
           ...state.jobs,
           [jobKey]: {
             ...current,
-            output: '',
+            outputHtmlChunks: [],
+            outputChunkSizes: [],
             outputPreview: '',
+            outputPreviewState: {
+              lines: [],
+              partialLine: '',
+            },
+            totalOutputBytes: 0,
+            isOutputTruncated: false,
+            ansiState: createAnsiRenderState(),
           },
         },
       };

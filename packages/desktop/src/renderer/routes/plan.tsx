@@ -18,7 +18,7 @@ function PlanPage() {
   const { activeProjectPath } = useProjects();
   const { loadTasks } = useTasks();
   const {
-    output: planStreamOutput,
+    outputHtmlChunks: planOutputHtmlChunks,
     isRunning: isPlanGenerating,
     isComplete,
     error: planError,
@@ -61,7 +61,7 @@ function PlanPage() {
       <div className="grid h-full gap-3 lg:grid-cols-[1.25fr_0.75fr]">
         <PlanCreator isGenerating={isPlanGenerating} resetStream={resetPlanStream} />
         <GenerationOutput
-          streamOutput={planStreamOutput}
+          outputHtmlChunks={planOutputHtmlChunks}
           isGenerating={isPlanGenerating}
           onOpenTaskBoard={() => {
             navigate({ to: '/tasks' });
